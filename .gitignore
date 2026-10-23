@@ -1,0 +1,10 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.dsh-mattskillsdeck-cache/
+tmp/
+.idea/
+.vscode/
+.DS_Store
+*.log
