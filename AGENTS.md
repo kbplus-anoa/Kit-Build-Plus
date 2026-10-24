@@ -24,7 +24,7 @@ research  # 其他情况
 .venv/bin/python -m uvicorn src.main:app --host 127.0.0.1 --port 8848
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8848/
 flake8 .
-<测试代码待定>
+.venv/bin/python -m pytest
 
 ## 约定
 每功能一个文件夹{feature}/，每个文件在{feature}/INDEX.md备注（包括Docstring），不在{feature}/外创建相关文件

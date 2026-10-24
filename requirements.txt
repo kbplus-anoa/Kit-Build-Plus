@@ -1,0 +1,8 @@
+# Kit-Build-Plus 运行与开发依赖（版本已在本机 .venv 验证）
+fastapi==0.162.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.1
+python-multipart==0.0.20
+httpx==0.28.1
+pytest==9.1.1
+flake8==7.4.1

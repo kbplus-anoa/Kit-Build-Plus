@@ -116,7 +116,8 @@ Kit-Build 概念图的教师角色由 LLM 承担：AI 从教材抽目标图并�
 
 ## 项目结构
 
-七个 feature + 两个共享层。**feature 之间禁止 import，只走 contract-share**。
+七个 feature（六个业务 feature + `contract-share/` 契约层，与 `README_PLAN.md` 第 7 节编号一致）
++ 一个前端共享层 `ui-share/`。**feature 之间禁止 import，只走 contract-share**。
 
 | 目录 | 职责 | 不做 |
 |---|---|---|
