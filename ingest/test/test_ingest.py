@@ -5,7 +5,7 @@ import pytest
 import detect
 import epub
 import ocr
-import service
+import ingest_service as service
 
 
 def test_按魔数识别_pdf(tmp_path):
