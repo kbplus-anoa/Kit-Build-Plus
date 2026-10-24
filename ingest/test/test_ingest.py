@@ -70,3 +70,37 @@ def test_扫描判定_文本稀疏算扫描件():
 def _scanned(pages):
     import pdf
     return pdf._looks_scanned(pages)
+
+
+def test_从结果包取出_markdown():
+    import io
+    import zipfile
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("out/a.md", "# 标题")
+        z.writestr("out/b.md", "正文")
+    got = ocr.markdown_from_zip(buf.getvalue())
+    assert "标题" in got and "正文" in got
+
+
+def test_结果包无_markdown_时返回空串():
+    import io
+    import zipfile
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("out/a.json", "{}")
+    assert ocr.markdown_from_zip(buf.getvalue()) == ""
+
+
+def test_批次结果为数组时取第一条():
+    body = {"data": {"extract_result": [{"state": "done"}, {"state": "pending"}]}}
+    assert ocr._first_result(body)["state"] == "done"
+
+
+def test_批次结果为空时不抛错():
+    assert ocr._first_result({"data": {}}) == {}
+
+
+def test_有_token_时不报未配置(monkeypatch):
+    monkeypatch.setenv("MINERU_TOKEN", "dummy-token")
+    assert ocr._token() == "dummy-token"
