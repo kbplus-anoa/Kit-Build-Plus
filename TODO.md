@@ -4,17 +4,18 @@
 任务版，只留两轮。每轮整体重写。复选框可由 agent 勾选。
 
 ## 上一轮
-- [x] `kit`：裁定契约 + 冻结 + 拆 kit + SQLite 留档（方案 2）
-- [x] 契约新增 `adjudication.py`：Adjudication / AdjudicationLog / freeze / is_locked
-- [x] `kit` 三个纯函数模块：freeze / split / store，加编排入口
-- [x] 驳回项与接受项一并落库，词表整份存，不从用量反推
-- [x] 拆 kit 只给被命题用到的零件，避免空白干扰项
+- [x] 契约补 `Submission` 关联键（被试/教材/场次）与 `Draft`
+- [x] 契约加 `MapUsagePort` + `locked_by_usage`，kit 不反向依赖 rebuild
+- [x] `rebuild`：零件校验、草稿落库、提交落库、草稿覆盖与提交后删除
+- [x] `rebuild/usage.py` 实现 MapUsagePort，查提交表回答"是否被用过"
+- [x] `kit/lock.py`：改图前门槛，锁定即拒改
+- [x] 端到端：裁定 → 冻结 → 拆 kit → 提交 → 版本自动锁定
 
 ## 现在
-- [ ] `rebuild`：学生组装与提交（契约 `Submission` 已就绪）
-- [ ] 等用户：`rebuild` 的草稿保存要不要落库（还是只存内存）
-- [ ] 等用户：`is_locked` 的"学生用过"如何判定——查提交表还是人工标记
+- [ ] `score`：命题级查表、四类错误、报告（契约 `ScoreResult` 已就绪）
+- [ ] 等用户：`score` 的四类错误是否需要给出每条错误链的置信度/来源
 - [ ] 等用户：`SPEC.md` §待决策 2 条（内容维度取值、TAM 中文量表条目）
 - [ ] 等用户：扫描件云解析失败时中止还是降级为"无文本"
+- [ ] 等用户：`ui-share/` 与 `src/` 路由层何时动工（当前 0 行 UI）
 
 <!-- /@zone code -->
