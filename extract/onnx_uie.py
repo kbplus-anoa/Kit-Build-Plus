@@ -131,6 +131,52 @@ def _pair(starts, ends):
     return paired
 
 
+def raw_to_triples(raw: list[dict], vocab: triple.Vocab,
+                   text: str = "") -> list[triple.TripleCandidate]:
+    """UIE 原始输出转契约三元组；text 为空时 span 须自带 text 字段。
+
+    兼容两种输出：本适配器的 span 结构，以及 PaddleNLP 的
+    {连接词: [{text, probability}...]} 结构。
+    """
+    if _has_text(raw):
+        return _from_text(raw, vocab)
+    return to_triples(raw, text, vocab)
+
+
+def _has_text(raw: list[dict]) -> bool:
+    for entry in raw:
+        for _, spans in (entry or {}).items():
+            for span in spans or []:
+                if span.get("text") is not None:
+                    return True
+    return False
+
+
+def _from_text(raw: list[dict],
+               vocab: triple.Vocab) -> list[triple.TripleCandidate]:
+    allowed = set(vocab.connections)
+    out: list[triple.TripleCandidate] = []
+    for entry in raw:
+        for connection, spans in (entry or {}).items():
+            if connection not in allowed:
+                continue
+            nodes = [s for s in (spans or []) if s.get("text")]
+            for head in nodes:
+                for tail in nodes:
+                    if head is tail:
+                        continue
+                    out.append(triple.TripleCandidate(
+                        head=head["text"], connection=connection,
+                        tail=tail["text"],
+                        confidence=_conf(head, tail)))
+    return out
+
+
+def _conf(head: dict, tail: dict) -> float:
+    return float(min(head.get("probability", 0.5),
+                     tail.get("probability", 0.5)))
+
+
 def to_triples(raw: list[dict], text: str,
                vocab: triple.Vocab) -> list[triple.TripleCandidate]:
     """ONNX 输出转契约三元组：同连接词下的 span 两两成对。"""

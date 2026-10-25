@@ -3,9 +3,9 @@ import json
 import pytest
 
 import extract_service as service
+import onnx_uie
 import schema
 import triple
-import uie
 import vocab as vocab_mod
 import window
 
@@ -78,7 +78,7 @@ def test_越界连接词被丢弃():
     nodes = [{"text": "记忆", "probability": 0.9},
              {"text": "编码", "probability": 0.8}]
     raw = [{"属于": nodes, "包含": [{"text": "记忆"}]}]
-    got = uie.raw_to_triples(raw, make_vocab())
+    got = onnx_uie.raw_to_triples(raw, make_vocab())
     assert {c.connection for c in got} == {"属于"}
 
 
@@ -86,7 +86,7 @@ def test_同一对概念生成两条有向命题():
     nodes = [{"text": "记忆", "probability": 0.9},
              {"text": "编码", "probability": 0.8}]
     raw = [{"属于": nodes}]
-    got = uie.raw_to_triples(raw, make_vocab())
+    got = onnx_uie.raw_to_triples(raw, make_vocab())
     assert len(got) == 2
     assert {c.head for c in got} == {"记忆", "编码"}
 
@@ -107,7 +107,7 @@ def test_引擎收到的是词表_schema():
     assert engine.calls[0][1] == {"概念": ["属于", "导致"]}
 
 
-def test_未装_paddlenlp_时明确报错():
-    adapter = uie.UieExtractor()
-    with pytest.raises(uie.UieUnavailable):
-        adapter.extract("文本", {"概念": ["属于"]})
+def test_缺权重时明确报错(tmp_path, monkeypatch):
+    monkeypatch.setenv("KBP_UIE_DIR", str(tmp_path))
+    with pytest.raises(onnx_uie.OnnxUnavailable):
+        service.extract("文本", make_vocab())
