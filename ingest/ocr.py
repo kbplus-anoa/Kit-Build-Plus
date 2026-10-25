@@ -1,7 +1,9 @@
+import http.client
 import io
 import json
 import os
 import time
+import urllib.parse
 import urllib.request
 import zipfile
 
@@ -66,12 +68,25 @@ def request_upload(file_name: str) -> tuple[str, str]:
 
 
 def put_file(upload_url: str, path: str) -> None:
-    """第二步：把本地文件 PUT 到预签名地址，不得带 Authorization 头。"""
+    """第二步：把本地文件 PUT 到预签名地址。
+
+    OSS 预签名把签名算进了请求头，因此不得附加 Content-Type 或 Authorization：
+    urllib 会自作主张加 Content-Type，导致 403，故此处直接用 http.client。
+    """
+    parsed = urllib.parse.urlsplit(upload_url)
+    conn_cls = http.client.HTTPSConnection if parsed.scheme == "https" \
+        else http.client.HTTPConnection
+    target = parsed.path + ("?" + parsed.query if parsed.query else "")
     blob = open(path, "rb").read()
-    req = urllib.request.Request(upload_url, data=blob, method="PUT")
-    with urllib.request.urlopen(req, timeout=_timeout()) as resp:
+    conn = conn_cls(parsed.netloc, timeout=_timeout())
+    try:
+        conn.request("PUT", target, body=blob)
+        resp = conn.getresponse()
+        resp.read()
         if resp.status not in (200, 201):
             raise MinerUUnavailable("上传失败，状态 " + str(resp.status))
+    finally:
+        conn.close()
 
 
 def poll(batch_id: str) -> dict:
