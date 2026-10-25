@@ -59,3 +59,14 @@ def test_驳回项取函数签名稳定():
 def test_锁版本判定签名稳定():
     assert list(inspect.signature(adjudication.is_locked).parameters) == [
         "map_version", "used_by_students"]
+
+
+def test_用量协议只暴露_is_used():
+    names = [n for n in dir(adjudication.MapUsagePort) if not n.startswith("_")]
+    assert "is_used" in names
+
+
+def test_注入判定签名稳定():
+    assert list(
+        inspect.signature(adjudication.locked_by_usage).parameters) == [
+        "map_version", "usage"]

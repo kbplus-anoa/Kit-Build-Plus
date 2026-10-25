@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Protocol
 
 from targetmap import TargetMap
 from triple import TripleCandidate, Vocab
@@ -49,4 +50,18 @@ def freeze(log: AdjudicationLog, map_version: str) -> TargetMap:
 
 def is_locked(map_version: str, used_by_students: bool) -> bool:
     """纯函数契约：该版本是否已锁死（有学生用过即不可改）。"""
+    ...
+
+
+class MapUsagePort(Protocol):
+    """行为契约：由存储层回答"某版本是否已被学生用过"。
+
+    kit 不反向依赖 rebuild：调用方注入本协议的实现（查提交表或任何等价来源）。
+    """
+
+    def is_used(self, map_version: str) -> bool: ...
+
+
+def locked_by_usage(map_version: str, usage: MapUsagePort) -> bool:
+    """纯函数契约：通过注入的用量来源判定锁死，版本为空时视为锁定。"""
     ...
