@@ -39,8 +39,13 @@ def connect(db_path: str) -> sqlite3.Connection:
     if db_path != ":memory:":
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path, check_same_thread=False)
-    conn.executescript(SCHEMA)
+    ensure(conn)
     return conn
+
+
+def ensure(conn: sqlite3.Connection) -> None:
+    """在已有连接上建表，供装配层把多个 feature 的表放进同一个库。"""
+    conn.executescript(SCHEMA)
 
 
 def save(conn: sqlite3.Connection, draft: submission.Draft) -> None:

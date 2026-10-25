@@ -116,7 +116,8 @@ Kit-Build 概念图的教师角色由 LLM 承担：AI 从教材抽目标图并�
 
 ## 项目结构
 
-七个 feature（六个业务 feature + `contract-share/` 契约层，与 `README_PLAN.md` 第 7 节编号一致）
+八个 feature（六个业务 feature + `quiz/` 测验作答 + `contract-share/` 契约层，
+与 `README_PLAN.md` 第 7 节编号一致，`quiz` 为实施期新增）
 + 一个前端共享层 `ui-share/`。**feature 之间禁止 import，只走 contract-share**。
 
 | 目录 | 职责 | 不做 |
@@ -126,6 +127,7 @@ Kit-Build 概念图的教师角色由 LLM 承担：AI 从教材抽目标图并�
 | `kit/` | 人工裁定 + 冻结 + 拆 kit | 不评分、不渲染 |
 | `rebuild/` | 学生组装与提交 | **不做任何评分或对错提示** |
 | `score/` | 命题级查表、四类错误、报告 | 不做图匹配、不改目标图 |
+| `quiz/` | 题目与整卷作答、判对、百分制 | **不导出**，导出归 export |
 | `export/` | CSV 导出（单/多/全选） | **不重新算分**，只读 score 的结果 |
 | `contract-share/` | 契约：类型、字段语义、纯函数签名、Protocol | **无实现、无 IO、无业务转换** |
 | `ui-share/` | 组件：canvas/layout/atoms/styles | **无业务逻辑，不引用 contract-share 的业务类型** |
