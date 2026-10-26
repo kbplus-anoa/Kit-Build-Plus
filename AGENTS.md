@@ -49,6 +49,7 @@ kbp/{feature}/*之间禁止import彼此
 测试失败后先尝试修复，连续失败两次则停止
 重构/拆分测试：先跑现有测试保证原来可通过，拆分后再次测试观察功能是否正常
 
+agent写入文档时需要遵守写作风格：极简，除html写权限标签与#分层标签外无任何排版修饰。面向agent，省略不重要信息，保证上下文不被污染，没有跨文件与文件内引用（即无类似“见第三节”“见TASK.md”）
 创建文档参考该文档.md.tpl的结构与写作风格
 实现feature前，须先创建并完善{WHY,DESIGN,TASKS}.md，其中若不涉及用户体验或UI设计，可不写DESIGN.md
 
@@ -84,9 +85,9 @@ PEP8
 
 ### Git Commit 要求
 例：git add -A && git commit -m "feat: 新增重建页拖拽对齐（prompt: 图形可拖拽拼合）"
-提交信息格式：<类型>: <简述>（来源: <prompt 简述>）
+提交信息格式：{类型}: {简述}（来源: {prompt 简述}）
 类型：feat/fix/refactor/docs/test/chore
-实验任务：开exp/<名字>分支
+实验任务：开exp/{名字}分支
 .gitignore 必含 .env、.venv/、__pycache__/；密钥、目标图缓存不入库
 提交须包括测试
 
@@ -103,6 +104,6 @@ KB-Mixed
 当且仅当：
 新增的每条命令、路径、版本都跑过且有输出；
 .venv/bin/python -m pytest 退出码 0；
-涉及 `kbp/api/` 时服务能起，`GET /` 返 200；
+涉及 kbp/api/ 时服务能起，GET / 返 200；
 
 <!-- /@zone user -->
