@@ -23,7 +23,7 @@ research  # 其他情况
 .venv/bin/python -m pip install -r requirements.txt
 .venv/bin/python -m uvicorn kbp.api.main:app --host 127.0.0.1 --port 8848
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8848/
-flake8 .
+.venv/bin/python -m flake8 .
 .venv/bin/python -m pytest
 
 ## 约定
