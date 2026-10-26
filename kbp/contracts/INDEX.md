@@ -8,10 +8,11 @@
 | `textdoc.py` | TextDoc、IngestPort | ingest → extract、kit |
 | `triple.py` | Vocab、TripleCandidate、ExtractionResult、in_vocab | extract → kit |
 | `extractconfig.py` | ExtractConfig、PROVIDERS、config_error、key_env、default_config | 用户配置 → extract、api |
-| `extraction.py` | ExtractionRecord、ExtractPort | extract → kit（留档） |
+| `extraction.py` | ExtractionRecord、ExtractPort、ExtractionStore | extract → kit（留档）；存储协议按批次与原文指纹查，可回填冻结图的版本与指纹 |
 | `quality.py` | Signal、QualityReport、assess 签名 | extract → api（抽崩体检） |
 | `adjudication.py` | Adjudication、AdjudicationLog、MapUsagePort | kit → rebuild（反向注入） |
 | `targetmap.py` | Concept、Proposition、TargetMap、Kit、content_fingerprint | kit → rebuild、score |
+| `targetbank.py` | BankEntry、check_entry、same_map、TargetMapBank 协议 | kit → kit 存储与 api（题库命中）；来源枚举 adjudicated / auto |
 | `submission.py` | 四元关联键 `KEY_FIELDS`、`check_key`、SubmittedProposition、Submission、Draft、模式与时点枚举 | rebuild → score、quiz、export |
 | `report.py` | ErrorChain、ScoreResult、四类错误枚举 | score → export |
 | `quizsheet.py` | Question、Answer、QuizRecord | quiz → export |
@@ -38,6 +39,8 @@
 | `submission` | 关联键改四元 `(participant_id, material_id, time_point, submit_seq)`，加 `check_key`；`Submission` 加 `fingerprint` / `time_point` / `submit_seq` | 同一人同一教材同一时点可多次提交，靠序号区分（D09） |
 | `quizsheet.QuizRecord` | 去 `session`，改四元键 | 与提交表同键对齐 |
 | `exportcsv.SubjectRow` / `QuestionRow` | 关联键改四元 | 两张表可按同一键联结 |
+| `targetbank` | 整套（来源枚举、`check_entry`、`same_map`、`TargetMapBank`） | 题库命中与冻结图落库（D02）；实现在 kit |
+| `extraction` | 加 `map_version` / `fingerprint` 回填字段与 `ExtractionStore` | 留档要能追溯"这条命题出自哪张图" |
 
 全部有默认值，向后兼容。
 

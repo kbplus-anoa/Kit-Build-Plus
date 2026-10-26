@@ -52,8 +52,8 @@ TAM 已通：GET /api/tam/items 出 14 题，POST /api/tam/alpha 按构念算 α
 
 - [x] 落 D09 四元关联键
 - [x] 落 D04 FMS 0–100
-- [ ] 新契约 targetbank：按教材与词表版本登记、按内容指纹查已冻结目标图
-- [ ] extraction 契约补存储语义
+- [x] 新契约 targetbank：按教材与词表版本登记、按内容指纹查已冻结目标图
+- [x] extraction 契约补存储语义
 
 ### 阶段 2 kit 落库与题库命中
 

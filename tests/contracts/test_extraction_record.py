@@ -49,6 +49,23 @@ def test_填好地址与模型即可用():
     assert extractconfig.config_error(cfg) == ""
 
 
+def test_留档可回填冻结图的版本与指纹():
+    record = make_record()
+    assert (record.map_version, record.fingerprint) == ("", "")
+    filled = extraction.ExtractionRecord(
+        batch_id=record.batch_id, vocab=record.vocab, config=record.config,
+        text_sha256=record.text_sha256, chars=record.chars,
+        sections=record.sections, raw=record.raw, triples=record.triples,
+        created_at=record.created_at, map_version="v3", fingerprint="fp3")
+    assert (filled.map_version, filled.fingerprint) == ("v3", "fp3")
+
+
+def test_留档存储协议方法名固定():
+    names = [n for n in extraction.ExtractionStore.__dict__
+             if not n.startswith("_")]
+    assert names == ["save", "load", "by_text", "attach_map"]
+
+
 def test_指纹签名稳定():
     assert list(inspect.signature(
         targetmap.content_fingerprint).parameters) == ["concepts", "propositions"]

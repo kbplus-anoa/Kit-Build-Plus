@@ -22,6 +22,8 @@ class ExtractionRecord:
     raw: str  # 模型的原始输出（逐段拼接的 json 文本）；可空（全部为空内容时为空串）
     triples: tuple[TripleCandidate, ...]  # 规范化后的候选三元组；可为空元组
     created_at: str  # 抽取时间，ISO 8601；不可空
+    map_version: str = ""  # 冻结成图后的版本号；可空（尚未冻结时为空串）
+    fingerprint: str = ""  # 冻结成图后的内容指纹；可空（尚未冻结时为空串）
 
 
 class ExtractPort(Protocol):
@@ -33,3 +35,28 @@ class ExtractPort(Protocol):
 
     def extract(self, text: str, vocab: Vocab,
                 config: ExtractConfig) -> tuple[TripleCandidate, ...]: ...
+
+
+class ExtractionStore(Protocol):
+    """行为契约：抽取留档的存储。
+
+    留档用于追溯与回调基线，不进 CSV；原文正文不在这里存，
+    同一份教材只由 ingest 缓存一次（D10 的缓存与这里不是同一对象）。
+    """
+
+    def save(self, record: ExtractionRecord) -> None:
+        """写一条留档；同一批次重复写须拒绝。"""
+        ...
+
+    def load(self, batch_id: str) -> ExtractionRecord | None:
+        """按批次读回；没有返回 None。"""
+        ...
+
+    def by_text(self, text_sha256: str) -> tuple[ExtractionRecord, ...]:
+        """同一份原文的全部抽取批次，按入库先后排列；没有返回空元组。"""
+        ...
+
+    def attach_map(self, batch_id: str, map_version: str,
+                   fingerprint: str) -> None:
+        """留档与冻结后的图对账：回填版本号与指纹；批次不存在须拒绝。"""
+        ...
