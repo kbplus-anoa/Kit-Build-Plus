@@ -35,5 +35,8 @@ def fms(result: ScoreResult) -> float:
 
     量纲 0~100（文献口径），分母为 0 时取 0.0；保留 4 位小数。
     派生量不存库，取用时才算，避免锁死公式。
+    实现放在契约里只此一份：score 与 export 都调这里，避免两处除法漂移。
     """
-    ...
+    if result.total_propositions <= 0:
+        return 0.0
+    return round(result.correct_propositions / result.total_propositions * 100, 4)

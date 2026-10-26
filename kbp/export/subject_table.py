@@ -1,4 +1,5 @@
 import kbp.contracts.exportcsv
+import kbp.contracts.report
 import kbp.contracts.submission
 
 
@@ -60,5 +61,7 @@ def _row(r) -> tuple:
 
 
 def _fms(correct: int, total: int) -> float:
-    """FMS 现算，不在导出层另存一份，避免与屏幕分数不一致；量纲 0~100。"""
-    return 0.0 if total <= 0 else round(correct / total * 100, 4)
+    """FMS 口径只此一份：委托契约里的纯函数，导出层不另写除法。"""
+    result = kbp.contracts.report.ScoreResult(
+        total_propositions=total, correct_propositions=correct, errors=())
+    return kbp.contracts.report.fms(result)

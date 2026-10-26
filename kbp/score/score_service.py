@@ -17,11 +17,8 @@ def score(target: kbp.contracts.targetmap.TargetMap,
 
 
 def fms(result: kbp.contracts.report.ScoreResult) -> float:
-    """FMS = 正确命题数 / 目标命题总数 × 100，量纲 0~100。"""
-    if result.total_propositions <= 0:
-        return 0.0
-    return round(result.correct_propositions / result.total_propositions * 100,
-                 4)
+    """FMS 口径只此一份：委托契约里的纯函数，不另写除法。"""
+    return kbp.contracts.report.fms(result)
 
 
 def summary(result: kbp.contracts.report.ScoreResult) -> dict:

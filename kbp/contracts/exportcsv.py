@@ -12,9 +12,10 @@ MAX_SIGNAL = 1.0
 
 @dataclass(frozen=True)
 class SubjectRow:
-    """export 契约：被试级一行，只读 score 结果不重算分。
+    """export 契约：被试级一行，不重做命题匹配。
 
-    派生量（fms）由 export 现算，原始量（分子分母）必须来自上游。
+    派生量（fms）不存库，取用时按契约里的同一公式算；
+    原始量（分子分母）必须来自上游。
     """
 
     participant_id: int  # 被试顺序编号，关联键之一；不可空，>=1

@@ -52,5 +52,17 @@ def test_FMS_量纲为_0_到_100():
     assert (report.FMS_MIN, report.FMS_MAX) == (0.0, 100.0)
 
 
+def test_FMS_公式与舍入():
+    result = report.ScoreResult(total_propositions=3, correct_propositions=1,
+                                errors=())
+    assert report.fms(result) == 33.3333
+
+
+def test_FMS_分母为零取零():
+    result = report.ScoreResult(total_propositions=0, correct_propositions=0,
+                                errors=())
+    assert report.fms(result) == 0.0
+
+
 def test_导入契约不产生副作用():
     assert isinstance(make_vocab(), triple.Vocab)

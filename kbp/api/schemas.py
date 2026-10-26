@@ -180,7 +180,7 @@ class SubmitOut(BaseModel):
 
     submit_seq: int
     fingerprint: str
-    fms: float
+    fms: float  # FMS，0~100；文献口径，不是 0~1
 
 
 class ErrorOut(BaseModel):

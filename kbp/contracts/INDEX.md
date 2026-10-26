@@ -34,7 +34,7 @@
 | `triple.TripleCandidate` | `suspect: bool = False` | 概念过长的可疑项：不静默丢，标出来排到最后 |
 | `triple.TripleCandidate.confidence` | 语义改为本地代理分 | 按 evidence 是否逐字命中原文算分，只用于排序，不采用模型自报值 |
 | `tam` | 整套（含 `CONSTRUCTS`、`MIN_ALPHA`、`alpha_by_construct` 签名） | TAM 量表条目与各构念信度；实现在 `kbp/quiz/{scale,alpha}.py` |
-| `report` | `fms` 量纲 0~100，`FMS_MIN` / `FMS_MAX` | 与文献口径一致（D04） |
+| `report` | `fms` 量纲 0~100，`FMS_MIN` / `FMS_MAX` | 与文献口径一致（D04）；实现只此一份，score 与 export 共用 |
 | `submission` | 关联键改四元 `(participant_id, material_id, time_point, submit_seq)`，加 `check_key`；`Submission` 加 `fingerprint` / `time_point` / `submit_seq` | 同一人同一教材同一时点可多次提交，靠序号区分（D09） |
 | `quizsheet.QuizRecord` | 去 `session`，改四元键 | 与提交表同键对齐 |
 | `exportcsv.SubjectRow` / `QuestionRow` | 关联键改四元 | 两张表可按同一键联结 |

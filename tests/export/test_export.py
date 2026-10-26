@@ -49,6 +49,17 @@ def test_FMS_由分子分母现算且量纲_0_到_100():
     assert cell(payload, "fms") == 50.0
 
 
+def test_FMS_与评分层同一口径():
+    """导出与屏幕都从契约里的同一函数取值，不许各写一份除法。"""
+    import kbp.contracts.report as report
+    payload = subject_table.build((subject(correct_propositions=1,
+                                           total_propositions=3),))
+    expected = report.fms(report.ScoreResult(total_propositions=3,
+                                             correct_propositions=1,
+                                             errors=()))
+    assert cell(payload, "fms") == expected == 33.3333
+
+
 def test_分母为零时分数为零():
     payload = subject_table.build((subject(correct_propositions=0,
                                            total_propositions=0),))
