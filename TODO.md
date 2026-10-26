@@ -4,10 +4,11 @@
 任务版，只留两轮。每轮整体重写。复选框可由 agent 勾选。
 
 ## 交接
-**已验证**：`.venv/bin/python -m pytest` 274 passed、`flake8 .` 退出 0、
+**已验证**：`.venv/bin/python -m pytest` 341 passed、`flake8 .` 退出 0、
 `GET /` 返 200、`GET/PUT /api/config` 正常、未配密钥时 `/api/kit/auto` 返 503 带中文原因。
 真实调用已跑通：本机 OpenAI 兼容代理 `127.0.0.1:8788`，
 `deepseek-v4.1-flash` 抽 8 句教材得 5 条、0 越界、耗时 31.85s。
+TAM 量表已通：`GET /api/tam/items` 出 14 题，`POST /api/tam/alpha` 按构念算 α。
 
 **未完成**：见「未解决」。研究线（R 脚本、双人标注）本轮搁置。
 
@@ -23,6 +24,8 @@
 6. `base_url` 填到根（`http://127.0.0.1:8788`），代码自己拼 `/v1/chat/completions`；
    填成带 `/v1` 会变成 `/v1/v1/...`。
 7. 密钥只走环境变量，不写进任何文件、日志、响应、commit。
+8. 裸 `flake8` 不在 PATH，用 `.venv/bin/python -m flake8 .`（配置读 `.flake8`）。
+9. 测完服务用 `fuser -k <端口>/tcp`；`pkill -f uvicorn` 会连承载命令的 shell 一起杀掉。
 
 ## 上一轮
 - [x] 抽取引擎换 OpenAI 兼容接口（开发期样例 DeepSeek）
@@ -48,8 +51,11 @@
 - [ ] 夹具与记录落库：`ExtractionRecord` 写入 `extraction` 表，供事后追溯
 - [ ] 锁真正生效：改图/换版本前调 `kit.lock.assert_mutable`，`/api/lock` 只是查询不够
 - [ ] 学生重抽：记录并存不覆盖，旧批可切回
-- [ ] TAM 量表：条目取自 `https://www.wjx.cn/vm/wEMzgZc.aspx`，**人口学题目除外**；
+- [x] TAM 量表：条目取自 `https://www.wjx.cn/vm/wEMzgZc.aspx`，**人口学题目除外**；
       六点 Likert，存 1–6，报各构念 Cronbach α（判据 0.7）
+      → `kbp/quiz/scale.py`（14 题）+ `kbp/quiz/alpha.py`（样本方差口径，与 R `psych::alpha` 对照一致），
+      契约 `kbp/contracts/tam.py`，接口 `GET /api/tam/items` / `POST /api/tam/alpha`；
+      **作答落库仍待题级作答表**（与「夹具与记录落库」同批）
 - [x] 抽崩检测 S1–S4：孤立概念率、连接词覆盖率、概念集中度、基线偏离度（`kbp/extract/quality.py`）
 - [x] 抽崩阈值先取：S1 > 0.30、S2 < 0.50、S3 > 0.60、S4 |Z| > 2.0；命题 < 10 只记录不提示（实测定后再校）
 - [x] 抽崩触发文案：`本次组件抽取可能不可信，您可重新抽取（{不可信的原因}）`
