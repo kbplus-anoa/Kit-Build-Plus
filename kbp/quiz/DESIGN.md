@@ -27,6 +27,13 @@
 8. **减少短期记忆负担**：题干区不出现跨题依赖；选项顺序固定（同卷可比），
    不在三次施测间随机打乱。
 
+## 量表页（TAM，待原型）
+
+条目由 `GET /api/tam/items` 出（题号、构念中文名、是否可选），
+页面只渲染后端给的顺序与文案，不在前端硬编码题目。
+三个时点与测验页同版式；量表题**不给对错反馈**（本来就没有对错）。
+页面原型由用户提供，八条黄金法则按测验页的整套执行。
+
 ## 数据流
 
 ```
@@ -40,6 +47,17 @@ Question[]（同卷保存一次，quiz_set 表，不可被改写）
 
 契约出口：`kbp/contracts/quizsheet.py` 的 `Question` / `Answer` / `QuizRecord`。
 题级 CSV 的十列由 `export` 从本层取。
+
+量表另有一条短链（不算分、不判对错）：
+
+```
+GET /api/tam/items ──▶ scale.TAM_ITEMS（六点 Likert，14 题）
+作答（被试 × 题 × 1–6）
+   └─ alpha.alpha_by_construct：按构念配对完整者 → α = k/(k-1) × (1 − Σσ²ᵢ/σ²总)
+         └─ AlphaReport（k、n、α、判据 0.7、是否达标）
+```
+
+契约出口：`kbp/contracts/tam.py` 的 `ScaleItem` / `AlphaReport` / `alpha_by_construct`。
 
 ## 无障碍功能
 > 含且只含：

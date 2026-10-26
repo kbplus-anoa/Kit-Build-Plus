@@ -15,6 +15,7 @@
 | `submission.py` | SubmittedProposition、Submission、Draft、模式枚举 | rebuild → score、quiz、export |
 | `report.py` | ErrorChain、ScoreResult、四类错误枚举 | score → export |
 | `quizsheet.py` | Question、Answer、QuizRecord、三时点枚举 | quiz → export |
+| `tam.py` | ScaleItem、AlphaReport、ScoreRow、CONSTRUCTS、alpha_by_construct 签名 | quiz → api（量表条目与信度） |
 | `exportcsv.py` | SubjectRow、QuestionRow、CsvPayload、UTF8_BOM | export → CSV 文件 |
 
 冻结规则：契约被第二个 feature 消费即冻结；改动先给旧→新、影响范围、迁移方式，经用户确认。
@@ -32,6 +33,7 @@
 | `quality` | `Signal` / `QualityReport` / `assess` 签名 | 抽崩信号要带出到界面，故为契约；实现在 `kbp/extract/quality.py` |
 | `triple.TripleCandidate` | `suspect: bool = False` | 概念过长的可疑项：不静默丢，标出来排到最后 |
 | `triple.TripleCandidate.confidence` | 语义改为本地代理分 | 按 evidence 是否逐字命中原文算分，只用于排序，不采用模型自报值 |
+| `tam` | 整套（含 `CONSTRUCTS`、`MIN_ALPHA`、`alpha_by_construct` 签名） | TAM 量表条目与各构念信度；实现在 `kbp/quiz/{scale,alpha}.py` |
 
 全部有默认值，向后兼容。
 
