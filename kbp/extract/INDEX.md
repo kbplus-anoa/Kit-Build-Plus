@@ -11,6 +11,7 @@
 | `engine.py` | `ChatEngine`：`extract(文本, 词表, 配置)` 的实现，协议与供应商无关 |
 | `normalize.py` | 模型输出 → 契约三元组，唯一收口处：越界/自环/重复/概念里塞连接词一律丢弃；置信度是本地代理分 |
 | `extract_service.py` | `extract(text, vocab, config, engine)`：编排；`record` 产出留档；`sha256` |
+| `quality.py` | `assess(result, text, baseline)`：抽崩检测 S1–S4；只体检，不改结果不拦流程 |
 | `window.py` | 按空行分段，超长段按字上限硬切；`merge_key` 去重键 |
 
 ## 协议与供应商

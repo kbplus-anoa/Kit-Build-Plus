@@ -8,12 +8,13 @@ import kbp.contracts.extractconfig
 import kbp.contracts.triple
 import kbp.extract.chat_client
 import kbp.extract.extract_service
+import kbp.extract.quality
 import kbp.ingest.ingest_service
 import kbp.ingest.ocr
 import kbp.kit.kit_service
 from kbp.api.schemas import (
     ConceptOut, ExtractIn, ExtractOut, IngestIn, IngestOut, KitAutoIn, KitAutoOut,
-    TripleOut)
+    SignalOut, TripleOut)
 
 router = APIRouter(prefix="/api", tags=["教材"])
 
@@ -87,9 +88,16 @@ def kit_auto(body: KitAutoIn) -> KitAutoOut:
         raise HTTPException(422, "抽出的图不足以成题: " + str(exc))
     except Exception as exc:
         raise HTTPException(503, "自动裁 kit 不可用: " + str(exc))
+    report = kbp.extract.quality.assess(result, body.text)
     return KitAutoOut(map_version=kit.map_version,
                       concepts=[ConceptOut(concept_id=c.concept_id, label=c.label)
                                 for c in kit.concepts],
                       connections=list(kit.connections),
                       total_propositions=len(target.propositions),
-                      fingerprint=target.fingerprint)
+                      fingerprint=target.fingerprint,
+                      possibly_inaccurate=report.possibly_inaccurate,
+                      message=report.message,
+                      signals=[SignalOut(name=s.name, label=s.label, value=s.value,
+                                         threshold=s.threshold,
+                                         triggered=s.triggered)
+                               for s in report.signals])

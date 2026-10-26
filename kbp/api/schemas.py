@@ -123,11 +123,23 @@ class KitOut(BaseModel):
     total_propositions: int
 
 
+class SignalOut(BaseModel):
+    """一条抽崩信号：原值与阈值成对带出，供界面显示与事后核对。"""
+
+    name: str
+    label: str
+    value: float | None = None
+    threshold: float
+    triggered: bool
+
+
 class KitAutoOut(KitOut):
     """自动路：多回一个内容指纹，供导出与统计筛同一批人。"""
 
     fingerprint: str
     possibly_inaccurate: bool = False
+    message: str = ""
+    signals: list[SignalOut] = []
 
 
 class KitAutoIn(BaseModel):

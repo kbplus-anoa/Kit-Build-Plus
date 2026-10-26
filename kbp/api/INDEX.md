@@ -44,6 +44,9 @@
 
 `/api/extract` 的每条候选带 `confidence`（本地代理分，只用于排序）、`evidence`（逐字原文片段）与 `suspect`（概念过长等可疑项，不丢、排最后）。
 
+`/api/kit/auto` 回 `possibly_inaccurate` + `message` + `signals`：
+每条信号带原值、阈值、是否触发；触发才有文案，命题太少时只记录不提示。
+
 ## 边界（不做什么）
 
 不含业务规则、不渲染页面。前端位于**仓库根目录 `web/`**（Vite + React + TS），

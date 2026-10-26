@@ -85,6 +85,40 @@ def test_同一文本两次裁出同一指纹(client, monkeypatch):
     assert a["fingerprint"] == b["fingerprint"]
 
 
+def test_抽崩时返回可能不可信与信号原值(client, monkeypatch):
+    """12 条孤立命题：S1/S2 触发，命题数够多，于是置标记并给文案。"""
+    monkeypatch.setattr(extract_service, "extract",
+                        lambda text, vocab, cfg=None, engine=None:
+                        triple.ExtractionResult(vocab=vocab, triples=tuple(
+                            cand("甲%d" % i, "属于", "乙%d" % i)
+                            for i in range(12))))
+    data = client.post("/api/kit/auto",
+                       json={"text": "甲属于乙。" * 20, "vocab": VOCAB,
+                             "map_version": "v1"}).json()
+    assert data["possibly_inaccurate"] is True
+    assert data["message"].startswith("本次组件抽取可能不可信")
+    signals = {s["name"]: s for s in data["signals"]}
+    assert set(signals) == {"S1", "S2", "S3", "S4"}
+    assert signals["S1"]["triggered"] is True
+    assert signals["S1"]["value"] is not None
+    assert signals["S1"]["threshold"] == 0.30
+    assert signals["S4"]["value"] is None
+
+
+def test_健康抽取不置不可信标记(client, monkeypatch):
+    pairs = [("记忆", "包括", "短时记忆"), ("短时记忆", "包括", "长时记忆"),
+             ("长时记忆", "包括", "记忆"), ("感觉记忆", "属于", "记忆")]
+    monkeypatch.setattr(extract_service, "extract",
+                        lambda text, vocab, cfg=None, engine=None:
+                        triple.ExtractionResult(vocab=vocab, triples=tuple(
+                            cand(*p) for p in pairs)))
+    data = client.post("/api/kit/auto",
+                       json={"text": "记忆包括短时记忆", "vocab": VOCAB,
+                             "map_version": "v1"}).json()
+    assert data["possibly_inaccurate"] is False
+    assert data["message"] == ""
+
+
 def test_抽不出命题时返回_422(client, monkeypatch):
     monkeypatch.setattr(extract_service, "extract",
                         lambda text, vocab, cfg=None, engine=None:

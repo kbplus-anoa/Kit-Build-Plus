@@ -9,6 +9,7 @@
 | `triple.py` | Vocab、TripleCandidate、ExtractionResult、in_vocab | extract → kit |
 | `extractconfig.py` | ExtractConfig、PROVIDERS、config_error、key_env、default_config | 用户配置 → extract、api |
 | `extraction.py` | ExtractionRecord、ExtractPort | extract → kit（留档） |
+| `quality.py` | Signal、QualityReport、assess 签名 | extract → api（抽崩体检） |
 | `adjudication.py` | Adjudication、AdjudicationLog、MapUsagePort | kit → rebuild（反向注入） |
 | `targetmap.py` | Concept、Proposition、TargetMap、Kit、content_fingerprint | kit → rebuild、score |
 | `submission.py` | SubmittedProposition、Submission、Draft、模式枚举 | rebuild → score、quiz、export |
@@ -28,6 +29,7 @@
 | `extraction` | `ExtractionRecord` + `ExtractPort` | 抽取留档与引擎协议 |
 | `exportcsv.SubjectRow` | `fingerprint: str = ""` | 导出可直接按指纹筛同批 |
 | `targetmap` | `content_fingerprint` 签名 | 实现在 `kbp/kit/_rules.py` |
+| `quality` | `Signal` / `QualityReport` / `assess` 签名 | 抽崩信号要带出到界面，故为契约；实现在 `kbp/extract/quality.py` |
 | `triple.TripleCandidate` | `suspect: bool = False` | 概念过长的可疑项：不静默丢，标出来排到最后 |
 | `triple.TripleCandidate.confidence` | 语义改为本地代理分 | 按 evidence 是否逐字命中原文算分，只用于排序，不采用模型自报值 |
 
