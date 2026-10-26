@@ -1,8 +1,10 @@
 import kbp.contracts.exportcsv
+import kbp.contracts.submission
 
 
-HEADER = ("participant_id", "material_id", "target_map_version", "fingerprint",
-          "session", "mode", "condition", "is_practice", "total_propositions",
+HEADER = ("participant_id", "material_id", "time_point", "submit_seq",
+          "target_map_version", "fingerprint", "mode", "condition", "is_practice",
+          "total_propositions",
           "correct_propositions", "fms", "n_lacking", "n_excessive",
           "n_leaving", "n_reversed", "possibly_inaccurate", "map_size",
           "map_node_count", "孤立概念率", "连接词覆盖率", "概念集中度",
@@ -27,8 +29,10 @@ def check(rows: tuple[kbp.contracts.exportcsv.SubjectRow, ...]) -> None:
 
 
 def _check_one(r) -> None:
-    if r.participant_id < 1 or r.material_id < 1 or r.session < 1:
-        raise TableError("关联键须为正整数")
+    reason = kbp.contracts.submission.check_key(
+        r.participant_id, r.material_id, r.time_point, r.submit_seq)
+    if reason:
+        raise TableError(reason)
     if r.condition not in kbp.contracts.exportcsv.CONDITIONS:
         raise TableError("未知组别: " + str(r.condition))
     if r.total_propositions < 0:
@@ -46,8 +50,9 @@ def _check_one(r) -> None:
 def _row(r) -> tuple:
     total = r.total_propositions
     fms = _fms(r.correct_propositions, total)
-    return (r.participant_id, r.material_id, r.target_map_version,
-            r.fingerprint, r.session, r.mode, r.condition, r.is_practice, total,
+    return (r.participant_id, r.material_id, r.time_point, r.submit_seq,
+            r.target_map_version, r.fingerprint, r.mode, r.condition,
+            r.is_practice, total,
             r.correct_propositions, fms, r.n_lacking, r.n_excessive,
             r.n_leaving, r.n_reversed, r.possibly_inaccurate,
             r.map_size, r.map_node_count, r.signal_isolated,

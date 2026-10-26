@@ -19,6 +19,15 @@ class SubmissionUsage:
         return cur.fetchone() is not None
 
 
+def fingerprint_used(conn: sqlite3.Connection, fingerprint: str) -> bool:
+    """该指纹是否已有学生用过；空指纹视为已用，避免误改。"""
+    if not fingerprint:
+        return True
+    cur = conn.execute(
+        "SELECT 1 FROM submitted WHERE fingerprint = ? LIMIT 1", (fingerprint,))
+    return cur.fetchone() is not None
+
+
 def lock_versions(conn: sqlite3.Connection) -> tuple[str, ...]:
     """列出已被学生用过的全部版本，供管理端展示。"""
     cur = conn.execute(

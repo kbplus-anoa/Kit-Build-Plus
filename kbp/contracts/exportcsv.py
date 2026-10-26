@@ -14,14 +14,15 @@ MAX_SIGNAL = 1.0
 class SubjectRow:
     """export 契约：被试级一行，只读 score 结果不重算分。
 
-    字段与 CSV_PLAN 的 A/B/C/D/E/F 节逐列对应，派生量（score）由 export 现算，
-    但原始量（分子分母）必须来自上游，不得在导出时反推。
+    派生量（fms）由 export 现算，原始量（分子分母）必须来自上游。
     """
 
-    participant_id: int  # 被试顺序编号；不可空，>=1
-    material_id: int  # 教材顺序编号；不可空，>=1
+    participant_id: int  # 被试顺序编号，关联键之一；不可空，>=1
+    material_id: int  # 教材顺序编号，关联键之一；不可空，>=1
+    time_point: str  # 时点枚举 pre/post/delayed，关联键之一；不可空
+    submit_seq: int  # 提交序号，关联键之一；不可空，>=1
     target_map_version: str  # 目标图版本，如 v1；不可空
-    session: int  # 场次，含练习；不可空，>=1
+    fingerprint: str  # 目标图内容指纹；可空（老数据无指纹则为空串）
     mode: str  # 模式枚举 test/study；不可空
     condition: str  # 组别枚举，取值见 CONDITIONS；不可空
     is_practice: int  # 是否练习场次，0/1；不可空
@@ -34,23 +35,22 @@ class SubjectRow:
     possibly_inaccurate: int  # 抽崩标记，0/1；不可空
     map_size: int  # 学生建出的命题数，含错误；单位：条；不可空
     map_node_count: int  # 学生用到的概念数；单位：个；不可空
-    signal_isolated: float  # 孤立概念率，0~1；可空（未触发抽崩检测时为空）
-    signal_coverage: float  # 连接词覆盖率，0~1；可空
-    signal_concentration: float  # 概念集中度，0~1；可空
-    signal_baseline: float  # 基线偏离度，Z 分数，可为负；可空
-    fingerprint: str = ""  # 目标图内容指纹；可空（老数据无指纹则为空串）
+    signal_isolated: float | None  # 孤立概念率，0~1；可空
+    signal_coverage: float | None  # 连接词覆盖率，0~1；可空
+    signal_concentration: float | None  # 概念集中度，0~1；可空
+    signal_baseline: float | None  # 基线偏离度，Z 分数，可为负；可空
 
 
 @dataclass(frozen=True)
 class QuestionRow:
-    """export 契约：题级一行，long 格式，一人一题一时点。"""
+    """export 契约：题级一行，long 格式，一人一题一时点一次提交。"""
 
-    participant_id: int  # 被试顺序编号；不可空，>=1
-    material_id: int  # 教材顺序编号；不可空，>=1
+    participant_id: int  # 被试顺序编号，关联键之一；不可空，>=1
+    material_id: int  # 教材顺序编号，关联键之一；不可空，>=1
+    time_point: str  # 时点枚举 pre/post/delayed，关联键之一；不可空
+    submit_seq: int  # 提交序号，关联键之一；不可空，>=1
     target_map_version: str  # 目标图版本；不可空
-    session: int  # 场次；不可空，>=1
     question_id: str  # 题号，同卷内唯一；不可空
-    time_point: str  # 时点枚举 pre/post/delayed；不可空
     correct: int  # 答对，0/1；不可空
     score: float | None  # 得分，仅主观题与 TAM 量表用；可空（全单选时为 None）
     qtype: str  # 题型枚举 single/blank/essay；不可空

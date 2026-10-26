@@ -1,4 +1,5 @@
 import kbp.contracts.quizsheet
+import kbp.contracts.submission
 
 
 class QuizError(ValueError):
@@ -44,14 +45,14 @@ def check_answer(answer: kbp.contracts.quizsheet.Answer, questions) -> None:
     ids = {q.question_id for q in questions}
     if answer.question_id not in ids:
         raise QuizError("作答引用不存在的题: " + answer.question_id)
-    if answer.time_point not in kbp.contracts.quizsheet.TIME_POINTS:
+    if answer.time_point not in kbp.contracts.submission.TIME_POINTS:
         raise QuizError("未知时点: " + str(answer.time_point))
 
 
 def check_record(record: kbp.contracts.quizsheet.QuizRecord, questions) -> None:
     """整卷校验：关联键、时点、题号、重复作答。"""
     _check_keys(record)
-    if record.time_point not in kbp.contracts.quizsheet.TIME_POINTS:
+    if record.time_point not in kbp.contracts.submission.TIME_POINTS:
         raise QuizError("未知时点: " + str(record.time_point))
     seen: set[str] = set()
     for answer in record.answers:
@@ -64,8 +65,8 @@ def check_record(record: kbp.contracts.quizsheet.QuizRecord, questions) -> None:
 
 
 def _check_keys(record: kbp.contracts.quizsheet.QuizRecord) -> None:
-    for name, value in (("participant_id", record.participant_id),
-                        ("material_id", record.material_id),
-                        ("session", record.session)):
-        if not isinstance(value, int) or value < 1:
-            raise QuizError(name + " 须为正整数")
+    reason = kbp.contracts.submission.check_key(
+        record.participant_id, record.material_id, record.time_point,
+        record.submit_seq)
+    if reason:
+        raise QuizError(reason)

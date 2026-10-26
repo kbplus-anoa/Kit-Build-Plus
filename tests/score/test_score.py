@@ -29,11 +29,12 @@ def sprop(head, conn, tail):
                                            tail_id=tail)
 
 
-def make_sub(props):
-    return submission.Submission(map_version="v1", mode=submission.TEST,
+def make_sub(props, mode=submission.TEST, seq=1):
+    return submission.Submission(map_version="v1", fingerprint="fp1", mode=mode,
                                  propositions=tuple(props), started_at="",
                                  submitted_at="2026-10-25T10:00:00",
-                                 participant_id=1, material_id=1, session=1)
+                                 participant_id=1, material_id=1,
+                                 time_point=submission.POST, submit_seq=seq)
 
 
 def kinds(result):

@@ -10,7 +10,7 @@
 | 文件 | 内容 |
 |---|---|
 | `grade.py` | `is_correct`（未作答算错）、`percent`（0–100，分母题数）、题干/题套校验 |
-| `quiz_store.py` | SQLite：题套表 + 逐题作答表；同一 quiz_id 不可改写，同点同题可更新 |
+| `quiz_store.py` | SQLite：题套表 + 逐题作答表，作答表键为四元关联键 + 题号；同一 quiz_id 不可改写，同键同题可更新 |
 | `scale.py` | TAM 14 题条目表（逐字原文），`items_of` / `item_ids` |
 | `alpha.py` | `cronbach_alpha`（样本方差口径）、`alpha_by_construct`（缺答整人剔除） |
 | `tests/quiz/test_grade.py` | 判对、百分制、漏答、空卷、非法题目与非法作答 |
@@ -28,7 +28,7 @@
 
 - `Question`：题号、题干、选项、正确下标、题型、内容维度
 - `Answer`：题号、所选下标（`-1` 表示未作答）、时点
-- `QuizRecord`：整卷一行来源，带 `participant_id/material_id/session` 关联键
+- `QuizRecord`：整卷一行来源，带 `participant_id/material_id/time_point/submit_seq` 关联键
 
 ## 已定
 

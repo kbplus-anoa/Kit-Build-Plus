@@ -8,25 +8,30 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS draft (
     participant_id INTEGER NOT NULL,
     material_id INTEGER NOT NULL,
-    session INTEGER NOT NULL,
+    time_point TEXT NOT NULL,
+    submit_seq INTEGER NOT NULL,
     target_map_version TEXT NOT NULL,
+    fingerprint TEXT NOT NULL,
     mode TEXT NOT NULL,
     propositions TEXT NOT NULL,
     saved_at TEXT NOT NULL,
-    PRIMARY KEY (participant_id, material_id, session)
+    PRIMARY KEY (participant_id, material_id, time_point, submit_seq)
 );
 CREATE TABLE IF NOT EXISTS submitted (
     participant_id INTEGER NOT NULL,
     material_id INTEGER NOT NULL,
-    session INTEGER NOT NULL,
+    time_point TEXT NOT NULL,
+    submit_seq INTEGER NOT NULL,
     target_map_version TEXT NOT NULL,
+    fingerprint TEXT NOT NULL,
     mode TEXT NOT NULL,
     propositions TEXT NOT NULL,
     started_at TEXT NOT NULL,
     submitted_at TEXT NOT NULL,
-    PRIMARY KEY (participant_id, material_id, session)
+    PRIMARY KEY (participant_id, material_id, time_point, submit_seq)
 );
 CREATE INDEX IF NOT EXISTS idx_used ON submitted(target_map_version);
+CREATE INDEX IF NOT EXISTS idx_used_fp ON submitted(fingerprint);
 """
 
 
@@ -35,7 +40,7 @@ class DraftError(RuntimeError):
 
 
 def connect(db_path: str) -> sqlite3.Connection:
-    """打开或新建库并建表；父目录不存在时先建。"""
+    """打开或新建库并按需建表；父目录不存在时先建。"""
     if db_path != ":memory:":
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path, check_same_thread=False)
@@ -49,73 +54,108 @@ def ensure(conn: sqlite3.Connection) -> None:
 
 
 def save(conn: sqlite3.Connection, draft: kbp.contracts.submission.Draft) -> None:
-    """保存草稿，同一（被试, 教材, 场次）覆盖旧草稿。"""
-    if _submitted(conn, draft):
-        raise DraftError("已提交，不可再改草稿")
+    """保存草稿，同一四元键覆盖旧草稿；测验模式已提交则拒绝。"""
+    if _locked(conn, draft):
+        raise DraftError("测验模式已提交，不可再改草稿")
     conn.execute(
-        "INSERT INTO draft VALUES (?, ?, ?, ?, ?, ?, ?)"
-        " ON CONFLICT(participant_id, material_id, session) DO UPDATE SET"
-        " target_map_version=excluded.target_map_version, mode=excluded.mode,"
+        "INSERT INTO draft VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        " ON CONFLICT(participant_id, material_id, time_point, submit_seq)"
+        " DO UPDATE SET"
+        " target_map_version=excluded.target_map_version,"
+        " fingerprint=excluded.fingerprint, mode=excluded.mode,"
         " propositions=excluded.propositions, saved_at=excluded.saved_at",
         _draft_row(draft))
     conn.commit()
 
 
 def load(conn: sqlite3.Connection, participant_id: int, material_id: int,
-         session: int) -> kbp.contracts.submission.Draft:
+         time_point: str, submit_seq: int) -> kbp.contracts.submission.Draft:
     """读回草稿；不存在时报错而不是返回空草稿。"""
     cur = conn.execute(
-        "SELECT target_map_version, mode, propositions, saved_at FROM draft"
-        " WHERE participant_id = ? AND material_id = ? AND session = ?",
-        (participant_id, material_id, session))
+        "SELECT target_map_version, fingerprint, mode, propositions, saved_at"
+        " FROM draft WHERE participant_id = ? AND material_id = ?"
+        " AND time_point = ? AND submit_seq = ?",
+        (participant_id, material_id, time_point, submit_seq))
     row = cur.fetchone()
     if row is None:
         raise DraftError("草稿不存在")
-    props = tuple(_prop(p) for p in json.loads(row[2]))
-    return kbp.contracts.submission.Draft(map_version=row[0], mode=row[1],
-                                          propositions=props,
-                                          participant_id=participant_id,
-                                          material_id=material_id, session=session,
-                                          saved_at=row[3])
+    props = tuple(_prop(p) for p in json.loads(row[3]))
+    return kbp.contracts.submission.Draft(
+        map_version=row[0], fingerprint=row[1], mode=row[2], propositions=props,
+        participant_id=participant_id, material_id=material_id,
+        time_point=time_point, submit_seq=submit_seq, saved_at=row[4])
 
 
 def drop(conn: sqlite3.Connection, participant_id: int, material_id: int,
-         session: int) -> None:
+         time_point: str, submit_seq: int) -> None:
     conn.execute("DELETE FROM draft WHERE participant_id = ?"
-                 " AND material_id = ? AND session = ?",
-                 (participant_id, material_id, session))
+                 " AND material_id = ? AND time_point = ? AND submit_seq = ?",
+                 (participant_id, material_id, time_point, submit_seq))
     conn.commit()
 
 
 def submit(conn: sqlite3.Connection, sub: kbp.contracts.submission.Submission) -> None:
-    """把草稿转成正式提交：写入 submitted 并删除草稿，同一场次只允许一次。"""
-    if _submitted(conn, sub):
-        raise DraftError("该场次已提交，不可重复提交")
-    conn.execute("INSERT INTO submitted VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    """写入提交并删除同键草稿；同一四元键只允许一次，学习模式靠序号区分多次。"""
+    if _exists(conn, sub):
+        raise DraftError("该四元键已提交，不可重复提交")
+    conn.execute("INSERT INTO submitted VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                  _sub_row(sub))
     conn.execute("DELETE FROM draft WHERE participant_id = ?"
-                 " AND material_id = ? AND session = ?",
-                 (sub.participant_id, sub.material_id, sub.session))
+                 " AND material_id = ? AND time_point = ? AND submit_seq = ?",
+                 (sub.participant_id, sub.material_id, sub.time_point,
+                  sub.submit_seq))
     conn.commit()
 
 
-def _submitted(conn: sqlite3.Connection, obj) -> bool:
+def next_seq(conn: sqlite3.Connection, participant_id: int, material_id: int,
+             time_point: str) -> int:
+    """该前三元的下一个提交序号，从 1 起。"""
+    cur = conn.execute(
+        "SELECT MAX(submit_seq) FROM submitted WHERE participant_id = ?"
+        " AND material_id = ? AND time_point = ?",
+        (participant_id, material_id, time_point))
+    row = cur.fetchone()
+    return 1 if not row or row[0] is None else int(row[0]) + 1
+
+
+def counts(conn: sqlite3.Connection, participant_id: int, material_id: int,
+           time_point: str, mode: str) -> int:
+    """该前三元在某模式下已提交的次数。"""
+    cur = conn.execute(
+        "SELECT COUNT(*) FROM submitted WHERE participant_id = ?"
+        " AND material_id = ? AND time_point = ? AND mode = ?",
+        (participant_id, material_id, time_point, mode))
+    return int(cur.fetchone()[0])
+
+
+def _locked(conn: sqlite3.Connection, obj) -> bool:
+    """测验模式同一四元键提交过就锁死；学习模式不锁。"""
     cur = conn.execute(
         "SELECT 1 FROM submitted WHERE participant_id = ?"
-        " AND material_id = ? AND session = ? LIMIT 1",
-        (obj.participant_id, obj.material_id, obj.session))
+        " AND material_id = ? AND time_point = ? AND submit_seq = ?"
+        " AND mode = ? LIMIT 1",
+        (obj.participant_id, obj.material_id, obj.time_point, obj.submit_seq,
+         kbp.contracts.submission.TEST))
+    return cur.fetchone() is not None
+
+
+def _exists(conn: sqlite3.Connection, obj) -> bool:
+    cur = conn.execute(
+        "SELECT 1 FROM submitted WHERE participant_id = ?"
+        " AND material_id = ? AND time_point = ? AND submit_seq = ? LIMIT 1",
+        (obj.participant_id, obj.material_id, obj.time_point, obj.submit_seq))
     return cur.fetchone() is not None
 
 
 def _draft_row(draft: kbp.contracts.submission.Draft) -> tuple:
-    return (draft.participant_id, draft.material_id, draft.session,
-            draft.map_version, draft.mode, _pack(draft.propositions),
-            draft.saved_at)
+    return (draft.participant_id, draft.material_id, draft.time_point,
+            draft.submit_seq, draft.map_version, draft.fingerprint, draft.mode,
+            _pack(draft.propositions), draft.saved_at)
 
 
 def _sub_row(sub: kbp.contracts.submission.Submission) -> tuple:
-    return (sub.participant_id, sub.material_id, sub.session,
-            sub.map_version, sub.mode, _pack(sub.propositions),
+    return (sub.participant_id, sub.material_id, sub.time_point, sub.submit_seq,
+            sub.map_version, sub.fingerprint, sub.mode, _pack(sub.propositions),
             sub.started_at, sub.submitted_at)
 
 
@@ -126,6 +166,5 @@ def _pack(props) -> str:
 
 
 def _prop(raw: dict) -> kbp.contracts.submission.SubmittedProposition:
-    return kbp.contracts.submission.SubmittedProposition(head_id=raw["head"],
-                                                         connection=raw["connection"],
-                                                         tail_id=raw["tail"])
+    return kbp.contracts.submission.SubmittedProposition(
+        head_id=raw["head"], connection=raw["connection"], tail_id=raw["tail"])

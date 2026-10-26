@@ -1,11 +1,5 @@
 from dataclasses import dataclass
 
-PRE = "pre"
-POST = "post"
-DELAYED = "delayed"
-
-TIME_POINTS = (PRE, POST, DELAYED)
-
 SINGLE = "single"
 BLANK = "blank"
 ESSAY = "essay"
@@ -39,13 +33,13 @@ class Answer:
 
 @dataclass(frozen=True)
 class QuizRecord:
-    """quiz 契约：一人在一个时点的整卷作答，long 表的一行来源。"""
+    """quiz 契约：一人在一个时点一次提交的整卷作答，long 表的一行来源。"""
 
     quiz_id: str  # 整卷标识，同卷可多次施测；不可空
     participant_id: int  # 被试顺序编号，关联键之一；不可空，>=1
     material_id: int  # 教材顺序编号，关联键之一；不可空，>=1
-    session: int  # 场次，关联键之一；不可空，>=1
-    time_point: str  # 时点枚举；不可空
+    time_point: str  # 时点枚举，取值见 TIME_POINTS；不可空
+    submit_seq: int  # 提交序号，同人同教材同时点的第几次提交，从 1 起；不可空，>=1
     answers: tuple[Answer, ...]  # 作答项，可为空元组
 
 

@@ -40,8 +40,9 @@ def check_mode(mode: str) -> None:
         raise ValidationError("未知模式: " + str(mode))
 
 
-def check_keys(participant_id: int, material_id: int, session: int) -> None:
-    for name, value in (("participant_id", participant_id),
-                        ("material_id", material_id), ("session", session)):
-        if not isinstance(value, int) or value < 1:
-            raise ValidationError(name + " 须为正整数")
+def check_keys(participant_id: int, material_id: int, time_point: str,
+               submit_seq: int) -> None:
+    reason = kbp.contracts.submission.check_key(
+        participant_id, material_id, time_point, submit_seq)
+    if reason:
+        raise ValidationError(reason)

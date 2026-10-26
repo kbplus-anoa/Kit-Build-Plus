@@ -70,9 +70,11 @@ def test_模式只接受两值():
         v.check_mode("exam")
 
 
-def test_关联键必须为正整数():
-    v.check_keys(1, 1, 1)
+def test_关联键四元必须合法():
+    v.check_keys(1, 1, submission.PRE, 1)
     with pytest.raises(v.ValidationError):
-        v.check_keys(0, 1, 1)
+        v.check_keys(0, 1, submission.PRE, 1)
     with pytest.raises(v.ValidationError):
-        v.check_keys(1, 1, 0)
+        v.check_keys(1, 1, submission.PRE, 0)
+    with pytest.raises(v.ValidationError):
+        v.check_keys(1, 1, "baseline", 1)

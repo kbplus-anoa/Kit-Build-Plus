@@ -20,23 +20,28 @@ def prop(head, conn, tail):
 
 
 def draft(props=None):
-    return submission.Draft(map_version="v1", mode=submission.STUDY,
+    return submission.Draft(map_version="v1", fingerprint="fp1",
+                            mode=submission.STUDY,
                             propositions=tuple(props or (prop("c1", "包括", "c2"),)),
-                            participant_id=1, material_id=1, session=1,
+                            participant_id=1, material_id=1,
+                            time_point=submission.POST, submit_seq=1,
                             saved_at="2026-10-25T10:00:00")
 
 
-def final(props=None):
-    return submission.Submission(map_version="v1", mode=submission.TEST,
-                                 propositions=tuple(props or (prop("c1", "包括", "c2"),)),
-                                 started_at="", submitted_at="2026-10-25T10:00:00",
-                                 participant_id=1, material_id=1, session=1)
+def final(props=None, mode=submission.TEST, seq=1):
+    return submission.Submission(
+        map_version="v1", fingerprint="fp1", mode=mode,
+        propositions=tuple(props or (prop("c1", "包括", "c2"),)),
+        started_at="", submitted_at="2026-10-25T10:00:00",
+        participant_id=1, material_id=1, time_point=submission.POST,
+        submit_seq=seq)
 
 
 def test_合法草稿入库():
     conn = ds.connect(":memory:")
     svc.save_draft(conn, make_kit(), draft())
-    assert ds.load(conn, 1, 1, 1).propositions[0].connection == "包括"
+    assert ds.load(conn, 1, 1, submission.POST, 1).propositions[0].connection == \
+        "包括"
     conn.close()
 
 
@@ -47,7 +52,7 @@ def test_越界零件草稿被拒且不入库():
     except Exception:
         pass
     try:
-        ds.load(conn, 1, 1, 1)
+        ds.load(conn, 1, 1, submission.POST, 1)
         leaked = True
     except ds.DraftError:
         leaked = False
@@ -60,7 +65,7 @@ def test_提交后草稿清空():
     svc.save_draft(conn, make_kit(), draft())
     svc.submit(conn, make_kit(), final())
     try:
-        ds.load(conn, 1, 1, 1)
+        ds.load(conn, 1, 1, submission.POST, 1)
         gone = False
     except ds.DraftError:
         gone = True
@@ -70,13 +75,23 @@ def test_提交后草稿清空():
 
 def test_非法模式提交被拒():
     conn = ds.connect(":memory:")
-    bad = submission.Submission(map_version="v1", mode="exam", propositions=(),
-                                started_at="", submitted_at="",
-                                participant_id=1, material_id=1, session=1)
+    bad = submission.Submission(
+        map_version="v1", fingerprint="fp1", mode="exam", propositions=(),
+        started_at="", submitted_at="", participant_id=1, material_id=1,
+        time_point=submission.POST, submit_seq=1)
     try:
         svc.submit(conn, make_kit(), bad)
         raised = False
     except Exception:
         raised = True
     assert raised is True
+    conn.close()
+
+
+def test_学习模式第二次提交序号递增():
+    conn = ds.connect(":memory:")
+    kit = make_kit()
+    svc.submit(conn, kit, final(mode=submission.STUDY, seq=1))
+    svc.submit(conn, kit, final(mode=submission.STUDY, seq=2))
+    assert ds.counts(conn, 1, 1, submission.POST, submission.STUDY) == 2
     conn.close()

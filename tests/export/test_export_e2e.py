@@ -26,12 +26,12 @@ def test_作答到两张_CSV(tmp_path):
                            qtype=quizsheet.SINGLE, content_dimension="记忆"),
     )
     record = quizsheet.QuizRecord(
-        quiz_id="z1", participant_id=1, material_id=1, session=1,
-        time_point=quizsheet.PRE,
+        quiz_id="z1", participant_id=1, material_id=1, submit_seq=1,
+        time_point=submission.PRE,
         answers=(quizsheet.Answer(question_id="q1", choice_index=0,
-                                  time_point=quizsheet.PRE),
+                                  time_point=submission.PRE),
                  quizsheet.Answer(question_id="q2", choice_index=0,
-                                  time_point=quizsheet.PRE)))
+                                  time_point=submission.PRE)))
     percent = grade.percent(qs, record)
     assert percent == 50.0
 
@@ -40,8 +40,8 @@ def test_作答到两张_CSV(tmp_path):
         ans = next(a for a in record.answers if a.question_id == q.question_id)
         q_rows.append(exportcsv.QuestionRow(
             participant_id=1, material_id=1, target_map_version="v1",
-            session=1, question_id=q.question_id,
-            time_point=quizsheet.PRE,
+            submit_seq=1, question_id=q.question_id,
+            time_point=submission.PRE,
             correct=1 if grade.is_correct(q, ans) else 0,
             score=None, qtype=q.qtype,
             content_dimension=q.content_dimension))
@@ -55,16 +55,19 @@ def test_作答到两张_CSV(tmp_path):
         propositions=(targetmap.Proposition(head_id="c1", connection="包括",
                                             tail_id="c2"),))
     sub = submission.Submission(
-        map_version="v1", mode=submission.TEST,
+        map_version="v1", fingerprint=target.fingerprint,
+        mode=submission.TEST,
         propositions=(submission.SubmittedProposition(
             head_id="c1", connection="包括", tail_id="c2"),),
         started_at="", submitted_at="2026-10-25T10:00:00",
-        participant_id=1, material_id=1, session=1)
+        participant_id=1, material_id=1, time_point=submission.POST,
+        submit_seq=1)
     scored = score_service.score(target, sub)
     counts = score_service.summary(scored)
 
     s_row = exportcsv.SubjectRow(
-        participant_id=1, material_id=1, target_map_version="v1", session=1,
+        participant_id=1, material_id=1, time_point="post", submit_seq=1,
+        target_map_version="v1", fingerprint=target.fingerprint,
         mode="test", condition="exp", is_practice=0,
         correct_propositions=scored.correct_propositions,
         total_propositions=scored.total_propositions,

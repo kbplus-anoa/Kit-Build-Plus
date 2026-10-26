@@ -7,8 +7,9 @@ import kbp.export.subject_table as subject_table
 
 
 def subject(**kw):
-    base = dict(participant_id=1, material_id=1, target_map_version="v1",
-                session=1, mode="test", condition="exp", is_practice=0,
+    base = dict(participant_id=1, material_id=1, time_point="post",
+                submit_seq=1, target_map_version="v1", fingerprint="fp1",
+                mode="test", condition="exp", is_practice=0,
                 correct_propositions=2, total_propositions=3,
                 n_lacking=1, n_excessive=0, n_leaving=0, n_reversed=0,
                 possibly_inaccurate=0, map_size=2, map_node_count=3,
@@ -19,8 +20,9 @@ def subject(**kw):
 
 
 def question(**kw):
-    base = dict(participant_id=1, material_id=1, target_map_version="v1",
-                session=1, question_id="q1", time_point="pre", correct=1,
+    base = dict(participant_id=1, material_id=1, time_point="pre",
+                submit_seq=1, target_map_version="v1",
+                question_id="q1", correct=1,
                 score=None, qtype="single", content_dimension="记忆")
     base.update(kw)
     return exportcsv.QuestionRow(**base)
@@ -59,9 +61,9 @@ def test_表头含指纹列():
     assert cell(payload, "fingerprint") == "88977e96f49bd7d1"
 
 
-def test_无指纹时该列为空串():
+def test_有指纹时该列照抄():
     payload = subject_table.build((subject(),))
-    assert cell(payload, "fingerprint") == ""
+    assert cell(payload, "fingerprint") == "fp1"
 
 
 def test_单选拼写正确():
@@ -89,7 +91,7 @@ def test_布尔列越界被拒():
 
 def test_关联键为零被拒():
     with pytest.raises(subject_table.TableError):
-        subject_table.build((subject(session=0),))
+        subject_table.build((subject(submit_seq=0),))
 
 
 def test_空值导出为空串():

@@ -12,9 +12,9 @@
 | `quality.py` | Signal、QualityReport、assess 签名 | extract → api（抽崩体检） |
 | `adjudication.py` | Adjudication、AdjudicationLog、MapUsagePort | kit → rebuild（反向注入） |
 | `targetmap.py` | Concept、Proposition、TargetMap、Kit、content_fingerprint | kit → rebuild、score |
-| `submission.py` | SubmittedProposition、Submission、Draft、模式枚举 | rebuild → score、quiz、export |
+| `submission.py` | 四元关联键 `KEY_FIELDS`、`check_key`、SubmittedProposition、Submission、Draft、模式与时点枚举 | rebuild → score、quiz、export |
 | `report.py` | ErrorChain、ScoreResult、四类错误枚举 | score → export |
-| `quizsheet.py` | Question、Answer、QuizRecord、三时点枚举 | quiz → export |
+| `quizsheet.py` | Question、Answer、QuizRecord | quiz → export |
 | `tam.py` | ScaleItem、AlphaReport、ScoreRow、CONSTRUCTS、alpha_by_construct 签名 | quiz → api（量表条目与信度） |
 | `exportcsv.py` | SubjectRow、QuestionRow、CsvPayload、UTF8_BOM | export → CSV 文件 |
 
@@ -34,6 +34,10 @@
 | `triple.TripleCandidate` | `suspect: bool = False` | 概念过长的可疑项：不静默丢，标出来排到最后 |
 | `triple.TripleCandidate.confidence` | 语义改为本地代理分 | 按 evidence 是否逐字命中原文算分，只用于排序，不采用模型自报值 |
 | `tam` | 整套（含 `CONSTRUCTS`、`MIN_ALPHA`、`alpha_by_construct` 签名） | TAM 量表条目与各构念信度；实现在 `kbp/quiz/{scale,alpha}.py` |
+| `report` | `fms` 量纲 0~100，`FMS_MIN` / `FMS_MAX` | 与文献口径一致（D04） |
+| `submission` | 关联键改四元 `(participant_id, material_id, time_point, submit_seq)`，加 `check_key`；`Submission` 加 `fingerprint` / `time_point` / `submit_seq` | 同一人同一教材同一时点可多次提交，靠序号区分（D09） |
+| `quizsheet.QuizRecord` | 去 `session`，改四元键 | 与提交表同键对齐 |
+| `exportcsv.SubjectRow` / `QuestionRow` | 关联键改四元 | 两张表可按同一键联结 |
 
 全部有默认值，向后兼容。
 

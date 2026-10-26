@@ -2,6 +2,7 @@ import pytest
 
 import kbp.quiz.quiz_store as qs
 import kbp.contracts.quizsheet as quiz
+import kbp.contracts.submission as submission
 
 
 def q(qid="q1", answer=0):
@@ -10,13 +11,13 @@ def q(qid="q1", answer=0):
                          content_dimension="记忆")
 
 
-def a(qid="q1", choice=0, tp=quiz.PRE):
+def a(qid="q1", choice=0, tp=submission.PRE):
     return quiz.Answer(question_id=qid, choice_index=choice, time_point=tp)
 
 
-def rec(props=None, tp=quiz.PRE):
-    return quiz.QuizRecord(quiz_id="z1", participant_id=1, material_id=1,
-                           session=1, time_point=tp,
+def rec(props=None, tp=submission.PRE):
+    return quiz.QuizRecord(quiz_id="z1", participant_id=1, material_id=1, submit_seq=1,
+                           time_point=tp,
                            answers=tuple(props or (a(),)))
 
 
@@ -56,7 +57,7 @@ def test_写入作答并读回(conn):
     n = qs.save_record(conn, "z1", rec((a("q1", 0), a("q2", 1))),
                        (q("q1"), q("q2", 1)))
     assert n == 2
-    assert qs.load_answers(conn, 1, 1, 1, quiz.PRE) == (("q1", 0), ("q2", 1))
+    assert qs.load_answers(conn, 1, 1, submission.PRE, 1) == (("q1", 0), ("q2", 1))
 
 
 def test_判对结果落库(conn):
@@ -70,15 +71,15 @@ def test_同点同题重复写入被更新(conn):
     qs.save_set(conn, "z1", (q("q1", 0),))
     qs.save_record(conn, "z1", rec((a("q1", 1),)), (q("q1", 0),))
     qs.save_record(conn, "z1", rec((a("q1", 0),)), (q("q1", 0),))
-    assert qs.load_answers(conn, 1, 1, 1, quiz.PRE) == (("q1", 0),)
+    assert qs.load_answers(conn, 1, 1, submission.PRE, 1) == (("q1", 0),)
 
 
 def test_不同时点互不覆盖(conn):
     qs.save_set(conn, "z1", (q("q1", 0),))
-    qs.save_record(conn, "z1", rec((a("q1", 2),), quiz.PRE), (q("q1", 0),))
-    qs.save_record(conn, "z1", rec((a("q1", 0),), quiz.POST), (q("q1", 0),))
-    assert qs.load_answers(conn, 1, 1, 1, quiz.POST) == (("q1", 0),)
-    assert qs.load_answers(conn, 1, 1, 1, quiz.PRE) == (("q1", 2),)
+    qs.save_record(conn, "z1", rec((a("q1", 2),), submission.PRE), (q("q1", 0),))
+    qs.save_record(conn, "z1", rec((a("q1", 0),), submission.POST), (q("q1", 0),))
+    assert qs.load_answers(conn, 1, 1, submission.POST, 1) == (("q1", 0),)
+    assert qs.load_answers(conn, 1, 1, submission.PRE, 1) == (("q1", 2),)
 
 
 def test_落盘后重开可读回(tmp_path):

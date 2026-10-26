@@ -41,21 +41,23 @@ def shared_conn():
     return conn
 
 
+def make_sub(kit, seq=1, mode=submission.TEST):
+    ids = [c.concept_id for c in kit.concepts]
+    return submission.Submission(
+        map_version="v1", fingerprint="fp1", mode=mode,
+        propositions=(submission.SubmittedProposition(
+            head_id=ids[0], connection="包括", tail_id=ids[1]),),
+        started_at="", submitted_at="2026-10-25T10:00:00",
+        participant_id=1, material_id=1, time_point=submission.POST,
+        submit_seq=seq)
+
+
 def test_提交后版本自动锁定():
     conn = shared_conn()
     port = usage.SubmissionUsage(conn)
     kit = split.split(freeze.freeze(make_log(), "v1"))
     lock.assert_mutable("v1", port)
-
-    ids = [c.concept_id for c in kit.concepts]
-    svc.submit(conn, kit,
-               submission.Submission(map_version="v1", mode=submission.TEST,
-                                     propositions=(submission.SubmittedProposition(
-                                         head_id=ids[0], connection="包括",
-                                         tail_id=ids[1]),),
-                                     started_at="",
-                                     submitted_at="2026-10-25T10:00:00",
-                                     participant_id=1, material_id=1, session=1))
+    svc.submit(conn, kit, make_sub(kit))
     assert port.is_used("v1") is True
     assert lock.lock_state("v1", port) == "locked"
     conn.close()
@@ -70,16 +72,10 @@ def test_驳回项不进_kit_但留档():
     conn.close()
 
 
-def test_同一场次重复提交被拒():
+def test_同一四元键重复提交被拒():
     conn = shared_conn()
     kit = split.split(freeze.freeze(make_log(), "v1"))
-    ids = [c.concept_id for c in kit.concepts]
-    sub = submission.Submission(
-        map_version="v1", mode=submission.TEST,
-        propositions=(submission.SubmittedProposition(
-            head_id=ids[0], connection="包括", tail_id=ids[1]),),
-        started_at="", submitted_at="2026-10-25T10:00:00",
-        participant_id=1, material_id=1, session=1)
+    sub = make_sub(kit)
     svc.submit(conn, kit, sub)
     try:
         svc.submit(conn, kit, sub)

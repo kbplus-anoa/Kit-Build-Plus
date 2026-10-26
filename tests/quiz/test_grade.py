@@ -2,6 +2,7 @@ import pytest
 
 import kbp.quiz.grade as grade
 import kbp.contracts.quizsheet as quiz
+import kbp.contracts.submission as submission
 
 
 def q(qid="q1", answer=0, choices=("A", "B", "C")):
@@ -10,7 +11,7 @@ def q(qid="q1", answer=0, choices=("A", "B", "C")):
                          content_dimension="记忆")
 
 
-def a(qid="q1", choice=0, tp=quiz.PRE):
+def a(qid="q1", choice=0, tp=submission.PRE):
     return quiz.Answer(question_id=qid, choice_index=choice, time_point=tp)
 
 
@@ -28,38 +29,38 @@ def test_未作答算错():
 
 def test_全对得满分():
     qs = (q("q1", 0), q("q2", 1))
-    rec = quiz.QuizRecord(quiz_id="z1", participant_id=1, material_id=1,
-                          session=1, time_point=quiz.PRE,
+    rec = quiz.QuizRecord(quiz_id="z1", participant_id=1, material_id=1, submit_seq=1,
+                          time_point=submission.PRE,
                           answers=(a("q1", 0), a("q2", 1)))
     assert grade.percent(qs, rec) == 100.0
 
 
 def test_全错得零分():
     qs = (q("q1", 0), q("q2", 1))
-    rec = quiz.QuizRecord(quiz_id="z1", participant_id=1, material_id=1,
-                          session=1, time_point=quiz.PRE,
+    rec = quiz.QuizRecord(quiz_id="z1", participant_id=1, material_id=1, submit_seq=1,
+                          time_point=submission.PRE,
                           answers=(a("q1", 2), a("q2", 0)))
     assert grade.percent(qs, rec) == 0.0
 
 
 def test_空卷得零分():
     qs = (q("q1", 0), q("q2", 1))
-    rec = quiz.QuizRecord(quiz_id="z1", participant_id=1, material_id=1,
-                          session=1, time_point=quiz.PRE, answers=())
+    rec = quiz.QuizRecord(quiz_id="z1", participant_id=1, material_id=1, submit_seq=1,
+                          time_point=submission.PRE, answers=())
     assert grade.percent(qs, rec) == 0.0
 
 
 def test_漏答按错计():
     qs = (q("q1", 0), q("q2", 1))
-    rec = quiz.QuizRecord(quiz_id="z1", participant_id=1, material_id=1,
-                          session=1, time_point=quiz.PRE,
+    rec = quiz.QuizRecord(quiz_id="z1", participant_id=1, material_id=1, submit_seq=1,
+                          time_point=submission.PRE,
                           answers=(a("q1", 0),))
     assert grade.percent(qs, rec) == 50.0
 
 
 def test_题数为零不除错():
-    rec = quiz.QuizRecord(quiz_id="z1", participant_id=1, material_id=1,
-                          session=1, time_point=quiz.PRE, answers=())
+    rec = quiz.QuizRecord(quiz_id="z1", participant_id=1, material_id=1, submit_seq=1,
+                          time_point=submission.PRE, answers=())
     assert grade.percent((), rec) == 0.0
 
 
@@ -92,17 +93,17 @@ def test_作答引用不存在的题被拒():
 
 def test_时点不一致被拒():
     qs = (q("q1", 0),)
-    rec = quiz.QuizRecord(quiz_id="z1", participant_id=1, material_id=1,
-                          session=1, time_point=quiz.POST,
-                          answers=(a("q1", 0, quiz.PRE),))
+    rec = quiz.QuizRecord(quiz_id="z1", participant_id=1, material_id=1, submit_seq=1,
+                          time_point=submission.POST,
+                          answers=(a("q1", 0, submission.PRE),))
     with pytest.raises(grade.QuizError):
         grade.check_record(rec, qs)
 
 
 def test_同题重复作答被拒():
     qs = (q("q1", 0),)
-    rec = quiz.QuizRecord(quiz_id="z1", participant_id=1, material_id=1,
-                          session=1, time_point=quiz.PRE,
+    rec = quiz.QuizRecord(quiz_id="z1", participant_id=1, material_id=1, submit_seq=1,
+                          time_point=submission.PRE,
                           answers=(a("q1", 0), a("q1", 1)))
     with pytest.raises(grade.QuizError):
         grade.check_record(rec, qs)
@@ -110,6 +111,6 @@ def test_同题重复作答被拒():
 
 def test_关联键必须正整数():
     rec = quiz.QuizRecord(quiz_id="z1", participant_id=0, material_id=1,
-                          session=1, time_point=quiz.PRE, answers=())
+                          time_point=submission.PRE, submit_seq=1, answers=())
     with pytest.raises(grade.QuizError):
         grade.check_record(rec, (q(),))

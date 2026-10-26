@@ -1,8 +1,9 @@
 import kbp.contracts.exportcsv
+import kbp.contracts.submission
 
 
-HEADER = ("participant_id", "material_id", "target_map_version", "session",
-          "question_id", "time_point", "答对", "得分", "题型", "内容维度")
+HEADER = ("participant_id", "material_id", "time_point", "submit_seq",
+          "target_map_version", "question_id", "答对", "得分", "题型", "内容维度")
 
 
 def build(rows) -> kbp.contracts.exportcsv.CsvPayload:
@@ -15,8 +16,10 @@ def build(rows) -> kbp.contracts.exportcsv.CsvPayload:
 
 def check(rows: tuple[kbp.contracts.exportcsv.QuestionRow, ...]) -> None:
     for r in rows:
-        if r.participant_id < 1 or r.material_id < 1 or r.session < 1:
-            raise ValueError("关联键须为正整数")
+        reason = kbp.contracts.submission.check_key(
+            r.participant_id, r.material_id, r.time_point, r.submit_seq)
+        if reason:
+            raise ValueError(reason)
         if not r.question_id.strip():
             raise ValueError("题号不得为空")
         if r.correct not in (0, 1):
@@ -24,6 +27,6 @@ def check(rows: tuple[kbp.contracts.exportcsv.QuestionRow, ...]) -> None:
 
 
 def _row(r) -> tuple:
-    return (r.participant_id, r.material_id, r.target_map_version, r.session,
-            r.question_id, r.time_point, r.correct, r.score, r.qtype,
+    return (r.participant_id, r.material_id, r.time_point, r.submit_seq,
+            r.target_map_version, r.question_id, r.correct, r.score, r.qtype,
             r.content_dimension)

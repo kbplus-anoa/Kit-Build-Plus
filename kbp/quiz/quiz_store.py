@@ -14,16 +14,16 @@ CREATE TABLE IF NOT EXISTS answer (
     quiz_id TEXT NOT NULL,
     participant_id INTEGER NOT NULL,
     material_id INTEGER NOT NULL,
-    session INTEGER NOT NULL,
     time_point TEXT NOT NULL,
+    submit_seq INTEGER NOT NULL,
     question_id TEXT NOT NULL,
     choice_index INTEGER NOT NULL,
     is_correct INTEGER NOT NULL,
-    PRIMARY KEY (quiz_id, participant_id, material_id, session, time_point,
+    PRIMARY KEY (quiz_id, participant_id, material_id, time_point, submit_seq,
                  question_id)
 );
 CREATE INDEX IF NOT EXISTS idx_answer_pt ON answer(participant_id,
-                                                  material_id, session);
+                                                  material_id, time_point);
 """
 
 
@@ -74,13 +74,13 @@ def save_record(conn: sqlite3.Connection, quiz_id: str,
                 record: kbp.contracts.quizsheet.QuizRecord, questions) -> int:
     """逐题写入作答与判对结果，返回写入条数。同点同题不可重复。"""
     rows = [(quiz_id, record.participant_id, record.material_id,
-             record.session, record.time_point,
+             record.time_point, record.submit_seq,
              a.question_id, a.choice_index,
              1 if _right(questions, a) else 0) for a in record.answers]
     conn.executemany(
         "INSERT INTO answer VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-        " ON CONFLICT(quiz_id, participant_id, material_id, session,"
-        " time_point, question_id) DO UPDATE SET"
+        " ON CONFLICT(quiz_id, participant_id, material_id, time_point,"
+        " submit_seq, question_id) DO UPDATE SET"
         " choice_index=excluded.choice_index, is_correct=excluded.is_correct",
         rows)
     conn.commit()
@@ -96,14 +96,14 @@ def _right(questions, answer) -> bool:
 
 
 def load_answers(conn: sqlite3.Connection, participant_id: int,
-                 material_id: int, session: int,
-                 time_point: str) -> tuple:
-    """读回某人在某时点的逐题作答，按题号顺序。"""
+                 material_id: int, time_point: str,
+                 submit_seq: int) -> tuple:
+    """读回某人在某时点第几次提交的逐题作答，按题号顺序。"""
     cur = conn.execute(
         "SELECT question_id, choice_index FROM answer"
-        " WHERE participant_id = ? AND material_id = ? AND session = ?"
-        " AND time_point = ? ORDER BY question_id",
-        (participant_id, material_id, session, time_point))
+        " WHERE participant_id = ? AND material_id = ? AND time_point = ?"
+        " AND submit_seq = ? ORDER BY question_id",
+        (participant_id, material_id, time_point, submit_seq))
     return tuple((r[0], r[1]) for r in cur.fetchall())
 
 

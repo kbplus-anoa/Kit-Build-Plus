@@ -56,12 +56,14 @@ def test_教材到分数的全链路():
 
     ids = {c.label: c.concept_id for c in kit.concepts}
     sub = submission.Submission(
-        map_version="v1", mode=submission.TEST,
+        map_version="v1", fingerprint=target.fingerprint,
+        mode=submission.TEST,
         propositions=(submission.SubmittedProposition(
             head_id=ids["记忆"], connection="包括",
             tail_id=ids["短时记忆"]),),
         started_at="", submitted_at="2026-10-25T10:00:00",
-        participant_id=1, material_id=1, session=1)
+        participant_id=1, material_id=1, time_point=submission.POST,
+        submit_seq=1)
 
     scored = score_service.score(target, sub)
     assert scored.total_propositions == len(target.propositions)
