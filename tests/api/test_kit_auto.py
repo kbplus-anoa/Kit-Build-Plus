@@ -118,8 +118,10 @@ def test_抽取接口带回证据片段(client, monkeypatch):
                             triple.TripleCandidate(head="记忆", connection="包括",
                                                    tail="短时记忆",
                                                    confidence=0.9,
-                                                   evidence="记忆包括短时记忆"),)))
+                                                   evidence="记忆包括短时记忆",
+                                                   suspect=True),)))
     data = client.post("/api/extract",
                        json={"text": "记忆包括短时记忆",
                              "vocab": VOCAB}).json()
     assert data["triples"][0]["evidence"] == "记忆包括短时记忆"
+    assert data["triples"][0]["suspect"] is True

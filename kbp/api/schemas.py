@@ -72,6 +72,7 @@ class TripleOut(BaseModel):
     tail: str
     confidence: float
     evidence: str = ""
+    suspect: bool = False
 
 
 class ExtractOut(BaseModel):

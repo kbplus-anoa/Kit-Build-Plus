@@ -65,7 +65,7 @@ def extract(body: ExtractIn) -> ExtractOut:
         count=len(result.triples),
         triples=[TripleOut(head=t.head, connection=t.connection,
                            tail=t.tail, confidence=t.confidence,
-                           evidence=t.evidence)
+                           evidence=t.evidence, suspect=t.suspect)
                  for t in result.triples])
 
 

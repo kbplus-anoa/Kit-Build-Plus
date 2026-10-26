@@ -9,7 +9,7 @@
 | `prompt.py` | 提示词构造：词表入提示、要求有向三元组、JSON Output 的样例与 json 字样 |
 | `chat_client.py` | OpenAI 兼容接口的最小客户端；密钥只从环境变量读；空 content 与限流重试 |
 | `engine.py` | `ChatEngine`：`extract(文本, 词表, 配置)` 的实现，协议与供应商无关 |
-| `normalize.py` | 模型输出 → 契约三元组，唯一收口处：越界/自环/重复一律丢弃 |
+| `normalize.py` | 模型输出 → 契约三元组，唯一收口处：越界/自环/重复/概念里塞连接词一律丢弃；置信度是本地代理分 |
 | `extract_service.py` | `extract(text, vocab, config, engine)`：编排；`record` 产出留档；`sha256` |
 | `window.py` | 按空行分段，超长段按字上限硬切；`merge_key` 去重键 |
 
@@ -33,6 +33,13 @@
 ```
 
 **密钥不在此层保存**：只从环境变量读取，不进配置结构、不进日志、不进异常信息。
+
+## 置信度是本地代理分
+
+不用模型自报的 confidence（模型常不给，给了也不可比），改由本地按证据算分：
+`evidence` 在原文里逐字命中得 1.0，对不上得 0.4，没证据也没原文得 0.2；
+位置与输出顺序不一致（越序）乘 0.6；概念超过 20 字置 `suspect` 并封顶 0.15、排在最后。
+同分按首次出现顺序，同一输入两次输出同序 —— 排序负责「先看哪条」，不负责丢人。
 
 配置见 `kbp/contracts/extractconfig.py`；抽取档案见 `kbp/contracts/extraction.py`。
 

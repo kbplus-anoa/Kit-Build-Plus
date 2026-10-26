@@ -39,6 +39,8 @@
 
 自动路返回 `fingerprint`，导出与统计按它筛同一批人。
 
+`/api/extract` 的每条候选带 `confidence`（本地代理分，只用于排序）、`evidence`（逐字原文片段）与 `suspect`（概念过长等可疑项，不丢、排最后）。
+
 ## 边界（不做什么）
 
 不含业务规则、不渲染页面。前端位于**仓库根目录 `web/`**（Vite + React + TS），

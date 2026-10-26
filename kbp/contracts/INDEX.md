@@ -28,6 +28,8 @@
 | `extraction` | `ExtractionRecord` + `ExtractPort` | 抽取留档与引擎协议 |
 | `exportcsv.SubjectRow` | `fingerprint: str = ""` | 导出可直接按指纹筛同批 |
 | `targetmap` | `content_fingerprint` 签名 | 实现在 `kbp/kit/_rules.py` |
+| `triple.TripleCandidate` | `suspect: bool = False` | 概念过长的可疑项：不静默丢，标出来排到最后 |
+| `triple.TripleCandidate.confidence` | 语义改为本地代理分 | 按 evidence 是否逐字命中原文算分，只用于排序，不采用模型自报值 |
 
 全部有默认值，向后兼容。
 
