@@ -89,7 +89,7 @@ def test_提交后评分并锁定(client):
     ids = {c["label"]: c["concept_id"] for c in kit["concepts"]}
     resp = client.post("/api/submit", json={
         "batch_id": "b1", "map_version": "v1", "mode": "test",
-        "participant_id": 1, "material_id": 1, "session": 1,
+        "participant_id": 1, "material_id": 1, "time_point": "post",
         "propositions": [{"head_id": ids["记忆"], "connection": "包括",
                           "tail_id": ids["感觉记忆"]}]})
     assert resp.status_code == 200
@@ -101,7 +101,7 @@ def test_越界零件提交被拒(client):
     client.post("/api/adjudicate", json=ADJ)
     resp = client.post("/api/submit", json={
         "batch_id": "b1", "map_version": "v1", "mode": "test",
-        "participant_id": 1, "material_id": 1, "session": 1,
+        "participant_id": 1, "material_id": 1, "time_point": "post",
         "propositions": [{"head_id": "c9", "connection": "包括",
                           "tail_id": "c1"}]})
     assert resp.status_code == 400
@@ -109,7 +109,7 @@ def test_越界零件提交被拒(client):
 
 def test_被试级导出带_BOM(client):
     body = {"rows": [{"participant_id": 1, "material_id": 1,
-                      "target_map_version": "v1", "session": 1,
+                      "target_map_version": "v1", "time_point": "post", "submit_seq": 1,
                       "mode": "test", "condition": "exp", "is_practice": 0,
                       "correct_propositions": 1, "total_propositions": 2,
                       "n_lacking": 1, "n_excessive": 0, "n_leaving": 0,
@@ -122,7 +122,7 @@ def test_被试级导出带_BOM(client):
 
 def test_题级导出英文表头在前(client):
     body = {"rows": [{"participant_id": 1, "material_id": 1,
-                      "target_map_version": "v1", "session": 1,
+                      "target_map_version": "v1", "submit_seq": 1,
                       "question_id": "q1", "time_point": "pre",
                       "correct": 1, "qtype": "single",
                       "content_dimension": "记忆"}]}

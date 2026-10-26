@@ -9,13 +9,13 @@
 |---|---|
 | `main.py` | FastAPI 实例、路由挂载、`/` 与 `/api/health` |
 | `deps.py` | 进程级数据库连接与写锁（两把锁分开，见下） |
-| `bootstrap.py` | 建表装配：各 feature 的 `ensure` + 抽取配置表 |
+| `bootstrap.py` | 建表装配：各 feature 的 `ensure` + 抽取配置表；库默认落在仓库根 `tmp/kb.sqlite3` |
 | `schemas.py` | 通用请求/响应模型，只做格式约束，不含业务规则 |
 | `schemas_tam.py` | TAM 量表的请求/响应模型，独立成文件以避开 200 行上限 |
 | `config_store.py` | 抽取配置表（一行一条）的读写 |
 | `routes_config.py` | `GET/PUT /api/config`：读写配置；**只回显密钥是否已配置** |
 | `routes_text.py` | `/api/ingest`、`/api/extract`、`/api/kit/auto` |
-| `routes_flow.py` | `/api/adjudicate`（开发期）、`/api/kit`、`/api/lock`、`/api/submit` |
+| `routes_flow.py` | `/api/adjudicate`（开发期）、`/api/kit`、`/api/lock`、`/api/submit`（回提交序号、内容指纹、FMS） |
 | `routes_data.py` | `/api/quiz`、`/api/export/subject`、`/api/export/question` |
 | `routes_tam.py` | `GET /api/tam/items`、`POST /api/tam/alpha`（只算不存） |
 

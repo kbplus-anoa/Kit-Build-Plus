@@ -39,19 +39,19 @@ TAM 已通：GET /api/tam/items 出 14 题，POST /api/tam/alpha 按构念算 α
 
 ### 阶段 0 等用户确认，阻塞后续
 
-- [ ] 关联键改四元：被试标识 + 教材 + 时点 + 提交序号（D09）。
+- [x] 关联键改四元：被试标识 + 教材 + 时点 + 提交序号（D09）。已直接换库，不写迁移。
       旧 participant_id + material_id + session；新 participant_id + material_id + time_point + submit_seq。
       影响 kbp/contracts/submission.py、quizsheet.py、exportcsv.py；kbp/rebuild/draft_store.py、
       rebuild_service.py、rebuild_validate.py；kbp/quiz/quiz_store.py、grade.py；kbp/api/schemas.py；
       kbp/export/subject_table.py、question_table.py；两处 store 表主键与全部相关测试。需换库或写迁移。
-- [ ] FMS 改 0–100（D04）。旧 ratio 返回 0–1，新 × 100。
+- [x] FMS 改 0–100（D04）。旧 ratio 返回 0–1，新 × 100。
       影响 kbp/contracts/report.py、kbp/score/score_service.py、kbp/export/subject_table.py、ScoreOut 与相关测试。
-- [ ] 重建提交的时点取值：概念图提交只有 post，还是也要 pre/delayed。
+- [x] 重建提交的时点取值：保留 pre / post / delayed 三种（用户定）。
 
 ### 阶段 1 契约（一个契约域一次提交，先契约测试后实现）
 
-- [ ] 落 D09 四元关联键
-- [ ] 落 D04 FMS 0–100
+- [x] 落 D09 四元关联键
+- [x] 落 D04 FMS 0–100
 - [ ] 新契约 targetbank：按教材与词表版本登记、按内容指纹查已冻结目标图
 - [ ] extraction 契约补存储语义
 

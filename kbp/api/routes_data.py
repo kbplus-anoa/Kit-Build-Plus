@@ -9,6 +9,7 @@ import kbp.contracts.exportcsv
 import kbp.quiz.grade
 import kbp.export.question_table
 import kbp.quiz.quiz_store
+import kbp.rebuild.draft_store
 import kbp.contracts.quizsheet
 import kbp.export.subject_table
 from kbp.api.schemas import QuestionExportIn, QuizIn, QuizOut, SubjectExportIn
@@ -36,10 +37,13 @@ def save_quiz(body: QuizIn) -> QuizOut:
                                                    choice_index=a.choice_index,
                                                    time_point=body.time_point)
                     for a in body.answers)
+    seq = kbp.rebuild.draft_store.next_seq(
+        kbp.api.deps.get_conn(), body.participant_id, body.material_id,
+        body.time_point)
     record = kbp.contracts.quizsheet.QuizRecord(
         quiz_id=body.quiz_id, participant_id=body.participant_id,
-        material_id=body.material_id, session=body.session,
-        time_point=body.time_point, answers=answers)
+        material_id=body.material_id, time_point=body.time_point,
+        submit_seq=seq, answers=answers)
     try:
         kbp.quiz.grade.check_record(record, questions)
     except kbp.quiz.grade.QuizError as exc:
@@ -61,7 +65,8 @@ def export_subject(body: SubjectExportIn) -> Response:
     """被试级 CSV，UTF-8 带 BOM。"""
     rows = tuple(kbp.contracts.exportcsv.SubjectRow(
         participant_id=r.participant_id, material_id=r.material_id,
-        target_map_version=r.target_map_version, session=r.session,
+        time_point=r.time_point, submit_seq=r.submit_seq,
+        target_map_version=r.target_map_version,
         mode=r.mode, condition=r.condition, is_practice=r.is_practice,
         correct_propositions=r.correct_propositions,
         total_propositions=r.total_propositions,
@@ -86,8 +91,9 @@ def export_question(body: QuestionExportIn) -> Response:
     """题级 CSV，long 格式，UTF-8 带 BOM。"""
     rows = tuple(kbp.contracts.exportcsv.QuestionRow(
         participant_id=r.participant_id, material_id=r.material_id,
-        target_map_version=r.target_map_version, session=r.session,
-        question_id=r.question_id, time_point=r.time_point,
+        time_point=r.time_point, submit_seq=r.submit_seq,
+        target_map_version=r.target_map_version,
+        question_id=r.question_id,
         correct=r.correct, score=r.score, qtype=r.qtype,
         content_dimension=r.content_dimension) for r in body.rows)
     try:

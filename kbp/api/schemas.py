@@ -164,13 +164,23 @@ class Vec2In(BaseModel):
 
 
 class SubmitIn(BaseModel):
+    """提交：关联键为四元组，学习模式靠 submit_seq 区分多次提交。"""
+
     batch_id: str = Field(min_length=1, max_length=100)
     map_version: str = Field(min_length=1, max_length=50)
     mode: str
     participant_id: int = Field(ge=1)
     material_id: int = Field(ge=1)
-    session: int = Field(ge=1)
+    time_point: str = Field(min_length=1, max_length=20)
     propositions: list[Vec2In] = Field(max_length=500)
+
+
+class SubmitOut(BaseModel):
+    """提交回执：带上服务端分配的提交序号与该图指纹。"""
+
+    submit_seq: int
+    fingerprint: str
+    fms: float
 
 
 class ErrorOut(BaseModel):
@@ -209,7 +219,6 @@ class QuizIn(BaseModel):
     quiz_id: str = Field(min_length=1, max_length=100)
     participant_id: int = Field(ge=1)
     material_id: int = Field(ge=1)
-    session: int = Field(ge=1)
     time_point: str
     questions: list[QuestionIn] = Field(min_length=1, max_length=500)
     answers: list[AnswerIn] = Field(max_length=500)
@@ -223,12 +232,13 @@ class QuizOut(BaseModel):
 
 
 class SubjectRowIn(BaseModel):
-    """被试级一行，字段与 CSV_PLAN A–F 节对应。"""
+    """被试级一行，关联键为四元组。"""
 
     participant_id: int = Field(ge=1)
     material_id: int = Field(ge=1)
+    time_point: str = Field(min_length=1, max_length=20)
+    submit_seq: int = Field(ge=1)
     target_map_version: str = Field(min_length=1, max_length=50)
-    session: int = Field(ge=1)
     mode: str
     condition: str
     is_practice: int = Field(ge=0, le=1)
@@ -253,14 +263,14 @@ class SubjectExportIn(BaseModel):
 
 
 class QuestionRowIn(BaseModel):
-    """题级一行，字段与 CSV_PLAN H 节对应。"""
+    """题级一行，关联键为四元组。"""
 
     participant_id: int = Field(ge=1)
     material_id: int = Field(ge=1)
+    time_point: str = Field(min_length=1, max_length=20)
+    submit_seq: int = Field(ge=1)
     target_map_version: str = Field(min_length=1, max_length=50)
-    session: int = Field(ge=1)
     question_id: str = Field(min_length=1, max_length=50)
-    time_point: str
     correct: int = Field(ge=0, le=1)
     score: float | None = None
     qtype: str

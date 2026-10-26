@@ -10,6 +10,7 @@
 - [x] `/` 与 `/api/health`
 - [x] `GET/PUT /api/config`：读写抽取配置，只回显密钥是否已配置
 - [x] `POST /api/kit/auto`：文本 → 自动抽取 → 自动冻结 → 拆 kit
+- [x] `/api/submit` 回提交序号与内容指纹；测验模式同一键重复提交返 409
 - [ ] 前端对接（等用户提供 HTML 原型）
 
 <!-- /@zone code -->

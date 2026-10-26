@@ -21,9 +21,9 @@ def install_paths() -> None:
 
 
 def db_path() -> str:
-    """数据库路径，默认 tmp/kb.sqlite3；测试可注入 :memory:。"""
+    """数据库路径，默认仓库根 tmp/kb.sqlite3；测试可注入 :memory:。"""
     import os
-    return os.environ.get("KBP_DB_PATH", str(ROOT / "tmp" / "kb.sqlite3"))
+    return os.environ.get("KBP_DB_PATH", str(ROOT.parent / "tmp" / "kb.sqlite3"))
 
 
 def create_schema(conn) -> None:
