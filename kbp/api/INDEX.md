@@ -10,12 +10,14 @@
 | `main.py` | FastAPI 实例、路由挂载、`/` 与 `/api/health` |
 | `deps.py` | 进程级数据库连接与写锁（两把锁分开，见下） |
 | `bootstrap.py` | 建表装配：各 feature 的 `ensure` + 抽取配置表 |
-| `schemas.py` | 全部请求/响应模型，只做格式约束，不含业务规则 |
+| `schemas.py` | 通用请求/响应模型，只做格式约束，不含业务规则 |
+| `schemas_tam.py` | TAM 量表的请求/响应模型，独立成文件以避开 200 行上限 |
 | `config_store.py` | 抽取配置表（一行一条）的读写 |
 | `routes_config.py` | `GET/PUT /api/config`：读写配置；**只回显密钥是否已配置** |
 | `routes_text.py` | `/api/ingest`、`/api/extract`、`/api/kit/auto` |
 | `routes_flow.py` | `/api/adjudicate`（开发期）、`/api/kit`、`/api/lock`、`/api/submit` |
 | `routes_data.py` | `/api/quiz`、`/api/export/subject`、`/api/export/question` |
+| `routes_tam.py` | `GET /api/tam/items`、`POST /api/tam/alpha`（只算不存） |
 
 `/api/ingest` 失败码：文件不存在 404、格式不支持 400、
 扫描件云端不可用（`MinerUUnavailable`）503、其它解析失败 502。
@@ -41,6 +43,10 @@
 | 开发期 | `POST /api/adjudicate` → `POST /api/kit` | 是（逐条裁定） |
 
 自动路返回 `fingerprint`，导出与统计按它筛同一批人。
+
+TAM：`GET /api/tam/items` 出量表条目（六点上下限、判据、构念中文名、可选题）；
+`POST /api/tam/alpha` 按构念算 α，题号不在量表内返 400（原因里带题号），
+得分越界（不在 1–6）由本层模型返 422。本层**只算不存**，作答落库等题级表。
 
 `/api/extract` 的每条候选带 `confidence`（本地代理分，只用于排序）、`evidence`（逐字原文片段）与 `suspect`（概念过长等可疑项，不丢、排最后）。
 

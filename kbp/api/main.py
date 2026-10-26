@@ -5,6 +5,7 @@ from fastapi import FastAPI
 import kbp.api.routes_config
 import kbp.api.routes_data
 import kbp.api.routes_flow
+import kbp.api.routes_tam
 import kbp.api.routes_text
 
 app = FastAPI(title="Kit-Build-Plus", version="0.1.0")
@@ -12,6 +13,7 @@ app.include_router(kbp.api.routes_config.router)
 app.include_router(kbp.api.routes_text.router)
 app.include_router(kbp.api.routes_flow.router)
 app.include_router(kbp.api.routes_data.router)
+app.include_router(kbp.api.routes_tam.router)
 
 
 @app.get("/")
