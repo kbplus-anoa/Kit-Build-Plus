@@ -7,7 +7,10 @@
 - [x] `split`：只留被命题用到的零件
 - [x] `store`：裁定表 + 词表表，不可覆盖/改写
 - [x] `lock`：已被学生用过即拒改（`MapUsagePort` 注入）
-- [ ] `_rules`：抽出两条路共用的冻结规则
-- [ ] `freeze_auto`：运行期自动路径
-- [ ] 内容指纹写入 `TargetMap`
+- [x] `_rules`：抽出两条路共用的冻结规则
+- [x] `freeze_auto`：运行期自动路径
+- [x] 内容指纹写入 `TargetMap.fingerprint`
+- [ ] 抽崩检测 S1–S4（等用户确认阈值与触发文案）
 - [ ] 自动路界面（暂不实现 GUI）
+
+<!-- /@zone code -->

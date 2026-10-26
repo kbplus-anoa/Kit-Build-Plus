@@ -31,21 +31,30 @@
 ```
 纯文本 + 词表 + ExtractConfig
       │
-      ├─ _prompt.build：词表 + 原文 → 系统提示与用户提示
+      ├─ window.split：按空行分段，超长段按字上限硬切
+      │
+      ├─ prompt.build：词表 + 原文 → 系统提示与用户提示
       │     （JSON Output 要求提示里含 json 字样并给出样例）
       │
-      ├─ deepseek_client.chat：httpx 直调，Bearer 密钥从环境变量读
-      │     └─ 失败重试最多 2 次（含空 content 这一官方已知问题）
+      ├─ chat_client.chat：httpx 直调 OpenAI 兼容接口
+      │     │  Bearer 密钥从 KBP_API_KEY 读（协议只有一套，不写死服务商）
+      │     └─ 失败重试最多 2 次（空 content 与限流/5xx）
       │
-      └─ _normalize.to_candidates：模型 JSON → 契约三元组
+      └─ normalize.to_candidates：模型 JSON → 契约三元组
             ├─ 越界连接词 → 丢弃
             ├─ 自环 → 丢弃
             ├─ 重复 → 丢弃
-            └─ evidence 缺失 → 空串（不阻断）
+            └─ evidence 缺失 → 退回首句（无原文则空串，不阻断）
                           │
                           v
-              ExtractionResult（契约）
+              ExtractionResult（契约）→ record → ExtractionRecord（留档）
 ```
+
+**协议是 OpenAI 兼容格式，供应商只是配置。** provider 只有一个值
+`openai_compatible`（界面上叫「自定义 / OpenAI 兼容」），换服务商只改
+`base_url`、`model` 与密钥环境变量 `KBP_API_KEY`，代码不动。
+开发期样例是 DeepSeek（`https://api.deepseek.com` + `deepseek-chat`），
+因为价格与中文表现都合适；配置默认留空，由用户填自己的服务商。
 
 **密钥绝不出现在**：日志、异常信息、配置结构、HTTP 响应。只从环境变量读取。
 
@@ -60,8 +69,8 @@
 
 - **色盲**：命题行状态不用红/绿，用 ✓ / ✕ 两种形状 + 文字；
   置信度用数字而非色阶。
-- **计算机使用不熟练者**：密钥填写框旁常驻"在 DeepSeek 官网的 API Keys 页面
-  创建，粘贴后保存即可"；错误提示写人话（"密钥无效，请检查是否复制完整"），
-  不暴露状态码与英文原文。
+- **计算机使用不熟练者**：密钥填写框旁常驻一句"在你的服务商 API Keys 页面创建，
+  粘贴后保存即可"（开发期样例直接写 DeepSeek 官网路径）；
+  错误提示写人话（"密钥无效，请检查是否复制完整"），不暴露状态码与英文原文。
 
 <!-- /@zone research -->

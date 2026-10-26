@@ -38,6 +38,7 @@ class SubjectRow:
     signal_coverage: float  # 连接词覆盖率，0~1；可空
     signal_concentration: float  # 概念集中度，0~1；可空
     signal_baseline: float  # 基线偏离度，Z 分数，可为负；可空
+    fingerprint: str = ""  # 目标图内容指纹；可空（老数据无指纹则为空串）
 
 
 @dataclass(frozen=True)

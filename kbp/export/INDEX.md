@@ -6,9 +6,15 @@
 | 文件 | 内容 |
 |---|---|
 | `csv_writer.py` | `to_csv`：UTF-8 带 BOM；`quote` 统一空值/布尔/小数（固定 8 位）；`check_width` 防列错位 |
-| `subject_table.py` | 被试级表 21 列（CSV_PLAN A–F 节）；越界枚举、分子超过分母一律拒绝 |
+| `subject_table.py` | 被试级表 22 列（CSV_PLAN A–F 节）；越界枚举、分子超过分母一律拒绝 |
 | `question_table.py` | 题级表 10 列（CSV_PLAN H 节），long 格式 |
 | `tests/export/` | BOM、列宽、分子分母校验、中文列名、端到端落盘 |
+
+## 为什么要带 fingerprint 列
+
+同一教材在不同机器上自动裁 kit，可能得到不同概念与命题，但版本号都叫 `v1`。
+少了指纹这一列，导出的数据没法筛"同一批人"，跨机器的分数会被错误地混在一起算。
+导出层只搬运这个值，不参与计算。
 
 ## 为什么分数在这里现算却不违规
 

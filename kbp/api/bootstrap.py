@@ -32,9 +32,11 @@ def create_schema(conn) -> None:
     import draft_store
     import quiz_store
     import store as kit_store
+    import kbp.api.config_store
     kit_store.ensure(conn)
     draft_store.ensure(conn)
     quiz_store.ensure(conn)
+    kbp.api.config_store.ensure(conn)
 
 
 def open_db():

@@ -5,6 +5,38 @@ from pydantic import BaseModel, Field
 MAX_TEXT = 2_000_000
 
 
+class ConfigIn(BaseModel):
+    """抽取配置：OpenAI 兼容接口，开发期以 DeepSeek 为样例。"""
+
+    provider: str = Field(min_length=1, max_length=50)
+    model: str = Field(min_length=1, max_length=100)
+    base_url: str = Field(min_length=1, max_length=500)
+    timeout_s: int = Field(ge=1, le=300)
+    max_chars: int = Field(ge=1, le=100000)
+    enabled: bool = True
+
+    def to_config(self):
+        import kbp.contracts.extractconfig
+        return kbp.contracts.extractconfig.ExtractConfig(
+            provider=self.provider, model=self.model, base_url=self.base_url,
+            timeout_s=self.timeout_s, max_chars=self.max_chars,
+            enabled=self.enabled)
+
+
+class ConfigOut(BaseModel):
+    """配置回显：含 has_key 与 key_env，绝不含密钥本身。"""
+
+    provider: str
+    model: str
+    base_url: str
+    timeout_s: int
+    max_chars: int
+    enabled: bool
+    has_key: bool
+    key_env: str
+    error: str
+
+
 class IngestIn(BaseModel):
     """按本地路径读原文。"""
 
@@ -39,6 +71,7 @@ class TripleOut(BaseModel):
     connection: str
     tail: str
     confidence: float
+    evidence: str = ""
 
 
 class ExtractOut(BaseModel):
@@ -87,6 +120,21 @@ class KitOut(BaseModel):
     concepts: list[ConceptOut]
     connections: list[str]
     total_propositions: int
+
+
+class KitAutoOut(KitOut):
+    """自动路：多回一个内容指纹，供导出与统计筛同一批人。"""
+
+    fingerprint: str
+    possibly_inaccurate: bool = False
+
+
+class KitAutoIn(BaseModel):
+    """运行期自动裁 kit：文本 + 词表 + 版本，无人裁定。"""
+
+    text: str = Field(min_length=1, max_length=MAX_TEXT)
+    vocab: VocabIn
+    map_version: str = Field(min_length=1, max_length=50)
 
 
 class ReadyOut(BaseModel):
@@ -180,6 +228,7 @@ class SubjectRowIn(BaseModel):
     possibly_inaccurate: int = Field(ge=0, le=1)
     map_size: int = Field(ge=0)
     map_node_count: int = Field(ge=0)
+    fingerprint: str = Field(default="", max_length=64)
     signal_isolated: float | None = None
     signal_coverage: float | None = None
     signal_concentration: float | None = None

@@ -1,8 +1,10 @@
 import kbp.contracts.adjudication
+import kbp.contracts.extraction
 import kbp.kit.freeze
 import kbp.kit.split
 import kbp.kit.store
 import kbp.contracts.targetmap
+import kbp.contracts.triple
 
 
 class KitError(RuntimeError):
@@ -29,3 +31,11 @@ def build_kit(conn, batch_id: str, map_version: str) -> kbp.contracts.targetmap.
 
 def load_batch(conn, batch_id: str) -> kbp.contracts.adjudication.AdjudicationLog:
     return kbp.kit.store.load(conn, batch_id)
+
+
+def build_kit_auto(result: kbp.contracts.triple.ExtractionResult,
+                   map_version: str):
+    # 返回 (TargetMap, Kit)：运行期自动路一次拿到目标图与学生零件集
+    """运行期自动路：抽取结果直接冻结并拆 kit，无人裁定。"""
+    target = kbp.kit.freeze.freeze_auto(result, map_version)
+    return target, kbp.kit.split.split(target)

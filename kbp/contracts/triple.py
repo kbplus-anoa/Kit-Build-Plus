@@ -17,7 +17,8 @@ class TripleCandidate:
     head: str  # 概念 A 的字面；不可空
     connection: str  # 连接词，必须属于 Vocab.connections；不可空
     tail: str  # 概念 B 的字面；不可空
-    confidence: float  # UIE 置信度；单位：0~1 的无量纲数；不可空
+    confidence: float  # 模型置信度；单位：0~1 的无量纲数；不可空
+    evidence: str = ""  # 命题所依据的原文片段，逐字摘取；可空（模型未给则为空串）
 
 
 @dataclass(frozen=True)

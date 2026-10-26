@@ -71,7 +71,8 @@ def export_subject(body: SubjectExportIn) -> Response:
         map_node_count=r.map_node_count, signal_isolated=r.signal_isolated,
         signal_coverage=r.signal_coverage,
         signal_concentration=r.signal_concentration,
-        signal_baseline=r.signal_baseline) for r in body.rows)
+        signal_baseline=r.signal_baseline,
+        fingerprint=r.fingerprint) for r in body.rows)
     try:
         payload = kbp.export.subject_table.build(rows)
         blob = kbp.export.csv_writer.to_csv(payload)

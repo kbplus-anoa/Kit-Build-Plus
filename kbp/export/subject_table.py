@@ -1,8 +1,8 @@
 import kbp.contracts.exportcsv
 
 
-HEADER = ("participant_id", "material_id", "target_map_version", "session",
-          "mode", "condition", "is_partice", "total_propositions",
+HEADER = ("participant_id", "material_id", "target_map_version", "fingerprint",
+          "session", "mode", "condition", "is_practice", "total_propositions",
           "correct_propositions", "score", "n_lacking", "n_excessive",
           "n_leaving", "n_reversed", "possibly_inaccurate", "map_size",
           "map_node_count", "孤立概念率", "连接词覆盖率", "概念集中度",
@@ -46,8 +46,8 @@ def _check_one(r) -> None:
 def _row(r) -> tuple:
     total = r.total_propositions
     ratio = _ratio(r.correct_propositions, total)
-    return (r.participant_id, r.material_id, r.target_map_version, r.session,
-            r.mode, r.condition, r.is_practice, total,
+    return (r.participant_id, r.material_id, r.target_map_version,
+            r.fingerprint, r.session, r.mode, r.condition, r.is_practice, total,
             r.correct_propositions, ratio, r.n_lacking, r.n_excessive,
             r.n_leaving, r.n_reversed, r.possibly_inaccurate,
             r.map_size, r.map_node_count, r.signal_isolated,

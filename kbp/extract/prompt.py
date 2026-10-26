@@ -1,9 +1,3 @@
-"""把「词表 + 原文」组织成给模型的提示词。
-
-JSON Output 有两处硬性要求（官方文档）：prompt 里必须出现 "json" 字样，
-且必须给出输出样例。本文件是这两点的唯一实现处。
-"""
-
 import kbp.contracts.extractconfig
 import kbp.contracts.triple
 
@@ -30,9 +24,11 @@ SYSTEM = """你正在为概念图教学系统抽取命题。规则：
 
 
 def build(vocab: kbp.contracts.triple.Vocab, text: str,
-          config: kbp.contracts.extractconfig.ExtractConfig) -> list[dict]:
+          config: kbp.contracts.extractconfig.ExtractConfig
+          | None = None) -> list[dict]:
     """构造 chat 消息。正文超长时截断，避免一次请求过大。"""
-    body = text.strip()[: config.max_chars] if text else ""
+    limit = config.max_chars if config is not None else 12000
+    body = text.strip()[:limit] if text else ""
     user = ("可用连接词（只能从中选）：" + "、".join(vocab.connections)
             + "\n\n原文：\n" + body)
     return [

@@ -36,16 +36,39 @@ def test_题级表列数与表头一致():
     assert len(payload.rows[0]) == len(question_table.HEADER)
 
 
+def cell(payload, name, row=0):
+    """按列名取值：加列不再让下标错位。"""
+    return payload.rows[row][payload.header.index(name)]
+
+
 def test_分数由分子分母现算():
     payload = subject_table.build((subject(correct_propositions=2,
                                            total_propositions=4),))
-    assert payload.rows[0][9] == 0.5
+    assert cell(payload, "score") == 0.5
 
 
 def test_分母为零时分数为零():
     payload = subject_table.build((subject(correct_propositions=0,
                                            total_propositions=0),))
-    assert payload.rows[0][9] == 0.0
+    assert cell(payload, "score") == 0.0
+
+
+def test_表头含指纹列():
+    """乙方案下同一教材在不同机器裁出的 kit 不同，须按指纹筛同批。"""
+    payload = subject_table.build((subject(fingerprint="88977e96f49bd7d1"),))
+    assert cell(payload, "fingerprint") == "88977e96f49bd7d1"
+
+
+def test_无指纹时该列为空串():
+    payload = subject_table.build((subject(),))
+    assert cell(payload, "fingerprint") == ""
+
+
+def test_单选拼写正确():
+    """回归：列名曾误拼成 is_partice，导出的表头对不上 CSV_PLAN。"""
+    payload = subject_table.build((subject(),))
+    assert "is_practice" in payload.header
+    assert "is_partice" not in payload.header
 
 
 def test_分子超过分母被拒():

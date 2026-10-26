@@ -53,6 +53,8 @@
 
 **两条路必须共用同一套冻结规则。** 若各写一套，开发期评估的人工图
 与运行期自动图会不一致，评估结论就不能迁移。
+规则与指纹都在 `kbp/kit/_rules.py`；
+测试 `test_两条路对同一组命题给出相同指纹` 把这条钉住。
 
 契约出口：`kbp/contracts/targetmap.py` 的 `TargetMap` / `Kit`；
 `kbp/contracts/adjudication.py` 的 `AdjudicationLog`。

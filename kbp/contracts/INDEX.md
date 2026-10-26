@@ -3,19 +3,14 @@
 # kbp/contracts — 契约索引
 只放契约：类型、字段语义、纯函数签名、Protocol。无实现、无 IO、无业务转换。
 
-## 现状说明
-
-本目录当前物理位置是 `contract-share/`，重构完成后将迁入 `kbp/contracts/`。
-迁入后模块名为 `kbp.contracts.*`，与 feature 子包天然隔离。
-
 | 文件 | 契约域 | 提供方 → 消费方 |
 |---|---|---|
 | `textdoc.py` | TextDoc、IngestPort | ingest → extract、kit |
-| `triple.py` | Vocab、TripleCandidate、ExtractionResult | extract → kit |
-| `extractconfig.py` | ExtractConfig、config_error | 用户配置 → extract、api |
-| `extraction.py` | ExtractionRecord（**待建**） | extract → kit（留档） |
+| `triple.py` | Vocab、TripleCandidate、ExtractionResult、in_vocab | extract → kit |
+| `extractconfig.py` | ExtractConfig、PROVIDERS、config_error、key_env、default_config | 用户配置 → extract、api |
+| `extraction.py` | ExtractionRecord、ExtractPort | extract → kit（留档） |
 | `adjudication.py` | Adjudication、AdjudicationLog、MapUsagePort | kit → rebuild（反向注入） |
-| `targetmap.py` | Concept、Proposition、TargetMap、Kit | kit → rebuild、score |
+| `targetmap.py` | Concept、Proposition、TargetMap、Kit、content_fingerprint | kit → rebuild、score |
 | `submission.py` | SubmittedProposition、Submission、Draft、模式枚举 | rebuild → score、quiz、export |
 | `report.py` | ErrorChain、ScoreResult、四类错误枚举 | score → export |
 | `quizsheet.py` | Question、Answer、QuizRecord、三时点枚举 | quiz → export |
@@ -23,24 +18,30 @@
 
 冻结规则：契约被第二个 feature 消费即冻结；改动先给旧→新、影响范围、迁移方式，经用户确认。
 
-## 本轮增量（全部有默认值，向后兼容）
+## 本轮增量
 
 | 契约 | 增量 | 用途 |
 |---|---|---|
 | `triple.TripleCandidate` | `evidence: str = ""` | 记录命题依据的原文片段，供裁定与追溯 |
 | `targetmap.TargetMap` | `fingerprint: str = ""` | 区分同一教材在不同机器裁出的不同 kit |
-| `extractconfig.ExtractConfig` | 新增整套 | 抽取配置；**不含密钥** |
+| `extractconfig` | 整套（含 `key_env`、`default_config`） | 抽取配置；**不含密钥** |
+| `extraction` | `ExtractionRecord` + `ExtractPort` | 抽取留档与引擎协议 |
+| `exportcsv.SubjectRow` | `fingerprint: str = ""` | 导出可直接按指纹筛同批 |
+| `targetmap` | `content_fingerprint` 签名 | 实现在 `kbp/kit/_rules.py` |
 
-## 命名注意
+全部有默认值，向后兼容。
 
-包化之前，契约文件与 feature 目录同名会让 import 解析错位（`quiz.py` 与 `quiz/`）。
-包化后 `kbp.contracts.quizsheet` 与 `kbp.quiz` 天然隔离，**此问题不复存在**；
-现有带后缀的名字（`quizsheet.py`）保留不改，避免触碰冻结契约。
+## 指纹为什么是契约
 
-## 反向依赖的处理
+它不是工具函数而是一条**跨 feature 的约定**：`export` 不懂图结构，
+但它要能按"同一批人"筛，就必须认得出"同一份目标图"。
+所以签名放契约层，实现在提供方 `kit`，消费方只调签名。
 
-`kit` 要知道"版本是否已被学生用过"，但它不能 import `rebuild`。
-解法是把这条能力写成 `MapUsagePort` 协议放在本目录，
-由装配层把 `rebuild` 的实现注入给 `kit`——两边都不知道对方存在。
+## 协议与供应商
+
+`ExtractConfig.provider` 只决定密钥环境变量与界面文案；
+协议统一是 OpenAI 兼容格式，provider 只有一个值 `openai_compatible`
+（界面文案「自定义 / OpenAI 兼容」），不写死服务商；密钥走 `KBP_API_KEY`。
+历史值 `deepseek` / `openai` 由 `canonical_provider` 归一到当前枚举。
 
 <!-- /@zone code -->

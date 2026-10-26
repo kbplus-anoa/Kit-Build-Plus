@@ -28,6 +28,7 @@ class TargetMap:
     vocab: Vocab  # 连接词表；不可空
     concepts: tuple[Concept, ...]  # 概念集；不可空，元素唯一
     propositions: tuple[Proposition, ...]  # 命题集；可为空元组，元素唯一
+    fingerprint: str = ""  # 内容指纹，同教材不同机器裁出的图不同；可空（未计算时为空串）
 
 
 @dataclass(frozen=True)
@@ -37,3 +38,13 @@ class Kit:
     map_version: str  # 对应的目标图版本；不可空
     concepts: tuple[Concept, ...]  # 概念零件；与目标图概念集一致
     connections: tuple[str, ...]  # 连接词零件；与目标图词表一致
+
+
+def content_fingerprint(concepts: tuple[Concept, ...],
+                        propositions: tuple[Proposition, ...]) -> str:
+    """纯函数契约：按内容算指纹，与编号和输入顺序无关，只认结构。
+
+    同一批概念与命题，无论编号怎么变、顺序怎么排，指纹必须相同。
+    实现属 kit（kbp/kit/_rules.py）：契约层只留签名。
+    """
+    ...
