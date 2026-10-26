@@ -7,7 +7,7 @@ import kbp.contracts.targetmap
 
 def score(target: kbp.contracts.targetmap.TargetMap,
           sub: kbp.contracts.submission.Submission) -> kbp.contracts.report.ScoreResult:
-    """一次提交 → 一份评分。分数 = 正确命题数 / 目标命题总数，无部分分。"""
+    """一次提交 → 一份评分。FMS 取用时算，无部分分。"""
     total = len(kbp.score.lookup.target_keys(target))
     correct = kbp.score.lookup.count_correct(target, sub.propositions)
     errors = kbp.score.classify.classify(target, sub.propositions)
@@ -16,11 +16,12 @@ def score(target: kbp.contracts.targetmap.TargetMap,
                                             errors=errors)
 
 
-def ratio(result: kbp.contracts.report.ScoreResult) -> float:
-    """分数本身不进报告主结构，取用时才算，避免锁死公式。"""
+def fms(result: kbp.contracts.report.ScoreResult) -> float:
+    """FMS = 正确命题数 / 目标命题总数 × 100，量纲 0~100。"""
     if result.total_propositions <= 0:
         return 0.0
-    return result.correct_propositions / result.total_propositions
+    return round(result.correct_propositions / result.total_propositions * 100,
+                 4)
 
 
 def summary(result: kbp.contracts.report.ScoreResult) -> dict:
@@ -31,7 +32,7 @@ def summary(result: kbp.contracts.report.ScoreResult) -> dict:
     return {
         "total": result.total_propositions,
         "correct": result.correct_propositions,
-        "score": ratio(result),
+        "fms": fms(result),
         "lacking": counts[kbp.contracts.report.LACKING],
         "excessive": counts[kbp.contracts.report.EXCESSIVE],
         "leaving": counts[kbp.contracts.report.LEAVING],

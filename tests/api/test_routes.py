@@ -93,7 +93,7 @@ def test_提交后评分并锁定(client):
         "propositions": [{"head_id": ids["记忆"], "connection": "包括",
                           "tail_id": ids["感觉记忆"]}]})
     assert resp.status_code == 200
-    assert resp.json()["score"] == 0.5
+    assert resp.json()["fms"] == 50.0
     assert client.get("/api/lock?map_version=v1").json()["locked"] == "locked"
 
 

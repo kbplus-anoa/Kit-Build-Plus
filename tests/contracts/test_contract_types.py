@@ -22,7 +22,7 @@ def test_模式枚举只有测试与学习():
     assert submission.MODES == ("test", "study")
 
 
-def test_错误链四类固定():
+def test_错误连接四类固定():
     assert report.ERROR_KINDS == ("lacking", "excessive", "leaving", "reversed")
 
 
@@ -42,10 +42,14 @@ def test_词表判定只暴露签名不含实现():
     assert names == ["vocab", "connection"]
 
 
-def test_评分比率契约签名稳定():
+def test_FMS_契约签名稳定():
     import inspect
-    names = list(inspect.signature(report.ratio).parameters)
+    names = list(inspect.signature(report.fms).parameters)
     assert names == ["result"]
+
+
+def test_FMS_量纲为_0_到_100():
+    assert (report.FMS_MIN, report.FMS_MAX) == (0.0, 100.0)
 
 
 def test_导入契约不产生副作用():

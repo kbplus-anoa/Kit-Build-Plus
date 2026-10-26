@@ -7,7 +7,7 @@
 |---|---|
 | `lookup.py` | 查表核心：`target_keys` / `submitted_keys` / `count_correct` / `unmatched` / `missing` |
 | `classify.py` | 四类错误链，判定顺序固定：reversed → leaving → excessive → lacking |
-| `score_service.py` | `score(target, sub)` 出 `ScoreResult`；`ratio` 算分；`summary` 出计数摘要 |
+| `score_service.py` | `score(target, sub)` 出 `ScoreResult`；`fms` 算 0~100；`summary` 出计数摘要 |
 | `tests/score/` | 全对满分、空卷零分、四类互斥、错误不影响分数、全链路端到端 |
 
 ## 为什么是查表不是图匹配

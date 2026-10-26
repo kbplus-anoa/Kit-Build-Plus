@@ -41,16 +41,16 @@ def cell(payload, name, row=0):
     return payload.rows[row][payload.header.index(name)]
 
 
-def test_分数由分子分母现算():
+def test_FMS_由分子分母现算且量纲_0_到_100():
     payload = subject_table.build((subject(correct_propositions=2,
                                            total_propositions=4),))
-    assert cell(payload, "score") == 0.5
+    assert cell(payload, "fms") == 50.0
 
 
 def test_分母为零时分数为零():
     payload = subject_table.build((subject(correct_propositions=0,
                                            total_propositions=0),))
-    assert cell(payload, "score") == 0.0
+    assert cell(payload, "fms") == 0.0
 
 
 def test_表头含指纹列():

@@ -38,7 +38,7 @@ TargetMap（分母）+ Submission（分子）
           │  每类先排除更具体者 ⇒ 一条错写只归一类
           v
      ScoreResult { total, correct, errors[] }
-          ├─ ratio  → 分数（0~1，无部分分）
+          ├─ fms    → FMS（0~100，无部分分）
           └─ summary → 四类计数（供界面与 CSV）
 ```
 

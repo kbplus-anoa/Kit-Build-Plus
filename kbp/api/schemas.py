@@ -183,7 +183,7 @@ class ErrorOut(BaseModel):
 class ScoreOut(BaseModel):
     total_propositions: int
     correct_propositions: int
-    score: float
+    fms: float  # FMS，0~100；文献口径，不是 0~1
     lacking: int
     excessive: int
     leaving: int

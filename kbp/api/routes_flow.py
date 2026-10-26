@@ -101,7 +101,7 @@ def submit(body: SubmitIn) -> ScoreOut:
     return ScoreOut(
         total_propositions=result.total_propositions,
         correct_propositions=result.correct_propositions,
-        score=summary["score"], lacking=summary["lacking"],
+        fms=summary["fms"], lacking=summary["lacking"],
         excessive=summary["excessive"], leaving=summary["leaving"],
         reversed=summary["reversed"],
         errors=[ErrorOut(kind=e.kind, head_id=e.head_id,

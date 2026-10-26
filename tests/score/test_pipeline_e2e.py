@@ -66,7 +66,7 @@ def test_教材到分数的全链路():
     scored = score_service.score(target, sub)
     assert scored.total_propositions == len(target.propositions)
     assert scored.correct_propositions == 1
-    assert 0.0 < score_service.ratio(scored) <= 1.0
+    assert 0.0 < score_service.fms(scored) <= 100.0
     assert isinstance(scored.errors, tuple)
     assert all(e.kind in report.ERROR_KINDS for e in scored.errors)
 

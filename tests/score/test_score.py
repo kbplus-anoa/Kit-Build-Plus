@@ -44,14 +44,14 @@ def test_全对得满分():
     r = svc.score(make_target(), make_sub([sprop("c1", "包括", "c2"),
                                            sprop("c2", "属于", "c3")]))
     assert (r.correct_propositions, r.total_propositions) == (2, 2)
-    assert svc.ratio(r) == 1.0
+    assert svc.fms(r) == 100.0
     assert r.errors == ()
 
 
 def test_空提交得零分且全部缺失():
     r = svc.score(make_target(), make_sub([]))
     assert r.correct_propositions == 0
-    assert svc.ratio(r) == 0.0
+    assert svc.fms(r) == 0.0
     assert kinds(r) == [report.LACKING, report.LACKING]
 
 
@@ -119,7 +119,7 @@ def test_空目标图分母为零不除错():
     empty = targetmap.TargetMap(map_version="v1", vocab=make_target().vocab,
                                 concepts=(), propositions=())
     r = svc.score(empty, make_sub([]))
-    assert svc.ratio(r) == 0.0
+    assert svc.fms(r) == 0.0
 
 
 def test_摘要计数与错误链一致():
@@ -127,4 +127,4 @@ def test_摘要计数与错误链一致():
     s = svc.summary(r)
     assert s["reversed"] == 1
     assert s["lacking"] == 2
-    assert s["score"] == 0.0
+    assert s["fms"] == 0.0
