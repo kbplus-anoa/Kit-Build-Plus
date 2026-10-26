@@ -4,70 +4,100 @@
 任务版，只留两轮。每轮整体重写。复选框可由 agent 勾选。
 
 ## 交接
-**已验证**：`.venv/bin/python -m pytest` 341 passed、`.venv/bin/python -m flake8 .` 退出 0、
-`GET /` 返 200、`GET/PUT /api/config` 正常、未配密钥时 `/api/kit/auto` 返 503 带中文原因。
-真实调用已跑通：本机 OpenAI 兼容代理 `127.0.0.1:8788`，
-`deepseek-v4.1-flash` 抽 8 句教材得 5 条、0 越界、耗时 31.85s。
-TAM 量表已通：`GET /api/tam/items` 出 14 题，`POST /api/tam/alpha` 按构念算 α。
 
-**未完成**：见「未解决」。研究线（R 脚本、双人标注）本轮搁置。
+已验证：.venv/bin/python -m pytest 341 passed；.venv/bin/python -m flake8 . 退出 0；GET / 返 200。
+真实调用已跑通：本机 OpenAI 兼容代理 127.0.0.1:8788，deepseek-v4.1-flash，8 句教材得 5 条、0 越界、31.85s。
+TAM 已通：GET /api/tam/items 出 14 题，POST /api/tam/alpha 按构念算 α。
 
-**动手前读**：`kbp/extract/DESIGN.md`（数据流）、`kbp/kit/INDEX.md`（两条路与指纹）、
-`SPEC.md` 已决策段。
+未完成：见未解决。研究线（R 脚本、双人标注、docs/research）不在本板。
 
-**踩过的坑**：
-1. `kbp/contracts/*` 是冻结契约，改动须先给「旧→新 / 影响范围 / 迁移方式」并经用户确认。
-2. 新契约文件不得与 feature 子包同名。
-3. `deps` 的连接锁与写锁必须分开，合并会自锁超时。
-4. 导出表按列名取值测试，别用数字下标——加一列就全线错位。
-5. flake8 上限是 AGENTS.md 的 100 列，配置在 `.flake8`；别按默认 79 改代码。
-6. `base_url` 填到根（`http://127.0.0.1:8788`），代码自己拼 `/v1/chat/completions`；
-   填成带 `/v1` 会变成 `/v1/v1/...`。
-7. 密钥只走环境变量，不写进任何文件、日志、响应、commit。
-8. 测完服务用 `fuser -k <端口>/tcp`；`pkill -f uvicorn` 会连承载命令的 shell 一起杀掉。
+动手前读：SPEC.md 决策段 D01–D12、kbp/extract/DESIGN.md、kbp/kit/INDEX.md。
+
+踩过的坑：
+1 契约冻结，改前给旧→新、影响范围、迁移方式，等用户确认
+2 新契约文件不得与 feature 子包同名
+3 deps 的连接锁与写锁必须分开，合并会自锁超时
+4 导出表按列名取值测试，别用数字下标
+5 flake8 上限 100 列，配置在 .flake8
+6 base_url 填到根，代码自己拼 /v1/chat/completions
+7 密钥只走环境变量，不进文件、日志、响应、commit
+8 测完服务用 fuser -k 端口/tcp；pkill -f uvicorn 会连承载 shell 一起杀掉
+9 pydantic 字段名不能叫 construct，会与 BaseModel 自带方法撞名
 
 ## 上一轮
-- [x] 抽取引擎换 OpenAI 兼容接口（开发期样例 DeepSeek）
-- [x] 删 ONNX 三件与 `tmp/uie/`
-- [x] 契约：`evidence`、`fingerprint`、`ExtractionRecord`、`ExtractPort`
-- [x] `kit/_rules` 共用规则 + `freeze_auto` + 内容指纹
-- [x] `api`：`/api/config`、`/api/kit/auto`
-- [x] `export`：CSV 加 `fingerprint` 列
 
-## 现在
-- [ ] 前端：`web/` 脚手架已通，等用户提供 HTML 原型
-- [ ] 研究线暂搁置：R 脚本真实数据、双人标注入口
+- [x] 抽取引擎换 OpenAI 兼容接口，供应商枚举不写死厂商
+- [x] 置信度改本地代理分，概念塞连接词与超长概念两条硬规则
+- [x] 抽崩检测 S1–S4 与提示文案
+- [x] 扫描件云端解析失败即中止报错
+- [x] TAM 量表 14 题与各构念 Cronbach α
+- [x] kit 共用冻结规则 + freeze_auto + 内容指纹
+- [x] /api/config、/api/kit/auto、/api/tam/items、/api/tam/alpha
+- [x] 导出加 fingerprint 列
 
 ## 未解决
-> 已定方案，尚未动工。按阻断程度排序，逐条做完再往下。
-> 研究线不在本节：用户已明确搁置。
 
-- [ ] **目标图落库**：新开 `target_map` 表存冻结结果（版本+指纹+概念+命题），
-      `/api/kit/auto` 返回 `target_map_id`，`/api/submit` 按它读图，不再经 `freeze_batch`
-- [ ] 学习模式允许回改重交：`draft_store.submit` 对 `study` 放行重复提交，`test` 仍硬锁
-- [ ] 草稿续做补 HTTP 入口：`POST/GET /api/draft`，接 `rebuild_service.save_draft`
-- [ ] 导出改为服务端检索：按 `participant_id`/`material_id`/`session` 单/多/全选，前端不再自己攒数
-- [ ] 夹具与记录落库：`ExtractionRecord` 写入 `extraction` 表，供事后追溯
-- [ ] 锁真正生效：改图/换版本前调 `kit.lock.assert_mutable`，`/api/lock` 只是查询不够
-- [ ] 学生重抽：记录并存不覆盖，旧批可切回
-- [x] TAM 量表：条目取自 `https://www.wjx.cn/vm/wEMzgZc.aspx`，**人口学题目除外**；
-      六点 Likert，存 1–6，报各构念 Cronbach α（判据 0.7）
-      → `kbp/quiz/scale.py`（14 题）+ `kbp/quiz/alpha.py`（样本方差口径，与 R `psych::alpha` 对照一致），
-      契约 `kbp/contracts/tam.py`，接口 `GET /api/tam/items` / `POST /api/tam/alpha`；
-      **作答落库仍待题级作答表**（与「夹具与记录落库」同批）
-- [x] 抽崩检测 S1–S4：孤立概念率、连接词覆盖率、概念集中度、基线偏离度（`kbp/extract/quality.py`）
-- [x] 抽崩阈值先取：S1 > 0.30、S2 < 0.50、S3 > 0.60、S4 |Z| > 2.0；命题 < 10 只记录不提示（实测定后再校）
-- [x] 抽崩触发文案：`本次组件抽取可能不可信，您可重新抽取（{不可信的原因}）`
-- [ ] 抽崩信号落库：原值与阈值已随 `/api/kit/auto` 返回，落库等 `extraction` 表（见“夹具与记录落库”）
-      照常计分、只加“可能不准”标记这条已完成（体检不碰分数）
-- [x] 云解析失败终止报错：MinerU 失败即抛错中止，不降级为“无文本”继续
-- [ ] 解析结果缓存：同文件按内容指纹复用，不再重复付费，缓存不入 git
-- [x] 供应商枚举改为「自定义 / OpenAI 兼容」，不写死 `deepseek`
-- [x] 置信度改本地代理分：按 `evidence` 是否在原文逐字命中、位置是否一致打分；
-      代理分负责排序，同分按首次出现顺序，输出稳定可复现
-- [x] 提示词补一条：概念 = 名词或名词性短语（术语、实体、类别），不含谓语动词；
-      一句话里找不到两个名词性概念就跳过这一句
-- [x] 规范化硬规则一：`head`/`tail` 含词表内连接词 → 直接丢（塞了整个从句最强信号）
-- [x] 规范化硬规则二：概念超长（> 20 字）→ 不丢，标记可疑并排到后面
+### 阶段 0 等用户确认，阻塞后续
+
+- [ ] 关联键改四元：被试标识 + 教材 + 时点 + 提交序号（D09）。
+      旧 participant_id + material_id + session；新 participant_id + material_id + time_point + submit_seq。
+      影响 kbp/contracts/submission.py、quizsheet.py、exportcsv.py；kbp/rebuild/draft_store.py、
+      rebuild_service.py、rebuild_validate.py；kbp/quiz/quiz_store.py、grade.py；kbp/api/schemas.py；
+      kbp/export/subject_table.py、question_table.py；两处 store 表主键与全部相关测试。需换库或写迁移。
+- [ ] FMS 改 0–100（D04）。旧 ratio 返回 0–1，新 × 100。
+      影响 kbp/contracts/report.py、kbp/score/score_service.py、kbp/export/subject_table.py、ScoreOut 与相关测试。
+- [ ] 重建提交的时点取值：概念图提交只有 post，还是也要 pre/delayed。
+
+### 阶段 1 契约（一个契约域一次提交，先契约测试后实现）
+
+- [ ] 落 D09 四元关联键
+- [ ] 落 D04 FMS 0–100
+- [ ] 新契约 targetbank：按教材与词表版本登记、按内容指纹查已冻结目标图
+- [ ] extraction 契约补存储语义
+
+### 阶段 2 kit 落库与题库命中
+
+- [ ] target_map 表落库：版本、指纹、概念、命题、来源批次、创建时间、是否投用
+- [ ] /api/kit/auto 先查题库，命中已有指纹直接返回，不再重抽
+- [ ] 未命中才自动抽，冻结成新版本新指纹，不复用旧版本号
+- [ ] 已投用版本拒改：lock.assert_mutable 接到落库与新版本入口，/api/lock 只查询不够
+
+### 阶段 3 rebuild
+
+- [ ] 学习模式允许回改重交：按 mode 放行，submit_seq 自增；测验模式仍锁一次
+- [ ] 白名单校验挂到编辑动作：草稿保存也按 kit 校验，覆盖提交后回改（D11）
+- [ ] 草稿 HTTP 入口：POST/GET /api/draft，接 rebuild_service.save_draft
+- [ ] 提交落库带指纹、时点、提交序号
+
+### 阶段 4 extract
+
+- [ ] 抽崩阈值配置化：写进配置项，记录基线来源与样本量；冻结图出现前阈值留空并标未校准（D08）
+- [ ] 越界丢弃留档：机器侧一本，与人工裁定留档分开（D12）
+- [ ] ExtractionRecord 落库：原始输出与配置快照存库，不进 CSV
+
+### 阶段 5 ingest
+
+- [ ] 解析结果缓存：键 = 源文件字节哈希 + 解析器版本，落盘 tmp 不入 git（D10）
+
+### 阶段 6 api 与数据出口
+
+- [ ] 导出改服务端检索：按被试、教材、时点单多全选，前端不再自己攒数
+- [ ] 量表作答落库，α 从库算
+- [ ] 学生重抽：新旧两批并存不覆盖，旧批可切回
+
+### 阶段 7 前端
+
+- [ ] ui-share/styles：颜色、字号、间距、动效令牌
+- [ ] ui-share/atoms：按钮、复选框、进度条、提示条
+- [ ] ui-share/layout：顶栏、侧栏、底部操作条
+- [ ] ui-share/canvas：ReactFlow 封装，connectOnClick 点-点连线，handle ≥ 24px
+- [ ] 页面：教材准备含抽崩警告 → 模式选择 → 重建 → 提交 → 差异图 → 测验 → 量表 → 导出
+- [ ] web 与 ui-share 集成
+- 页面设计等用户提供 HTML 原型
+
+### 阶段 8 文档
+
+- [ ] 34 份 feature 文档按新风格重写：极简，无表格、无粗体、无引用块、无代码围栏、无跨文件引用
+- [ ] 每份随所属 feature 的提交一起改，不单开纯文档提交
 
 <!-- /@zone code -->
