@@ -35,6 +35,11 @@
 
 契约出口：`kbp/contracts/textdoc.py` 的 `TextDoc`。
 
+**云端失败就停**：扫描件在 `ocr.upload_and_parse` 失败（未配 token、上传失败、
+解析失败、超时）时抛 `MinerUUnavailable`，一路传出 `ingest_service.ingest`，
+接口回 503 并写清是哪一步失败。绝不降级成空文本 —— 空文本会被当成"这本书没有内容"，
+比报错危险得多（下游会照常抽取、冻结、发题）。
+
 ## 无障碍功能
 > 含且只含：
 > 1. 色盲

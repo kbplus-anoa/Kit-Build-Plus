@@ -17,6 +17,9 @@
 | `routes_flow.py` | `/api/adjudicate`（开发期）、`/api/kit`、`/api/lock`、`/api/submit` |
 | `routes_data.py` | `/api/quiz`、`/api/export/subject`、`/api/export/question` |
 
+`/api/ingest` 失败码：文件不存在 404、格式不支持 400、
+扫描件云端不可用（`MinerUUnavailable`）503、其它解析失败 502。
+
 ## 两把锁为什么分开
 
 `get_conn()` 与写操作曾共用一把不可重入锁，导致路由先持写锁、再取连接时**自锁超时**。

@@ -44,6 +44,19 @@ def test_健康检查报告表数(client):
     assert body["ok"] is True and body["tables"] >= 6
 
 
+def test_云端解析失败返回_503_并说清原因(client, monkeypatch):
+    import kbp.ingest.ingest_service as ingest_service
+    import kbp.ingest.ocr as ocr
+
+    def boom(path):
+        raise ocr.MinerUUnavailable("云端解析超时")
+
+    monkeypatch.setattr(ingest_service, "ingest", boom)
+    resp = client.post("/api/ingest", json={"path": "/tmp/scan.pdf"})
+    assert resp.status_code == 503
+    assert "扫描件需要云端解析" in resp.json()["detail"]
+
+
 def test_裁定不死锁(client):
     """回归：曾因路由先持写锁再取连接而自锁超时。"""
     resp = client.post("/api/adjudicate", json=ADJ)

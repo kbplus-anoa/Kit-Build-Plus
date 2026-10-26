@@ -9,6 +9,7 @@ import kbp.contracts.triple
 import kbp.extract.chat_client
 import kbp.extract.extract_service
 import kbp.ingest.ingest_service
+import kbp.ingest.ocr
 import kbp.kit.kit_service
 from kbp.api.schemas import (
     ConceptOut, ExtractIn, ExtractOut, IngestIn, IngestOut, KitAutoIn, KitAutoOut,
@@ -37,6 +38,8 @@ def ingest(body: IngestIn) -> IngestOut:
         raise HTTPException(404, "文件不存在: " + body.path)
     except ValueError as exc:
         raise HTTPException(400, str(exc))
+    except kbp.ingest.ocr.MinerUUnavailable as exc:
+        raise HTTPException(503, "扫描件需要云端解析，云端不可用: " + str(exc))
     except Exception as exc:
         raise HTTPException(502, "解析失败: " + str(exc))
     return IngestOut(file_name=doc.file_name, source=doc.source,

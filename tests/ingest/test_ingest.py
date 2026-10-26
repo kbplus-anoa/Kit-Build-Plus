@@ -62,6 +62,20 @@ def test_无_token_时_ocr_明确报错(monkeypatch):
         ocr.upload_and_parse("/tmp/x.pdf", "x.pdf")
 
 
+def test_云端不可用时中止不降级(tmp_path, monkeypatch):
+    p = tmp_path / "s.pdf"
+    p.write_bytes(b"%PDF-1.4 rest")
+    monkeypatch.setattr(service.kbp.ingest.pdf, "read_pdf",
+                        lambda path: ("", 3, True))
+
+    def boom(path, file_name):
+        raise ocr.MinerUUnavailable("云端解析超时")
+
+    monkeypatch.setattr(ocr, "upload_and_parse", boom)
+    with pytest.raises(ocr.MinerUUnavailable):
+        service.ingest(str(p))
+
+
 def test_扫描判定_文本稀疏算扫描件():
     assert _scanned([""] * 4) is True
     assert _scanned(["x" * 50] * 4) is False
