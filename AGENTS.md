@@ -21,20 +21,21 @@ research  # 其他情况
 ## Commands
 .venv/bin/python -V
 .venv/bin/python -m pip install -r requirements.txt
-.venv/bin/python -m uvicorn src.main:app --host 127.0.0.1 --port 8848
+.venv/bin/python -m uvicorn kbp.api.main:app --host 127.0.0.1 --port 8848
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8848/
 flake8 .
 .venv/bin/python -m pytest
 
 ## 约定
-每功能一个文件夹{feature}/，每个文件在{feature}/INDEX.md备注（包括Docstring），不在{feature}/外创建相关文件
-测试放入{feature}/test/test_*.py
-{feature}/*之间禁止import彼此
-跨功能交互只经contract-share/契约，不直接import对方内部实现
+每功能一个子包kbp/{feature}/，每个文件在kbp/{feature}/INDEX.md备注（包括Docstring），不在kbp/{feature}/外创建相关文件
+测试集中放tests/{feature}/test_*.py
+kbp/{feature}/*之间禁止import彼此
+跨功能交互只经kbp/contracts/契约，不直接import对方内部实现
 契约：一个契约域一个文件，字段注释含含义/单位/可空/枚举
-行为契约同样在contract-share/：Protocol或纯函数签名
+行为契约同样在kbp/contracts/：Protocol或纯函数签名
 顺序：契约→契约测试→实现→实现测试；消费方只用契约类型
-出边界的转换由提供方做，contract-share/只做契约→契约，调用点不包converter
+出边界的转换由提供方做，kbp/contracts/只做契约→契约，调用点不包converter
+包内模块名天然带命名空间，禁止任何sys.path拼装
 契约被第二个feature消费即冻结；改动先给旧→新、影响范围、迁移方式，经用户确认
 
 单函数<30行否则拆分
@@ -58,11 +59,13 @@ AGENTS.md
 README.md # 仅面向用户
 TODO.md # 任务版，仅保留两轮对话任务，每轮刷新
 SPEC.md # 详细规范，包括项目需求、技术设计与决策项
-docs/PROGRESS.md # 项目进度，一行一个已完成/待完成任务
 docs/research/ # 相关文献
 tmp/
-{feature}/ # 功能实现。包括contract-share/
-{feature}/{WHY,DESIGN,TASKS}.md # 功能文档。分别为“为什么引入这个功能”，“用户体验与页面设计”，“实现该feature的步骤”
+kbp/{feature}/ # 功能实现，含kbp/contracts/契约层与kbp/api/路由层
+tests/{feature}/ # 测试集中于此
+web/ # 前端工程（Vite + React + TS），页面设计由用户提供
+ui-share/ # 前端组件共享层（不对应Python包）
+kbp/{feature}/{WHY,DESIGN,TASKS}.md # 功能文档。分别为“为什么引入这个功能”，“用户体验与页面设计”，“实现该feature的步骤”
 
 ## Code Style
 界面、报告、文档用中文
@@ -100,6 +103,6 @@ KB-Mixed
 当且仅当：
 新增的每条命令、路径、版本都跑过且有输出；
 .venv/bin/python -m pytest 退出码 0；
-涉及 `src/` 时服务能起，`GET /` 返 200；
+涉及 `kbp/api/` 时服务能起，`GET /` 返 200；
 
 <!-- /@zone user -->
