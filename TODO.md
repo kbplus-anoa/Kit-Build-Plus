@@ -4,7 +4,7 @@
 任务版，只留两轮。每轮整体重写。复选框可由 agent 勾选。
 
 ## 交接
-**已验证**：`.venv/bin/python -m pytest` 341 passed、`flake8 .` 退出 0、
+**已验证**：`.venv/bin/python -m pytest` 341 passed、`.venv/bin/python -m flake8 .` 退出 0、
 `GET /` 返 200、`GET/PUT /api/config` 正常、未配密钥时 `/api/kit/auto` 返 503 带中文原因。
 真实调用已跑通：本机 OpenAI 兼容代理 `127.0.0.1:8788`，
 `deepseek-v4.1-flash` 抽 8 句教材得 5 条、0 越界、耗时 31.85s。
@@ -24,8 +24,7 @@ TAM 量表已通：`GET /api/tam/items` 出 14 题，`POST /api/tam/alpha` 按�
 6. `base_url` 填到根（`http://127.0.0.1:8788`），代码自己拼 `/v1/chat/completions`；
    填成带 `/v1` 会变成 `/v1/v1/...`。
 7. 密钥只走环境变量，不写进任何文件、日志、响应、commit。
-8. 裸 `flake8` 不在 PATH，用 `.venv/bin/python -m flake8 .`（配置读 `.flake8`）。
-9. 测完服务用 `fuser -k <端口>/tcp`；`pkill -f uvicorn` 会连承载命令的 shell 一起杀掉。
+8. 测完服务用 `fuser -k <端口>/tcp`；`pkill -f uvicorn` 会连承载命令的 shell 一起杀掉。
 
 ## 上一轮
 - [x] 抽取引擎换 OpenAI 兼容接口（开发期样例 DeepSeek）
