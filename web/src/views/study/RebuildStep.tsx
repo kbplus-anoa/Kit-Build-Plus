@@ -1,7 +1,6 @@
 /** 第二步：画布本体。模式在进来时就锁定，画布从不说对错。 */
 import { useEffect, useState } from "react";
 
-import { labelOf } from "./model";
 import type { RebuildApi } from "./useRebuild";
 import { CanvasStage } from "./CanvasStage";
 import { ConnectorChooser } from "./ConnectorChooser";
@@ -28,12 +27,7 @@ function useStepEnter(): boolean {
 export function RebuildStep(props: Props) {
   const { mode, api } = props;
   const enter = useStepEnter();
-  const open = Boolean(api.pending || api.armed);
-  const hint = api.pending
-    ? labelOf(api.pending.from) + " → " + labelOf(api.pending.to) + "：选一个连接词"
-    : api.armed
-      ? "已选中「" + labelOf(api.armed) + "」：可以先选连接词，再点第二个概念"
-      : "";
+  const open = Boolean(api.pending);
 
   function fromRail(id: string) {
     if (api.placed[id]) api.armConcept(id);
@@ -85,7 +79,6 @@ export function RebuildStep(props: Props) {
         />
         <ConnectorChooser
           open={open}
-          hint={hint}
           armedConn={api.armedConn}
           onPick={api.armConnector}
         />

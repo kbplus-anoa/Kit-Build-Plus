@@ -49,6 +49,7 @@ function DiffEdge(props: EdgeProps) {
         ref={pathRef}
         className={cls}
         d={geo.d}
+        fill="none"
         markerEnd={`url(#diff-arrow-${item.kind})`}
         markerStart={reverse ? `url(#diff-arrow-${item.kind})` : undefined}
         onAnimationEnd={props.onDrawn}

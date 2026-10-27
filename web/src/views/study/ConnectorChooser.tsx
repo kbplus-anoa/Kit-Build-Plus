@@ -7,7 +7,6 @@ const CLOSE_MS = 280;
 
 export function ConnectorChooser(props: {
   open: boolean;
-  hint: string;
   armedConn: string | null;
   onPick: (word: string) => void;
 }) {
@@ -30,7 +29,6 @@ export function ConnectorChooser(props: {
   return (
     <div className={"rb__bar rb__chooser" + (lit ? " is-open" : "")}>
       <div className="rb__chooser__inner">
-        <p className="rb__status">{props.hint}</p>
         <div className="rail__parts">
           {CONNECTORS.map((word) => {
             const armed = props.armedConn === word;
