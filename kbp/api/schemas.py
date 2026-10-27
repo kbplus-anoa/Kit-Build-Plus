@@ -129,7 +129,7 @@ class SignalOut(BaseModel):
     name: str
     label: str
     value: float | None = None
-    threshold: float
+    threshold: float | None = None  # 未校准时为空
     triggered: bool
 
 
@@ -141,6 +141,9 @@ class KitAutoOut(KitOut):
     possibly_inaccurate: bool = False  # 只描述本次抽取；命中题库时为 False
     message: str = ""
     signals: list[SignalOut] = []  # 同上，命中题库时为空
+    calibrated: bool = False  # 抽崩阈值是否已校准；未校准时只带信号原值
+    baseline_n: int = 0  # 基线样本量；单位：张；未校准时为 0
+    baseline_source: str = ""  # 基线来源；未校准时为空串
 
 
 class KitAutoIn(BaseModel):

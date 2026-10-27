@@ -10,7 +10,9 @@ import kbp.api.routes_text as routes_text
 import kbp.contracts.extractconfig as extractconfig
 import kbp.contracts.triple as triple
 import kbp.extract.extract_service as extract_service
+import kbp.extract.threshold_store as threshold_store
 from kbp.api.bootstrap import create_schema
+from kbp.contracts.quality import Thresholds
 
 KEY = extractconfig.KEY_ENV_NAME
 
@@ -85,8 +87,15 @@ def test_同一文本两次裁出同一指纹(client, monkeypatch):
     assert a["fingerprint"] == b["fingerprint"]
 
 
+def seeded_thresholds():
+    return Thresholds(s1_max=0.30, s2_min=0.50, s3_max=0.60, s4_max_z=2.0,
+                      min_props=10, baseline_source="开发期冻结图",
+                      baseline_n=12)
+
+
 def test_抽崩时返回可能不可信与信号原值(client, monkeypatch):
     """12 条孤立命题：S1/S2 触发，命题数够多，于是置标记并给文案。"""
+    threshold_store.save(deps.get_conn(), seeded_thresholds())
     monkeypatch.setattr(extract_service, "extract",
                         lambda text, vocab, cfg=None, engine=None:
                         triple.ExtractionResult(vocab=vocab, triples=tuple(
@@ -103,6 +112,27 @@ def test_抽崩时返回可能不可信与信号原值(client, monkeypatch):
     assert signals["S1"]["value"] is not None
     assert signals["S1"]["threshold"] == 0.30
     assert signals["S4"]["value"] is None
+    assert data["calibrated"] is True
+    assert data["baseline_n"] == 12
+    assert data["baseline_source"] == "开发期冻结图"
+
+
+def test_阈值未校准时只带原值不提示(client, monkeypatch):
+    monkeypatch.setattr(extract_service, "extract",
+                        lambda text, vocab, cfg=None, engine=None:
+                        triple.ExtractionResult(vocab=vocab, triples=tuple(
+                            cand("甲%d" % i, "属于", "乙%d" % i)
+                            for i in range(12))))
+    data = client.post("/api/kit/auto",
+                       json={"text": "甲属于乙。" * 20, "vocab": VOCAB,
+                             "material_id": 1, "map_version": "v1"}).json()
+    assert data["possibly_inaccurate"] is False
+    assert data["message"] == ""
+    assert data["calibrated"] is False
+    signals = {s["name"]: s for s in data["signals"]}
+    assert signals["S1"]["value"] is not None
+    assert signals["S1"]["triggered"] is False
+    assert signals["S1"]["threshold"] is None
 
 
 def test_健康抽取不置不可信标记(client, monkeypatch):

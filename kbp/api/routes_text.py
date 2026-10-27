@@ -12,6 +12,7 @@ import kbp.contracts.triple
 import kbp.extract.chat_client
 import kbp.extract.extract_service
 import kbp.extract.quality
+import kbp.extract.threshold_store
 import kbp.ingest.ingest_service
 import kbp.ingest.ocr
 import kbp.kit.bank_store
@@ -99,7 +100,10 @@ def _kit_out(kit, target, report=None, from_bank=False) -> KitAutoOut:
         fingerprint=target.fingerprint, from_bank=from_bank,
         possibly_inaccurate=bool(report and report.possibly_inaccurate),
         message=report.message if report else "",
-        signals=_signals(report) if report else [])
+        signals=_signals(report) if report else [],
+        calibrated=bool(report and report.calibrated),
+        baseline_n=report.baseline_n if report else 0,
+        baseline_source=report.baseline_source if report else "")
 
 
 @router.post("/kit/auto", response_model=KitAutoOut)
@@ -129,4 +133,6 @@ def kit_auto(body: KitAutoIn) -> KitAutoOut:
         raise HTTPException(409, str(exc))
     except Exception as exc:
         raise HTTPException(503, "自动裁 kit 不可用: " + str(exc))
-    return _kit_out(kit, target, kbp.extract.quality.assess(result, body.text))
+    thresholds = kbp.extract.threshold_store.load(conn)
+    report = kbp.extract.quality.assess(result, body.text, thresholds)
+    return _kit_out(kit, target, report)

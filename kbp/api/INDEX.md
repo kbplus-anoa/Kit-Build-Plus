@@ -9,7 +9,7 @@
 |---|---|
 | `main.py` | FastAPI 实例、路由挂载、`/` 与 `/api/health` |
 | `deps.py` | 进程级数据库连接与写锁（两把锁分开，见下） |
-| `bootstrap.py` | 建表装配：各 feature 的 `ensure` + 抽取配置表；库默认落在仓库根 `tmp/kb.sqlite3` |
+| `bootstrap.py` | 建表装配：各 feature 的 `ensure` + 抽取配置表与阈值表；库默认落在仓库根 `tmp/kb.sqlite3` |
 | `schemas.py` | 通用请求/响应模型，只做格式约束，不含业务规则 |
 | `schemas_tam.py` | TAM 量表的请求/响应模型，独立成文件以避开 200 行上限 |
 | `config_store.py` | 抽取配置表（一行一条）的读写 |
@@ -53,8 +53,9 @@ TAM：`GET /api/tam/items` 出量表条目（六点上下限、判据、构念�
 
 `/api/extract` 的每条候选带 `confidence`（本地代理分，只用于排序）、`evidence`（逐字原文片段）与 `suspect`（概念过长等可疑项，不丢、排最后）。
 
-`/api/kit/auto` 回 `possibly_inaccurate` + `message` + `signals`：
-每条信号带原值、阈值、是否触发；触发才有文案，命题太少时只记录不提示。
+`/api/kit/auto` 回 `possibly_inaccurate` + `message` + `signals` + `calibrated`：
+每条信号带原值、阈值、是否触发；阈值取自 `quality_thresholds`，
+没有校准就只带原值（阈值空、不触发、不提示）；命题太少时只记录不提示。
 
 ## 边界（不做什么）
 

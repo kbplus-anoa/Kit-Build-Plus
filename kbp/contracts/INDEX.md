@@ -9,7 +9,7 @@
 | `triple.py` | Vocab、TripleCandidate、ExtractionResult、in_vocab | extract → kit |
 | `extractconfig.py` | ExtractConfig、PROVIDERS、config_error、key_env、default_config | 用户配置 → extract、api |
 | `extraction.py` | ExtractionRecord、ExtractPort、ExtractionStore | extract → kit（留档）；存储协议按批次与原文指纹查，可回填冻结图的版本与指纹 |
-| `quality.py` | Signal、QualityReport、assess 签名 | extract → api（抽崩体检） |
+| `quality.py` | Signal、Thresholds、QualityReport、assess 签名 | extract → api（抽崩体检） |
 | `adjudication.py` | Adjudication、AdjudicationLog、MapUsagePort | kit → rebuild（反向注入） |
 | `targetmap.py` | Concept、Proposition、TargetMap、Kit、content_fingerprint | kit → rebuild、score |
 | `targetbank.py` | BankEntry（含来源批次 batch_id）、check_entry、same_map、TargetMapBank 协议 | kit → kit 存储与 api（题库命中）；来源枚举 adjudicated / auto |
@@ -41,6 +41,7 @@
 | `exportcsv.SubjectRow` / `QuestionRow` | 关联键改四元 | 两张表可按同一键联结 |
 | `targetbank` | 整套（来源枚举、`check_entry`、`same_map`、`TargetMapBank`） | 题库命中与冻结图落库（D02）；实现在 kit |
 | `extraction` | 加 `map_version` / `fingerprint` 回填字段与 `ExtractionStore` | 留档要能追溯"这条命题出自哪张图" |
+| `quality` | `Signal.threshold` 可空；加 `Thresholds`（四阈值 + `min_props` + 基线来源与样本量 + `calibrated`）；`QualityReport` 加 `calibrated` / `baseline_n` / `baseline_source`；`assess` 加 `thresholds` | 阈值取开发期冻结图分位点；未校准只记录不提示（D08） |
 
 全部有默认值，向后兼容。
 
