@@ -301,6 +301,37 @@ class DraftOut(BaseModel):
     saved_at: str
 
 
+class CurrentDraftIn(BaseModel):
+    """当前草稿：序号由服务端分配，前端不必知道是第几次。"""
+
+    batch_id: str = Field(default="", max_length=100)
+    map_version: str = Field(min_length=1, max_length=50)
+    mode: str
+    participant_id: int = Field(ge=1)
+    material_id: int = Field(ge=1)
+    time_point: str = Field(min_length=1, max_length=20)
+    propositions: list[Vec2In] = Field(max_length=500)
+
+
+class RecordOut(SubmitOut):
+    """一条历史提交：换设备或刷新后仍能重开这份报告。"""
+
+    material_id: int
+    map_version: str
+    mode: str
+    submitted_at: str  # 提交时刻，ISO 8601
+    scored: bool = True  # 取不到目标图时只回原图，不评分
+    propositions: list[Vec2In] = []  # 学生当时连的命题，原样
+
+
+class RecordsOut(BaseModel):
+    items: list[RecordOut]
+
+
+class DraftsOut(BaseModel):
+    items: list[DraftOut]
+
+
 class ScoreOut(BaseModel):
     total_propositions: int
     correct_propositions: int

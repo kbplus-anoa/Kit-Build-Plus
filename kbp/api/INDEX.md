@@ -19,6 +19,8 @@
 | `upload_flow.py` | 上传侧公共步骤：扩展名校验与落盘解析（失败即删文件） |
 | `routes_text.py` | `/api/upload`（multipart 落盘→解析→登记教材，回正文）、`GET /api/materials`（只列已抽出 kit 的教材）、`DELETE /api/materials/{id}`（删登记与原文，失败上传回滚用）、`GET /api/materials/{id}/text`（按落盘文件重读旧教材正文，命中解析缓存）、`/api/ingest`、`/api/extract`、`/api/kit/preview`（切段预报）、`/api/kit/auto`（先查题库，命中不重抽；`retry` 跳过复用要求重抽）、`POST /api/kit/jobs` + `GET /api/kit/jobs/{id}`（后台抽，带真实段进度）；丢弃与整次抽取都落留档 |
 | `routes_flow.py` | `/api/adjudicate`（开发期）、`/api/kit`、`/api/lock`、`/api/draft`、`/api/submit`（回提交序号、内容指纹、FMS、四类错误明细与目标命题，并落被试级快照） |
+| `record_flow.py` | 历史提交与草稿：按当前目标图重算报告、列出某人的提交与草稿、读写当前草稿 |
+| `routes_records.py` | `GET /api/records`（某人提交，可按教材筛）、`GET /api/drafts`、`GET/POST /api/draft/current`（当前草稿，序号服务端分配） |
 | `routes_kit.py` | `GET /api/kit/versions`（列出各批）、`POST /api/kit/use`（切回某一批） |
 | `routes_data.py` | `/api/quiz`（落题级快照）、`GET /api/export/subject`、`GET /api/export/question`（三条件筛选，空即全选） |
 | `routes_tam.py` | `GET /api/tam/items`、`POST /api/tam/answers`（整卷落库）、`GET /api/tam/alpha`（读库算） |
@@ -36,6 +38,14 @@
 `state`（running/done/failed）、`segments`/`done`（真实段进度）与 `result`（同 `/api/kit/auto`）；
 失败时 `error` 的文案与同步路由一致。任务在内存里，进程重启即丢；只留最近 12 个已结束的。
 模型请求只在后台线程里发，前端可以随时离开页面。
+
+## 记录只认库
+
+刷新、换设备、重开复盘都读后端：`GET /api/records` 把提交表逐条按当前目标图重算
+（分数、四类错误、目标命题），图取不到时 `scored=false`，只回学生原图。
+`GET /api/drafts` 与 `GET /api/draft/current` 供「继续」栏；当前草稿按四元键覆盖，
+序号由服务端 `next_seq` 给，前端不必知道是第几次。
+测验模式提交后再交返 409，但那份提交仍在记录里，可以据此重开报告。
 
 ## 两把锁为什么分开
 

@@ -1,8 +1,8 @@
-import json
 import sqlite3
 from pathlib import Path
 
 import kbp.contracts.submission
+import kbp.rebuild.draft_rows
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS draft (
@@ -64,7 +64,7 @@ def save(conn: sqlite3.Connection, draft: kbp.contracts.submission.Draft) -> Non
         " target_map_version=excluded.target_map_version,"
         " fingerprint=excluded.fingerprint, mode=excluded.mode,"
         " propositions=excluded.propositions, saved_at=excluded.saved_at",
-        _draft_row(draft))
+        kbp.rebuild.draft_rows.draft_row(draft))
     conn.commit()
 
 
@@ -72,18 +72,15 @@ def load(conn: sqlite3.Connection, participant_id: int, material_id: int,
          time_point: str, submit_seq: int) -> kbp.contracts.submission.Draft:
     """读回草稿；不存在时报错而不是返回空草稿。"""
     cur = conn.execute(
-        "SELECT target_map_version, fingerprint, mode, propositions, saved_at"
-        " FROM draft WHERE participant_id = ? AND material_id = ?"
+        "SELECT material_id, time_point, submit_seq, target_map_version,"
+        " fingerprint, mode, propositions, saved_at FROM draft"
+        " WHERE participant_id = ? AND material_id = ?"
         " AND time_point = ? AND submit_seq = ?",
         (participant_id, material_id, time_point, submit_seq))
     row = cur.fetchone()
     if row is None:
         raise DraftError("草稿不存在")
-    props = tuple(_prop(p) for p in json.loads(row[3]))
-    return kbp.contracts.submission.Draft(
-        map_version=row[0], fingerprint=row[1], mode=row[2], propositions=props,
-        participant_id=participant_id, material_id=material_id,
-        time_point=time_point, submit_seq=submit_seq, saved_at=row[4])
+    return kbp.rebuild.draft_rows.draft_from_row(participant_id, row)
 
 
 def drop(conn: sqlite3.Connection, participant_id: int, material_id: int,
@@ -99,12 +96,42 @@ def submit(conn: sqlite3.Connection, sub: kbp.contracts.submission.Submission) -
     if _exists(conn, sub):
         raise DraftError("该四元键已提交，不可重复提交")
     conn.execute("INSERT INTO submitted VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                 _sub_row(sub))
+                 kbp.rebuild.draft_rows.sub_row(sub))
     conn.execute("DELETE FROM draft WHERE participant_id = ?"
                  " AND material_id = ? AND time_point = ? AND submit_seq = ?",
                  (sub.participant_id, sub.material_id, sub.time_point,
                   sub.submit_seq))
     conn.commit()
+
+
+def drafts(conn: sqlite3.Connection, participant_id: int,
+           material_id: int | None = None) -> list:
+    """列出某人的草稿，可按教材筛；同一教材旧序号在前。"""
+    sql = ("SELECT material_id, time_point, submit_seq, target_map_version,"
+           " fingerprint, mode, propositions, saved_at FROM draft"
+           " WHERE participant_id = ?")
+    args: list = [participant_id]
+    if material_id is not None:
+        sql += " AND material_id = ?"
+        args.append(material_id)
+    sql += " ORDER BY material_id, submit_seq"
+    return [kbp.rebuild.draft_rows.draft_from_row(participant_id, row)
+            for row in conn.execute(sql, args)]
+
+
+def submissions(conn: sqlite3.Connection, participant_id: int,
+                material_id: int | None = None) -> list:
+    """列出某人的提交，可按教材筛；同一教材按提交先后。"""
+    sql = ("SELECT material_id, time_point, submit_seq, target_map_version,"
+           " fingerprint, mode, propositions, started_at, submitted_at"
+           " FROM submitted WHERE participant_id = ?")
+    args: list = [participant_id]
+    if material_id is not None:
+        sql += " AND material_id = ?"
+        args.append(material_id)
+    sql += " ORDER BY material_id, submit_seq"
+    return [kbp.rebuild.draft_rows.sub_from_row(participant_id, row)
+            for row in conn.execute(sql, args)]
 
 
 def next_seq(conn: sqlite3.Connection, participant_id: int, material_id: int,
@@ -145,26 +172,3 @@ def _exists(conn: sqlite3.Connection, obj) -> bool:
         " AND material_id = ? AND time_point = ? AND submit_seq = ? LIMIT 1",
         (obj.participant_id, obj.material_id, obj.time_point, obj.submit_seq))
     return cur.fetchone() is not None
-
-
-def _draft_row(draft: kbp.contracts.submission.Draft) -> tuple:
-    return (draft.participant_id, draft.material_id, draft.time_point,
-            draft.submit_seq, draft.map_version, draft.fingerprint, draft.mode,
-            _pack(draft.propositions), draft.saved_at)
-
-
-def _sub_row(sub: kbp.contracts.submission.Submission) -> tuple:
-    return (sub.participant_id, sub.material_id, sub.time_point, sub.submit_seq,
-            sub.map_version, sub.fingerprint, sub.mode, _pack(sub.propositions),
-            sub.started_at, sub.submitted_at)
-
-
-def _pack(props) -> str:
-    return json.dumps([{"head": p.head_id, "connection": p.connection,
-                        "tail": p.tail_id} for p in props],
-                      ensure_ascii=False)
-
-
-def _prop(raw: dict) -> kbp.contracts.submission.SubmittedProposition:
-    return kbp.contracts.submission.SubmittedProposition(
-        head_id=raw["head"], connection=raw["connection"], tail_id=raw["tail"])
