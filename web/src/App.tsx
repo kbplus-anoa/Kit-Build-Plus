@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "./api/client";
 import type { Attempt } from "./data/attempt";
 import { setKit, type Kit } from "./data/kit";
+import { readRecords, writeRecords } from "./data/records";
 import { VOCAB } from "./data/vocab";
 import { initAurora } from "./fx/init";
 import { useRoute } from "./hooks/useRoute";
@@ -22,7 +23,7 @@ export function App() {
   const { theme, toggle } = useTheme(route.view);
   const [materials, setMaterials] = useState<MaterialOut[]>([]);
   const [kit, setKitState] = useState<Kit | null>(null);
-  const [records, setRecords] = useState<Attempt[]>([]);
+  const [records, setRecords] = useState<Attempt[]>(() => readRecords());
   const [current, setCurrent] = useState<Attempt | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [seed, setSeed] = useState<Attempt | null>(null);
@@ -58,6 +59,10 @@ export function App() {
     void initAurora();
     void refreshMaterials();
   }, []);
+
+  useEffect(() => {
+    writeRecords(records);
+  }, [records]);
 
   function open(record: Attempt) {
     setCurrent(record);
