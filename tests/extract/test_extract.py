@@ -198,3 +198,12 @@ def test_留档带回原始输出与段数():
     assert details.sections == 2
     assert details.raw == '{"propositions": []}\n{"propositions": []}'
     assert details.result.triples == ()
+
+
+def test_每抽完一段报一次进度():
+    seen = []
+    details = service.extract_details("甲。\n\n乙。\n\n丙。", make_vocab(),
+                                      make_config(max_chars=3), RawEngine(),
+                                      on_step=lambda done, total: seen.append((done, total)))
+    assert details.sections == 3
+    assert seen == [(1, 3), (2, 3), (3, 3)]

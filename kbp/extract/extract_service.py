@@ -47,8 +47,11 @@ def extract_and_discards(
 def extract_details(
         text: str, vocab: kbp.contracts.triple.Vocab,
         config: kbp.contracts.extractconfig.ExtractConfig | None = None,
-        engine=None) -> Details:
-    """抽取的唯一实现：段数、原始输出与丢弃都随结果带回。"""
+        engine=None, on_step=None) -> Details:
+    """抽取的唯一实现：段数、原始输出与丢弃都随结果带回。
+
+    on_step(done, total) 每抽完一段报一次，供后台任务显示真实进度。
+    """
     cfg = config or kbp.contracts.extractconfig.default_config()
     _check(vocab, cfg)
     model = engine or kbp.extract.engine.ChatEngine()
@@ -57,11 +60,13 @@ def extract_details(
     raws: list[str] = []
     seen: set[tuple[str, str, str]] = set()
     chunks = kbp.extract.window.split(text, cfg.max_chars)
-    for chunk in chunks:
+    for index, chunk in enumerate(chunks, start=1):
         cands = model.extract(chunk, vocab, cfg)
         drops.extend(getattr(model, "last_discards", ()))
         raws.append(getattr(model, "last_raw", "") or "")
         _take(cands, seen, found)
+        if on_step is not None:
+            on_step(index, len(chunks))
     return Details(result=_result(vocab, found), discards=tuple(drops),
                    raw="\n".join(raw for raw in raws if raw),
                    sections=len(chunks))

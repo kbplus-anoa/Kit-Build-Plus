@@ -15,7 +15,9 @@
 | `schemas_tam.py` | TAM 量表的请求/响应模型，独立成文件以避开 200 行上限 |
 | `config_store.py` | 抽取配置表（一行一条）的读写；库里没保存过时按 `.env` 的 `KBP_EXTRACT_*` 出默认值 |
 | `routes_config.py` | `GET/PUT /api/config`：读写配置；**只回显密钥是否已配置** |
-| `routes_text.py` | `/api/upload`（multipart 落盘→解析→登记教材，回正文）、`GET /api/materials`（只列已抽出 kit 的教材）、`DELETE /api/materials/{id}`（删登记与原文，失败上传回滚用）、`GET /api/materials/{id}/text`（按落盘文件重读旧教材正文，命中解析缓存）、`/api/ingest`、`/api/extract`、`/api/kit/auto`（先查题库，命中不重抽；`retry` 跳过复用要求重抽）；丢弃与整次抽取都落留档 |
+| `kit_flow.py` | 运行期裁 kit 的编排：题库命中、切段预报、逐段进度回调、后台任务与结果封装 |
+| `upload_flow.py` | 上传侧公共步骤：扩展名校验与落盘解析（失败即删文件） |
+| `routes_text.py` | `/api/upload`（multipart 落盘→解析→登记教材，回正文）、`GET /api/materials`（只列已抽出 kit 的教材）、`DELETE /api/materials/{id}`（删登记与原文，失败上传回滚用）、`GET /api/materials/{id}/text`（按落盘文件重读旧教材正文，命中解析缓存）、`/api/ingest`、`/api/extract`、`/api/kit/preview`（切段预报）、`/api/kit/auto`（先查题库，命中不重抽；`retry` 跳过复用要求重抽）、`POST /api/kit/jobs` + `GET /api/kit/jobs/{id}`（后台抽，带真实段进度）；丢弃与整次抽取都落留档 |
 | `routes_flow.py` | `/api/adjudicate`（开发期）、`/api/kit`、`/api/lock`、`/api/draft`、`/api/submit`（回提交序号、内容指纹、FMS、四类错误明细与目标命题，并落被试级快照） |
 | `routes_kit.py` | `GET /api/kit/versions`（列出各批）、`POST /api/kit/use`（切回某一批） |
 | `routes_data.py` | `/api/quiz`（落题级快照）、`GET /api/export/subject`、`GET /api/export/question`（三条件筛选，空即全选） |
@@ -28,6 +30,12 @@
 解析不出正文 400、正文超 200 万字 413、文件超 40 MB 413、
 扫描件云端不可用 503、其它解析失败 502；失败时删掉落盘文件。
 同一份字节重复上传复用同一个 `material_id`，内容一变就新开一个。
+
+`/api/kit/preview` 只回 `segments`（按当前 `max_chars` 切几段）与 `chars`，不落库、不发模型请求。
+`POST /api/kit/jobs` 开后台任务，`GET /api/kit/jobs/{id}` 回
+`state`（running/done/failed）、`segments`/`done`（真实段进度）与 `result`（同 `/api/kit/auto`）；
+失败时 `error` 的文案与同步路由一致。任务在内存里，进程重启即丢；只留最近 12 个已结束的。
+模型请求只在后台线程里发，前端可以随时离开页面。
 
 ## 两把锁为什么分开
 

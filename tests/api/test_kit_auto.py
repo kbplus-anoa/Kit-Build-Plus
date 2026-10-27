@@ -5,8 +5,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 import kbp.api.deps as deps
+import kbp.api.kit_flow as kit_flow
 import kbp.api.main as main
-import kbp.api.routes_text as routes_text
 import kbp.contracts.extractconfig as extractconfig
 import kbp.contracts.extraction as extraction
 import kbp.contracts.triple as triple
@@ -177,7 +177,7 @@ def filled_config():
 
 def test_未配密钥时返回_503(client, monkeypatch):
     monkeypatch.delenv(KEY, raising=False)
-    monkeypatch.setattr(routes_text, "_config", filled_config)
+    monkeypatch.setattr(kit_flow, "load_config", filled_config)
     resp = client.post("/api/kit/auto",
                        json={"text": "记忆包括短时记忆", "vocab": VOCAB, "material_id": 1,
                              "map_version": "v1"})

@@ -195,6 +195,30 @@ class KitAutoIn(BaseModel):
     retry: bool = False  # 抽崩后要求重抽：跳过题库复用另抽一批，旧批不动
 
 
+class PreviewIn(BaseModel):
+    """切段预报：只送正文，不落库。"""
+
+    text: str = Field(min_length=1, max_length=MAX_TEXT)
+
+
+class PreviewOut(BaseModel):
+    """正文会被切成几段、共多少字。"""
+
+    segments: int  # 本次抽取要送几段；单位：段
+    chars: int  # 正文字数；单位：字
+
+
+class JobOut(BaseModel):
+    """后台裁 kit 任务：进度与结果共用一份快照。"""
+
+    job_id: str
+    state: str  # running / done / failed
+    segments: int = 0  # 本次要抽的段数；切好段之后才有值
+    done: int = 0  # 已抽完的段数
+    error: str = ""  # state=failed 时的原因
+    result: KitAutoOut | None = None  # state=done 时的裁剪结果
+
+
 class ReadyOut(BaseModel):
     map_version: str
     locked: str
