@@ -78,6 +78,16 @@ class MaterialsOut(BaseModel):
     items: list[MaterialOut]
 
 
+class MaterialTextOut(BaseModel):
+    """旧教材的正文：按落盘文件重读一次，让学生不必重新上传。"""
+
+    material_id: int
+    file_name: str
+    ext: str
+    chars: int
+    text: str
+
+
 class VocabIn(BaseModel):
     """连接词表，顺序即 schema 顺序。"""
 
@@ -234,7 +244,8 @@ class SubmitOut(BaseModel):
     excessive: int
     leaving: int
     reversed: int
-    errors: list[ErrorOut]
+    errors: list[ErrorOut]  # 学生图上的四类错误连接
+    target_propositions: list[Vec2In]  # 目标图命题；报告页据此补画缺失连接，不评分
 
 
 class DraftIn(BaseModel):

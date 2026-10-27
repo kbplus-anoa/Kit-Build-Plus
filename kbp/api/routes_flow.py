@@ -145,6 +145,10 @@ def submit(body: SubmitIn) -> SubmitOut:
                          body.signal_concentration, body.signal_baseline)))
     return SubmitOut(submit_seq=seq, fingerprint=target.fingerprint,
                      fms=kbp.score.score_service.fms(result),
+                     target_propositions=[
+                         Vec2In(head_id=p.head_id, connection=p.connection,
+                                tail_id=p.tail_id)
+                         for p in target.propositions],
                      **_score_detail(result))
 
 

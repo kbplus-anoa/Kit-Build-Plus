@@ -117,6 +117,11 @@ def test_提交回四类错误明细(client):
                                "head_id": ids["感觉记忆"],
                                "connection": "包括",
                                "tail_id": ids["短时记忆"]}]
+    assert body["target_propositions"] == [
+        {"head_id": ids["记忆"], "connection": "包括",
+         "tail_id": ids["感觉记忆"]},
+        {"head_id": ids["感觉记忆"], "connection": "包括",
+         "tail_id": ids["短时记忆"]}]
 
 
 def test_越界零件提交被拒(client):

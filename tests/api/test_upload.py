@@ -64,6 +64,26 @@ def test_教材列表含刚上传的一行(client):
     assert [i["file_name"] for i in items] == ["记忆.txt"]
 
 
+def test_重读旧教材回正文(client):
+    mid = _upload(client).json()["material_id"]
+    body = client.get("/api/materials/" + str(mid) + "/text").json()
+    assert body["material_id"] == mid
+    assert body["file_name"] == "记忆.txt"
+    assert body["text"].startswith("记忆包括感觉记忆")
+
+
+def test_重读不存在的教材_404(client):
+    assert client.get("/api/materials/999/text").status_code == 404
+
+
+def test_原文被删后重读_404(client, tmp_path):
+    mid = _upload(client).json()["material_id"]
+    for path in (tmp_path / "uploads").iterdir():
+        path.unlink()
+    resp = client.get("/api/materials/" + str(mid) + "/text")
+    assert resp.status_code == 404
+
+
 def test_解析失败不留下落盘文件(client, tmp_path):
     _upload(client, name="空.txt", data="  \n ".encode("utf-8"))
     assert list((tmp_path / "uploads").iterdir()) == []

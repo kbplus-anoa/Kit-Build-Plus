@@ -28,7 +28,8 @@ import kbp.kit.lock
 import kbp.rebuild.usage
 from kbp.api.schemas import (
     ConceptOut, ExtractIn, ExtractOut, IngestIn, IngestOut, KitAutoIn, KitAutoOut,
-    MaterialOut, MaterialsOut, MAX_TEXT, SignalOut, TripleOut, UploadOut)
+    MaterialOut, MaterialsOut, MaterialTextOut, MAX_TEXT, SignalOut, TripleOut,
+    UploadOut)
 
 router = APIRouter(prefix="/api", tags=["教材"])
 
@@ -71,18 +72,22 @@ def _upload_ext(name: str) -> str:
     return ext
 
 
-def _ingest_upload(path: Path, name: str):
-    """解析上传的文件；失败时删掉落盘文件，别留半个教材。"""
+def _ingest_upload(path: Path, name: str, keep: bool = False):
+    """解析上传的文件；新上传失败时删掉落盘文件，别留半个教材。
+
+    keep 为重读旧教材用：解析失败也不能删它，那是别的教材的原文。
+    """
+    drop = (lambda: None) if keep else (lambda: kbp.ingest.uploads.drop(path))
     try:
         doc = kbp.ingest.ingest_service.ingest(str(path))
     except kbp.ingest.ocr.MinerUUnavailable as exc:
-        kbp.ingest.uploads.drop(path)
+        drop()
         raise HTTPException(503, "扫描件需要云端解析，云端不可用: " + str(exc))
     except Exception as exc:
-        kbp.ingest.uploads.drop(path)
+        drop()
         raise HTTPException(502, "解析失败: " + str(exc))
     if not doc.text.strip():
-        kbp.ingest.uploads.drop(path)
+        drop()
         raise HTTPException(400, "这个文件里没有可用的文字")
     if len(doc.text) > MAX_TEXT:
         raise HTTPException(413, "正文太长，上限 200 万字")
@@ -104,7 +109,8 @@ async def upload(file: UploadFile = File(...)) -> UploadOut:
     conn = kbp.api.deps.get_conn()
     with kbp.api.deps.db_lock():
         material_id = kbp.ingest.materials.add_or_get(
-            conn, name, ext, doc.source, len(doc.text), digest, _now())
+            conn, name, ext, doc.source, len(doc.text), digest, _now(),
+            path=str(path))
     return UploadOut(material_id=material_id, file_name=name, ext=ext,
                      source=doc.source, chars=len(doc.text),
                      has_ocr=doc.has_ocr, page_count=doc.page_count,
@@ -118,6 +124,20 @@ def materials(limit: int = 200) -> MaterialsOut:
     return MaterialsOut(items=[
         MaterialOut(material_id=r[0], file_name=r[1], ext=r[2], chars=r[4],
                     created_at=r[5]) for r in rows])
+
+
+@router.get("/materials/{material_id}/text", response_model=MaterialTextOut)
+def material_text(material_id: int) -> MaterialTextOut:
+    """重读一份旧教材的正文：命中解析缓存，不重复上传也不重复花算力。"""
+    row = kbp.ingest.materials.get(kbp.api.deps.get_conn(), material_id)
+    if row is None:
+        raise HTTPException(404, "教材不存在: " + str(material_id))
+    path = Path(row[6] or "")
+    if not row[6] or not path.is_file():
+        raise HTTPException(404, "这份教材的原文不在了，请重新上传")
+    doc = _ingest_upload(path, row[1], keep=True)
+    return MaterialTextOut(material_id=int(row[0]), file_name=row[1],
+                           ext=row[2], chars=len(doc.text), text=doc.text)
 
 
 @router.post("/extract", response_model=ExtractOut)
