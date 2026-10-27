@@ -1,0 +1,175 @@
+/* ── Diff diagram marks ─────────────────────────────────────────────
+   The diagram has exactly two layers. The reconstruction — the propositions
+   the student got right — keeps the primary colour, so "my map" reads as one
+   object. Every difference is neutral grey, because score/DESIGN.md requires
+   the four error classes to be told apart by shape and by their permanent
+   legend label, never by hue: 缺失虚线 · 多余加粗实线 · 游离波浪线 · 反转双向箭头.
+   Colour therefore carries no error information at all.
+
+   Only #diffmap is addressed here: the rebuild canvas draws its own marks from
+   canvas.css, and the eight `#study-map` halves this sheet used to carry never
+   matched an element in the markup. */
+
+#diffmap .edge {
+  stroke: var(--muted);
+  stroke-width: 1.6;
+  /* `stroke` is in the list so a selection can fade into its focus colour —
+     without it the line snapped to --fg while only its weight animated. */
+  transition: opacity var(--motion-fast) var(--ease),
+              stroke var(--motion-fast) var(--ease),
+              stroke-width var(--motion-fast) var(--ease);
+}
+
+/* correct — the reconstruction, in the primary colour (4.4:1 on the dark
+   surface, 5.7:1 in light: above the 3:1 an essential graphic needs) */
+#diffmap .edge--correct {
+  stroke: var(--accent);
+  stroke-width: 1.8;
+  opacity: 0.9;
+}
+
+/* lacking — dashed, the thing that is not there (dash lives here so a theme
+   switch repaints the line instead of keeping a stale inline attribute) */
+#diffmap .edge--lacking {
+  stroke: var(--muted);
+  stroke-width: 1.6;
+  opacity: 0.6;
+  stroke-dasharray: 7 6;
+}
+
+/* excessive — heavy line, the second link that should not exist. The legend
+   draws this class at twice the weight of an ordinary line, so the diagram
+   does the same: 3.4 against 1.6 below. It used to be painted near-white here
+   while the legend showed it grey, which is the mismatch this fixes. */
+#diffmap .edge--excessive {
+  stroke: var(--muted);
+  stroke-width: 3.4;
+  opacity: 0.95;
+}
+
+/* leaving — the wave, an endpoint in the wrong place */
+#diffmap .edge--leaving { stroke: var(--muted); stroke-width: 1.8; opacity: 0.85; }
+
+/* reversed — double-headed, drawn wrong on purpose */
+#diffmap .edge--reversed { stroke: var(--muted); stroke-width: 1.8; opacity: 0.9; }
+
+/* arrowheads match their line; each marker paints with currentColor */
+#diffmap .arrow--correct   { color: var(--accent); }
+#diffmap .arrow--lacking   { color: var(--muted); }
+#diffmap .arrow--excessive { color: var(--muted); }
+#diffmap .arrow--leaving   { color: var(--muted); }
+#diffmap .arrow--reversed  { color: var(--muted); }
+
+#diffmap .edge.is-dim { opacity: 0.16; }
+
+#diffmap .edge.is-focus {
+  stroke: var(--fg);
+  stroke-width: 2.6;
+  opacity: 1;
+}
+
+#diffmap .edge.is-hidden { opacity: 0; pointer-events: none; }
+
+/* ── The graph draws itself in, once ─────────────────────────────────
+   `drawDiagram()` builds the whole field in one synchronous pass, so every mark
+   used to be born finished and the only motion on this panel was the page's own
+   fade. Each edge now draws along its own length on the shared stagger, so the
+   graph arrives in the order it is scored in.
+
+   The dash is temporary: `animation-fill-mode: both` holds it while the line is
+   drawing, and the report drops `is-drawing` on `animationend`. The resting line
+   is the plain stroke everything above describes. `--draw-len` is measured from
+   the path itself and written inline by the report. */
+@media (prefers-reduced-motion: no-preference) {
+  #diffmap .edge.is-drawing {
+    animation: diff-edge-draw var(--motion-enter) var(--ease) both;
+    animation-delay: min(calc(var(--stagger-step) * (var(--i, 0) + 1)), var(--stagger-max));
+  }
+}
+
+@keyframes diff-edge-draw {
+  from { stroke-dasharray: var(--draw-len); stroke-dashoffset: var(--draw-len); }
+  to   { stroke-dasharray: var(--draw-len); stroke-dashoffset: 0; }
+}
+
+/* 缺失连接 is dashed because it is the link that is not there, and that dash is
+   the class's whole identity — drawing it with a temporary solid dash would
+   print the wrong shape for the length of the animation. It appears on the same
+   beat instead, landing back on the opacity its own class declares. */
+@media (prefers-reduced-motion: no-preference) {
+  #diffmap .edge--lacking.is-drawing {
+    animation: diff-edge-appear var(--motion-enter) var(--ease) backwards;
+  }
+}
+
+@keyframes diff-edge-appear { from { opacity: 0; } }
+
+/* nodes */
+#diffmap .dnode {
+  transition: opacity var(--motion-fast) var(--ease);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  #diffmap .dnode {
+    animation: diff-node-in var(--motion-fast) var(--ease) backwards;
+    animation-delay: min(calc(var(--stagger-step) * (var(--i, 0) + 1)), var(--stagger-max));
+  }
+}
+
+@keyframes diff-node-in { from { opacity: 0; } }
+
+/* a chip the current filter has no proposition for leaves the field with the
+   lines it belonged to, instead of staying as an orphan frame */
+#diffmap .dnode.is-hidden { opacity: 0; pointer-events: none; }
+
+#diffmap .dnode__box {
+  fill: var(--surface);
+  stroke: var(--border);
+  stroke-width: 1;
+  transition: fill var(--motion-fast) var(--ease),
+              stroke var(--motion-fast) var(--ease);
+}
+
+#diffmap .dnode__label {
+  fill: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+[data-theme="light"] #diffmap .dnode__box { fill: #ffffff; }
+
+/* connection words on the line — knocked out of the edge with a backing
+   plate so a stroke never runs through the text. 8px, not 6px: a leaving
+   link's word rides the wave, and the halo has to swallow the crest that
+   passes under it. */
+#diffmap .edge-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  fill: var(--muted);
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 8px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: opacity var(--motion-fast) var(--ease);
+}
+
+[data-theme="light"] #diffmap .edge-label { stroke: #ffffff; }
+
+#diffmap .edge-label.is-dim { opacity: 0.2; }
+#diffmap .edge-label.is-hidden { opacity: 0; pointer-events: none; }
+#diffmap .edge-label.is-focus { fill: var(--fg); }
+
+/* the legend glyph is the diagram's own mark, so it keeps the diagram's own
+   colours: grey for every difference, the primary colour for 连对 */
+.legend__item svg { color: var(--muted); }
+.legend__item .mark { color: var(--muted); }
+.legend__item--correct svg { color: var(--accent); }
+.row__mark--correct { color: var(--accent); }
+.tax__head .mark svg { color: var(--muted); }
+
+@media (max-width: 767px) {
+  #diffmap .dnode__label { font-size: 15px; }
+}

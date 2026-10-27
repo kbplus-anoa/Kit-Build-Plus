@@ -1,0 +1,866 @@
+/* ── Rebuild canvas ─────────────────────────────────────────────────
+   The student's only working surface: parts rail on the left, canvas in the
+   middle, action bar pinned at the bottom. Nothing on this page ever states
+   whether a proposition is right — that judgement happens after submit.
+
+   Layout is normal flow (grid rows + flex), so the action bar reserves its
+   own space instead of floating over the canvas. */
+
+.rb {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+/* the canvas cell is the only scroller; the rail scrolls on its own so a
+   long parts list never pushes the action bar off screen */
+.rb__field {
+  position: relative;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.rb-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  touch-action: manipulation;    /* taps must not double-tap-zoom the canvas */
+  cursor: default;
+}
+
+/* A quiz submission freezes the map. The lock has to be visible on the surface
+   itself, not only in the notice: the tiles stop answering the pointer, and the
+   drawing steps back one surface so it reads as a record rather than a workspace.
+   `tabindex` is dropped in the same state, so the frozen canvas is not a tab stop
+   that does nothing. */
+#rb-canvas[aria-disabled="true"] {
+  pointer-events: none;
+  opacity: 0.72;
+  transition: opacity var(--motion-base) var(--ease);
+}
+
+
+/* ── Parts rail ──────────────────────────────────────────────────── */
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.rail__count {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.rail__count b { color: var(--fg); font-weight: 600; }
+
+/* one group per part kind, collapsible so an untouched half stays out of the
+   way — the disclosure is a real <details> so it works without JS */
+.rail__group { border-top: 1px solid var(--border); padding-top: var(--space-3); }
+.rail__group:first-of-type { border-top: 0; padding-top: 0; }
+
+.rail__summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--fg);
+  cursor: pointer;
+  list-style: none;
+  min-height: 32px;
+}
+
+.rail__summary::-webkit-details-marker { display: none; }
+
+.rail__summary::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-left: auto;
+  border-right: 1.4px solid var(--muted);
+  border-bottom: 1.4px solid var(--muted);
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform var(--motion-fast) var(--ease);
+}
+
+.rail__group[open] .rail__summary::after { transform: rotate(-135deg) translateY(-2px); }
+
+.rail__parts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+}
+
+/* The kit rail dims as one block while the map is frozen. The dim is a
+   transition rather than a style write so the state change reads as the rail
+   settling, not as the chips blinking off. */
+#rb-parts { transition: opacity var(--motion-base) var(--ease); }
+#rb-parts.is-locked { opacity: 0.55; pointer-events: none; }
+
+/* a part is a solid chip when used, a dashed one when not — line style, not
+   colour, carries the state so a colour-blind student reads it the same */
+.part {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 6px 10px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease),
+              border-color var(--motion-fast) var(--ease),
+              background-color var(--motion-fast) var(--ease),
+              transform var(--motion-fast) var(--ease);
+}
+
+/* hover is a pointer-only affordance: on a touch screen it sticks to the chip
+   that was just tapped, so the chip keeps claiming the pointer is still over
+   it after the finger has gone */
+@media (hover: hover) and (pointer: fine) {
+  .part:hover { color: var(--fg); border-color: var(--muted); }
+}
+
+.part[aria-pressed="true"] {
+  background: var(--elevated);
+  color: var(--fg);
+  border-style: solid;
+  border-color: var(--muted);
+}
+
+/* the armed part: the one whose click will complete a proposition */
+.part.is-armed {
+  background: var(--fg);
+  color: var(--bg);
+  border-style: solid;
+  border-color: var(--fg);
+}
+
+/* A frozen map keeps its parts legible: the state is carried by the edge and
+   the cursor, not by fading the word out of reading contrast. The armed and
+   pressed looks are named explicitly because they are written as `--fg` on
+   `--bg`, which would leave the label invisible the moment the fill is
+   removed. */
+.part:disabled,
+.part.is-armed:disabled,
+.part.is-placed:disabled,
+.part[aria-pressed="true"]:disabled {
+  cursor: not-allowed;
+  color: var(--muted);
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--border);
+}
+
+.part--conn { font-family: var(--font-mono); font-size: var(--text-xs); }
+
+/* press feedback. Transform only, so a tap costs no layout. */
+.part:active,
+.mode-card:active,
+.doc:active { transform: scale(var(--press-scale)); }
+
+/* ── Canvas nodes ────────────────────────────────────────────────── */
+
+.rbn { cursor: pointer; }
+
+.rbn__box {
+  fill: var(--surface);
+  stroke: var(--border-strong);
+  stroke-width: 1.4;
+  transition: stroke var(--motion-fast) var(--ease),
+              stroke-width var(--motion-fast) var(--ease),
+              fill var(--motion-fast) var(--ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rbn:hover .rbn__box { stroke: var(--muted); }
+}
+
+/* selection is a heavier stroke, not a different hue */
+.rbn.is-armed .rbn__box { stroke: var(--fg); stroke-width: 2.6; }
+
+/* a node that carries at least one proposition the student drew */
+.rbn.is-used .rbn__box { fill: var(--elevated); }
+
+/* A tile that has just been put on the canvas arrives. Only freshly placed
+   tiles carry the class, so a repaint that merely re-states the map never
+   replays it; the stagger is the token step, capped by the token cap. */
+@media (prefers-reduced-motion: no-preference) {
+  .rbn.is-enter {
+    animation: rb-node-in var(--motion-enter) var(--ease) both;
+    animation-delay: min(calc(var(--i, 0) * var(--stagger-step)), var(--stagger-max));
+  }
+
+  @keyframes rb-node-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+  }
+}
+
+.rbn__label {
+  fill: var(--fg);
+  font-size: 13px;
+  font-family: var(--font-body);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── Canvas edges ────────────────────────────────────────────────── */
+
+.rbe {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.rbe.is-selected { stroke: var(--fg); stroke-width: 2.6; }
+
+/* The proposition the keyboard is standing on. The focus ring is drawn on the
+   line itself — an outline around an 18px hit stroke would be a rectangle the
+   size of the whole diagonal, which says nothing about which line is live. */
+.rbe.is-keyfocus { stroke: var(--fg); stroke-width: 2.6; }
+
+.rbe__label {
+  fill: var(--muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  text-anchor: middle;
+  user-select: none;
+}
+
+.rbe__plate {
+  fill: var(--surface);
+  stroke: none;
+}
+
+.rbe-hit { stroke: transparent; stroke-width: 18; fill: none; cursor: pointer; }
+
+/* the hit stroke is the tab stop; the ring is on the visible line above */
+.rbe-hit:focus { outline: none; }
+.rbe-hit:focus-visible { outline: none; }
+
+/* A proposition just committed draws itself along its own length. `pathLength`
+   normalises every line to 1 user unit, so one dash-array covers a short link
+   and a long one alike without measuring anything at runtime. The arrowhead is
+   held back until the line arrives — SVG draws markers at the path's vertices,
+   not along the dashes, so it would otherwise sit at the far end from frame one. */
+@media (prefers-reduced-motion: no-preference) {
+  .rbe.is-draw {
+    stroke-dasharray: 1;
+    marker-end: none;
+    animation: rb-edge-in var(--motion-enter) var(--ease) both;
+  }
+
+  @keyframes rb-edge-in {
+    from { stroke-dashoffset: 1; }
+    to   { stroke-dashoffset: 0; }
+  }
+}
+
+/* the pending link from the armed node to the pointer */
+.rbe--draft {
+  stroke: var(--muted);
+  stroke-width: 1.4;
+  stroke-dasharray: 5 5;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* the dashes march towards the second endpoint while the pair is being named,
+   so "waiting for you" and "nothing is happening" do not look the same. The
+   offset is two full periods, which is what makes the loop seamless. */
+@media (prefers-reduced-motion: no-preference) {
+  .rbe--draft { animation: rbe-march 1.6s linear infinite; }
+
+  @keyframes rbe-march {
+    to { stroke-dashoffset: -20; }
+  }
+}
+
+.arrow--canvas { color: var(--muted); }
+
+/* ── Action bar ──────────────────────────────────────────────────── */
+
+.rb__bar {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+/* the status line is the one place that says "your work is still here" */
+.rb__status {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  min-width: 0;
+}
+
+.rb__status b { color: var(--fg); font-weight: 500; }
+
+.rb__grow { flex: 1 1 auto; }
+
+/* the mode is settled before the canvas opens and then restated, in place,
+   next to the action it constrains */
+.rb__mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  color: var(--muted);
+  transition: color var(--motion-fast) var(--ease),
+              border-color var(--motion-fast) var(--ease);
+}
+
+/* The mode chip and the header badge are the same fact told twice — the lock
+   policy in force. Both are repainted by js/rebuild.js, so both need the
+   transition here or the state change arrives as a colour jump. */
+#view-study .subbar__badge {
+  transition: color var(--motion-fast) var(--ease),
+              border-color var(--motion-fast) var(--ease);
+}
+
+.rb__mode::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+  flex: none;
+}
+
+.rb__mode--locked { color: var(--muted); }
+.rb__mode--open { color: var(--fg); }
+
+/* ── Mode picker (before the canvas opens) ──────────────────────── */
+
+.mode-pick {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 599px) {
+  .mode-pick { grid-template-columns: 1fr; }
+}
+
+.mode-card {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  text-align: left;
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease),
+              background-color var(--motion-fast) var(--ease),
+              box-shadow var(--motion-fast) var(--ease),
+              transform var(--motion-fast) var(--ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mode-card:hover { border-color: var(--muted); background: var(--elevated); }
+}
+
+/* The selected card is ringed with an inset shadow rather than a thicker
+   border: a second pixel of border moves the text under it by one pixel at the
+   exact moment the colour is animating, so half the change slid and half of it
+   jumped. The ring is the same weight, and it costs no layout. */
+.mode-card[aria-pressed="true"] {
+  border-color: var(--fg);
+  box-shadow: inset 0 0 0 1px var(--fg);
+}
+
+.mode-card:disabled {
+  cursor: not-allowed;
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.mode-card__name { font-size: var(--text-xl); font-weight: 600; }
+
+.mode-card__rule {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.mode-card__tag {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+/* ── Inline notices (validation, save, restore) ─────────────────── */
+
+/* The notice is a sibling of the canvas frame, in the grid's second column,
+   so it sits under the drawing rather than over it. `margin-block-start` is
+   the 2mm gap the frame and the message should keep apart.
+
+   It animates in because a message that simply appears is easy to miss on a
+   canvas you are looking at; a short rise plus fade says "this just happened"
+   without demanding attention. */
+/* The stage owns the canvas frame and the notice under it, so the gap between
+   them is a real 2mm and not the grid's 16px gutter. `min-width: 0` keeps the
+   canvas from forcing the column wider than its track. */
+.rb__stage {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  align-self: start;
+}
+
+.rb__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-block-start: 2mm;
+  padding: var(--space-3) var(--space-4);
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--muted);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--fg);
+  line-height: 1.55;
+}
+
+/* Both ends of the notice are classes rather than a bare `animation` on the
+   element. The arrival is opt-in, so a corrected message can swap its words
+   while the notice is already standing without replaying the entrance; the
+   departure runs to completion before js/rebuild.js sets `hidden`, because a
+   `[hidden]` element is `display: none` and no transition can follow it there. */
+@media (prefers-reduced-motion: no-preference) {
+  .rb__notice.is-in { animation: rb-notice-in var(--motion-base) var(--ease) both; }
+  .rb__notice.is-leaving { animation: rb-notice-out var(--motion-exit) var(--ease-exit) both; }
+
+  @keyframes rb-notice-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  @keyframes rb-notice-out {
+    from { opacity: 1; transform: none; }
+    to   { opacity: 0; transform: translateY(-4px); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rb__notice { animation: none; }
+}
+
+.rb__notice p { margin: 0; }
+
+/* a rejection is information, not an error state: the same neutral surface,
+   the mark carries the meaning */
+.rb__notice__mark {
+  flex: none;
+  font-family: var(--font-mono);
+  color: var(--muted);
+}
+
+.rb__notice[hidden] { display: none; }
+
+/* ── Open (unfrozen) work ──────────────────────────────────────────
+   A study submission stays on this page because this is where it can still be
+   changed. Its report deliberately withholds the target graph; freezing it —
+   a quiz submission — is what moves it into history. */
+
+.holdings {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border);
+}
+
+.holdings__head {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.holdings__title { font-size: var(--text-xl); font-weight: 600; margin: 0; }
+
+.holdings__sub {
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 62ch;
+  margin: 0;
+}
+
+.holdings__list { display: grid; gap: var(--space-2); }
+
+.holdings__empty {
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0;
+  padding: var(--space-3) 0;
+}
+
+.holding {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+/* A row that has just appeared arrives on the same step as everything else in
+   the piece, so a list that grew after a submission reads as a change rather
+   than as a page that was always this shape. */
+@media (prefers-reduced-motion: no-preference) {
+  .holding.is-enter {
+    animation: rb-row-in var(--motion-base) var(--ease) both;
+    animation-delay: min(calc(var(--i, 0) * var(--stagger-step)), var(--stagger-max));
+  }
+
+  @keyframes rb-row-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+  }
+}
+
+.holding__main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 240px;
+}
+
+.holding__when { font-size: var(--text-sm); font-weight: 500; color: var(--fg); }
+
+.holding__meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.holding__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+/* ── Confirm dialog ──────────────────────────────────────────────── */
+
+.confirm {
+  width: min(440px, calc(100vw - 32px));
+  padding: var(--space-5);
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+}
+
+.confirm::backdrop { background: rgba(0, 0, 0, 0.62); }
+
+.confirm__title { font-size: var(--text-xl); font-weight: 600; }
+
+.confirm__body {
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.confirm__body b { color: var(--fg); font-weight: 500; }
+
+.confirm__warn { margin-top: var(--space-2); color: var(--fg); }
+
+.confirm__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  margin-top: var(--space-5);
+}
+
+@media (max-width: 899px) {
+  .rb {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, auto) auto;
+  }
+  .rail { max-height: 210px; }
+  .rb__field { order: -1; }
+}
+
+/* ── Opening the canvas (step 2 of the page) ───────────────────────
+   The picker section is swapped for the workspace section, and that swap used
+   to be a hard cut: both are `.panel`, and the only entrance this page has is
+   the one the router plays when the page itself arrives. The workspace gets its
+   own short arrival, so choosing a mode lands somewhere instead of blinking. */
+@media (prefers-reduced-motion: no-preference) {
+  #rb-work.is-enter { animation: rb-step-in var(--motion-enter) var(--ease) both; }
+
+  @keyframes rb-step-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+  }
+}
+
+/* ── Pieces the markup needs that the original sheet left implicit ── */
+
+/* The mode picker's own heading. Visible, not screen-reader-only: the two
+   cards below it are the choice this page asks for, and a bare pair of cards
+   under a page title reads as decoration rather than a decision. */
+.rb__picktitle {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--fg);
+}
+
+/* The connector chooser row. It appears between the pair being chosen and the
+   action bar, so it takes a top rule to separate it from the canvas it is
+   answering rather than floating as a second toolbar.
+
+   It used to be swapped in and out with `hidden`, which costs the canvas its
+   own bottom edge: the row is a grid row, so the canvas frame above it changed
+   height in the same frame the bar appeared and the field clipped what it was
+   already drawing. Opening it on `0fr -> 1fr` grows the row instead, and the
+   markup stays mounted so nothing below it jumps. `hidden` is restored by
+   js/rebuild.js once the row has finished closing, so a closed chooser costs
+   no layout at all. */
+.rb__chooser {
+  display: grid;
+  grid-template-rows: 0fr;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  margin-top: var(--space-2);
+  opacity: 0;
+  transition: grid-template-rows var(--motion-base) var(--ease),
+              opacity var(--motion-base) var(--ease);
+}
+
+.rb__chooser.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.rb__chooser__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 0;
+  overflow: hidden;
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-3);
+}
+
+.rb__chooser .rail__parts { padding-top: 0; }
+
+@media (max-width: 599px) {
+  .rb__picktitle { font-size: var(--text-lg); }
+}
+
+/* ── Document selection, ahead of mode selection ────────────────── */
+
+.rb__picktitle--sub { margin-top: var(--space-6); }
+
+.docpick {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-items: start;
+}
+
+@media (max-width: 767px) {
+  .docpick { grid-template-columns: 1fr; }
+}
+
+.docpick__upload { margin-top: 0; justify-items: start; text-align: left; }
+
+.doclist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-height: 44px;
+  align-content: flex-start;
+}
+
+/* a previously uploaded document, and the empty state in the same slot */
+.doc {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 8px 12px;
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  text-align: left;
+  max-width: 100%;
+  transition: border-color var(--motion-fast) var(--ease),
+              background-color var(--motion-fast) var(--ease),
+              box-shadow var(--motion-fast) var(--ease),
+              transform var(--motion-fast) var(--ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .doc:hover { border-color: var(--muted); background: var(--elevated); }
+}
+
+/* selection is a heavier edge plus a filled surface — line weight and shape,
+   not colour alone. The second pixel is an inset ring rather than a thicker
+   border, so choosing a document does not shift its own name by a pixel. */
+.doc[aria-pressed="true"] {
+  border-color: var(--fg);
+  box-shadow: inset 0 0 0 1px var(--fg);
+  background: var(--elevated);
+}
+
+.doc:disabled {
+  cursor: not-allowed;
+  border-color: var(--border);
+  background: transparent;
+}
+
+.doc__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 26ch;
+}
+
+.doc__ext {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--muted);
+  text-transform: uppercase;
+  flex: none;
+}
+
+.doc--empty {
+  cursor: default;
+  border-style: dashed;
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .doc--empty:hover { border-color: var(--border); background: var(--surface); }
+}
+
+/* ── Modes before a document is chosen ────────────────────────────
+   The cards are not merely disabled: they sit under a scrim so the reason is
+   visible without reading. Selecting a document lifts it, and the cards become
+   sharp and clickable at once. */
+
+.mode-pick__mask {
+  position: relative;
+}
+
+/* Locked cards used to be one wash of 55% over everything, which put the rule
+   copy — the sentence that explains what each mode does — at about 2:1. The
+   state is carried the way the home page's own disabled doors carry it: by
+   dropping one surface level and moving the border to a dashed inert edge,
+   while the words stay on `--muted`, which is a readable step. */
+.mode-pick--locked .mode-card {
+  pointer-events: none;
+  background: var(--bg);
+  border-style: dashed;
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.mode-pick--locked .mode-card .mode-card__name { color: var(--muted); }
+
+.mode-pick--locked::after {
+  content: "先选一份教材";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  color: var(--fg);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  backdrop-filter: blur(1.5px);
+  pointer-events: none;
+}
+
+/* The transition lives on `.mode-card` itself, so a block that only names the
+   locked state leaves the ordinary hover transition running. */
+@media (prefers-reduced-motion: reduce) {
+  .mode-card { transition: none; }
+}
+
+/* ── Canvas tiles: draggable, and what a drag looks like ─────────── */
+
+/* A tile on the canvas can be picked up. The cursor is the only affordance
+   needed — a handle icon on every tile would be chrome for its own sake. */
+.rbn { cursor: grab; touch-action: none; }
+
+.rbn.is-dragging { cursor: grabbing; }
+
+/* while dragged, the tile lifts: a slightly heavier border and a soft drop,
+   expressed with the palette so it reads in both themes */
+.rbn.is-dragging .rbn__box {
+  stroke: var(--fg);
+  stroke-width: 2.2;
+}
+
+.rbn__label { pointer-events: none; }
+
+/* A part that is already on the canvas reads as "placed" in the rail too, so
+   the rail and the canvas cannot disagree about what has been used. */
+.part.is-placed {
+  border-style: solid;
+  border-color: var(--muted);
+  color: var(--fg);
+}
+
+/* the rail chip is a drag source; a grab cursor says so before the attempt */
+.rail__parts .part { cursor: grab; }
+.rail__parts .part:active { cursor: grabbing; }
+
+/* `.rbn` carries no transition of its own — the box inside it does — so naming
+   `.rbn` here never switched anything off. */
+@media (prefers-reduced-motion: reduce) {
+  .rbn__box, .part { transition: none; }
+}

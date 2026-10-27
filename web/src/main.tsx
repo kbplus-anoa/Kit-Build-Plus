@@ -1,18 +1,15 @@
-/**
- * 前端入口。当前只挂一个占位壳：页面设计由用户以 HTML 原型提供，
- * 本文件负责挂载与后续路由接入，不承担任何布局决策。
- */
-
-import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import { Placeholder } from "./Placeholder";
+import "../../ui-share/styles/tokens.css";
+import "../../ui-share/styles/base.css";
+import "../../ui-share/styles/home.css";
+import "../../ui-share/styles/report.css";
+import "../../ui-share/styles/diagram.css";
+import "../../ui-share/styles/subpage.css";
+import "../../ui-share/styles/canvas.css";
+import "../../ui-share/styles/load.css";
+import { App } from "./App";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("缺少 #root 挂载点");
-
-createRoot(root).render(
-  <StrictMode>
-    <Placeholder />
-  </StrictMode>,
-);
+createRoot(root).render(<App />);

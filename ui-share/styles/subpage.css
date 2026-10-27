@@ -1,0 +1,391 @@
+/* ── Subpage shells ─────────────────────────────────────────────────
+   Study, quiz and history reuse the report's glass shell: same veil, same
+   top bar, same section rhythm. Only the panel content differs, so these
+   rules cover the parts that are genuinely new. */
+
+/* ── Shared subpage top bar ──────────────────────────────────────── */
+
+.subbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding-block: var(--space-2) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-6);
+}
+
+.subbar__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease),
+              border-color var(--motion-fast) var(--ease);
+}
+
+.subbar__back:hover { background: var(--surface); border-color: var(--border-strong); }
+
+.subbar__context {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+
+.subbar__sep { color: var(--meta); }
+
+.subbar__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: var(--text-xs);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* The dot carries the same red as the logo's origin node and "Plus" so the
+   mode badge reads as a branded variant rather than a generic status. It is the
+   token's full value, not a faded copy — "same red" means the same pixel, and a
+   6px dot at 0.7 opacity reads as a muted brick next to the wordmark. */
+.subbar__badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--node-red);
+  flex-shrink: 0;
+}
+
+.subbar__badge--live { color: var(--accent); border-color: var(--accent-subtle); }
+
+/* ── Page heading block ──────────────────────────────────────────── */
+
+.pagehead { margin-bottom: var(--space-6); }
+
+.pagehead__eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: var(--space-2);
+}
+
+.pagehead__title {
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0 0 var(--space-3);
+}
+
+.pagehead__lede {
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+  color: var(--muted);
+  max-width: 62ch;
+  margin: 0;
+}
+
+/* ── Study mode ──────────────────────────────────────────────────── */
+
+.study__steps {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--border);
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: var(--space-4);
+  padding-block: var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.step__index {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--meta);
+  padding-top: 2px;
+}
+
+.step__title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  margin: 0 0 var(--space-2);
+}
+
+.step__prop {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-size: var(--text-base);
+  color: var(--fg);
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  margin-bottom: var(--space-2);
+}
+
+.step__conn {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--accent);
+}
+
+.step__why {
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0;
+  max-width: 60ch;
+}
+
+.study__map {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: var(--space-4);
+  overflow-x: auto;
+}
+
+.study__map svg { display: block; }
+
+/* ── Quiz mode ───────────────────────────────────────────────────── */
+
+.quiz {
+  max-width: 720px;
+}
+
+.quiz__progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.quiz__dots {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+}
+
+.quiz__dot {
+  height: 3px;
+  flex: 1;
+  border-radius: 2px;
+  background: var(--border);
+  transition: background-color var(--motion-base) var(--ease);
+}
+
+.quiz__dot--done { background: var(--muted); }
+.quiz__dot--now  { background: var(--accent); }
+
+.quiz__counter {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.quiz__q {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0 0 var(--space-6);
+}
+
+.quiz__endpoints {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  margin-bottom: var(--space-5);
+}
+
+.quiz__node {
+  font-size: var(--text-base);
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--elevated);
+  border: 1px solid var(--border);
+}
+
+.quiz__arrow { color: var(--meta); }
+
+.quiz__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.quiz__opt {
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--text-base);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease),
+              border-color var(--motion-fast) var(--ease),
+              color var(--motion-fast) var(--ease);
+}
+
+.quiz__opt:hover { background: var(--elevated); border-color: var(--border-strong); }
+.quiz__opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.quiz__opt--on {
+  background: var(--accent-fill);
+  border-color: var(--accent-fill);
+  color: var(--accent-on);
+}
+
+.quiz__opt--on:hover { background: var(--accent-fill-hover); border-color: var(--accent-fill-hover); }
+
+.quiz__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border);
+}
+
+.quiz__hint {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  margin: 0;
+}
+
+.quiz__done {
+  text-align: left;
+}
+
+.quiz__done-title {
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  margin: 0 0 var(--space-3);
+}
+
+.quiz__done-body {
+  color: var(--muted);
+  margin: 0 0 var(--space-6);
+  max-width: 58ch;
+}
+
+/* ── History mode ────────────────────────────────────────────────── */
+
+.history__list {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.rec {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-4);
+  align-items: center;
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease),
+              border-color var(--motion-fast) var(--ease);
+}
+
+.rec:hover { background: var(--elevated); border-color: var(--border-strong); }
+.rec:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.rec__main { display: grid; gap: 4px; min-width: 0; }
+
+.rec__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.rec__when {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.rec__mode {
+  font-size: var(--text-xs);
+  color: var(--meta);
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+}
+
+.rec__summary {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.rec__score {
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--fg);
+}
+
+.rec__score small { font-size: var(--text-sm); color: var(--muted); }
+
+.rec--current { border-color: var(--accent-subtle); }
+
+@media (max-width: 599px) {
+  .step { grid-template-columns: 24px minmax(0, 1fr); gap: var(--space-3); }
+  .subbar__context { margin-left: 0; width: 100%; }
+  .rec { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ── Study map sizing ────────────────────────────────────────────────
+   The diagram keeps its 960 × 540 viewBox ratio and scales with the
+   container. A min-width would force a horizontal scroll on a phone, and
+   this map is short enough that shrinking reads fine — unlike the diff
+   diagram, whose 16px edge labels go illegible below ~620px. */
+
+.study__map svg {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 960 / 540;
+  min-width: 0;
+}
+
+@media (max-width: 599px) {
+  .study__map { padding: var(--space-3); }
+}

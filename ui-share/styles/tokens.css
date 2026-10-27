@@ -1,0 +1,154 @@
+/* Kit Build Plus — token layer
+   Dark is the native surface (three luminance steps, no shadow).
+   Light is resolved independently, not inverted. */
+
+:root {
+  color-scheme: dark;
+
+  --bg:        #0f0f10;
+  --surface:   #19191a;
+  --elevated:  #232325;
+  --border:    #2e2e30;
+  --border-strong: #3d3d40;   /* hover edge — one step above the divider */
+  --border-soft: #232325;
+
+  --fg:    #f0f0f0;
+  --muted: #9b9b9b;
+  --meta:  #5c5c5e;
+
+  --accent:       #a855f7;
+  --accent-hover: #c084fc;
+  --accent-on:    #ffffff;
+
+  /* filled surfaces carrying white text need a deeper purple: #a855f7 only
+     reaches 3.95:1 against white, #7c3aed clears 5.7:1 */
+  --accent-fill:       #7c3aed;
+  --accent-subtle:     #2a163f;   /* tint behind accent badges */
+  --accent-fill-hover: #6d28d9;
+
+  /* the mark's red — one token feeds the logo's origin node and the
+     wordmark's "Plus" so the two can never drift apart */
+  --node-red: #ef4444;
+
+  /* Home entries are the design system's accent fill, one value for all three
+     doors. The mark's red belongs to the brand mark alone; repeating a
+     saturated red across three cards read as an alarm, so the entries take the
+     accent instead and hierarchy comes from type weight and order.
+
+     The fill is deep enough to carry white text honestly: #7c3aed is 5.7:1
+     against white, and the hover step #6d28d9 is 7.1:1. Secondary copy uses an
+     opaque grey-white (4.7:1 on the fill, 5.8:1 on hover) rather than a tinted
+     lavender or a translucent white: it clears the floor on both fills, and it
+     reads as the same family as the headline while sitting one step quieter. */
+  --entry-fill:       var(--accent-fill);
+  --entry-fill-hover: var(--accent-fill-hover);
+  --entry-ink:        #ffffff;
+  --entry-ink-soft:   #e8e8e6;
+
+  /* two glass strengths: the report sits behind a 40% sheet, and the home view
+     is deliberately unfrosted so the aurora reads at full strength — there is
+     no home veil layer at all (see css/base.css) */
+  --glass:      rgba(15, 15, 16, 0.40);
+  --glass-blur: 28px;
+
+  --font-body: "Inter", "SF Pro Text", ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", Menlo, Consolas, "Noto Sans Mono CJK SC", monospace;
+
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 22px;
+  --text-3xl: 28px;
+  --text-4xl: 32px;
+
+  --leading-body: 1.65;
+  --leading-tight: 1.2;
+  --tracking-display: -0.01em;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 9999px;
+
+  /* ── Motion ──────────────────────────────────────────────────────
+     One scale for the whole piece. js/app.js reads these by name at boot
+     (`tokenMs()`), so retiming is one edit here instead of a hunt through
+     two languages and four files.
+
+       fast     hover, focus, press, a chip changing state
+       base     a control settling into a new state
+       enter    a panel, a list, a page arriving
+       exit     the same leaving — ~60% of the entrance, so a dismissal
+                reads as decided rather than slow
+       ambient  a background layer drifting in behind everything
+
+     150ms is the floor for fast: below that the eye reads the change as a
+     cut rather than as feedback. */
+  --motion-fast: 150ms;
+  --motion-base: 220ms;
+  --motion-enter: 320ms;
+  --motion-exit: 190ms;
+  --motion-ambient: 520ms;
+
+  /* The stagger is capped: a page with twelve panels must not spend a
+     second and a half assembling itself before the last one is readable. */
+  --stagger-step: 50ms;
+  --stagger-max: 250ms;
+
+  --ease: cubic-bezier(0.2, 0, 0, 1);        /* arriving */
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);   /* leaving */
+  --press-scale: 0.985;
+
+  --shell: 1100px;
+  --gutter: 24px;
+
+  --focus-ring: 0 0 0 2px var(--accent);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg:        #ffffff;
+  --surface:   #f8f8f8;
+  --elevated:  #f0f0f0;
+  --border:    #e0e0e0;
+  --border-strong: #c9c9c9;
+  --border-soft: #ececec;
+
+  --fg:    #0f0f10;
+  --muted: #5c5c5e;
+  --meta:  #86868a;
+
+  --accent:       #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-on:    #ffffff;
+  --accent-fill:       #7c3aed;
+  --accent-fill-hover: #6d28d9;
+  --accent-subtle:     #ede9fe;
+
+  /* the mark's red, deepened so the wordmark and the logo dot both stay
+     readable on white — one token keeps them the same colour */
+  --node-red: #dc2626;
+
+  /* Same accent fill as the dark theme — one purple for all three doors in
+     both themes, so the entries never change identity when the theme flips.
+     Light mode uses the identical pair because #7c3aed already clears 5.7:1
+     on white; nothing needs deepening. */
+  --entry-fill:       var(--accent-fill);
+  --entry-fill-hover: var(--accent-fill-hover);
+  --entry-ink:        #ffffff;
+  --entry-ink-soft:   #e8e8e6;
+
+  --glass:      rgba(255, 255, 255, 0.40);
+}

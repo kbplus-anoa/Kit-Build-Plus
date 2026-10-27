@@ -1,0 +1,126 @@
+/* ── Upload loading view ─────────────────────────────────────────────
+   One centred column: the mark, a status line, a thin progress rail. It uses
+   the same 40% glass shell as every other subpage; the aurora is frozen behind
+   it by the router, because a drifting shader under a full-screen blur costs a
+   whole-viewport recompute every frame.
+
+   The bar is decoration for a process this prototype does not run, so it stops
+   at 90% and never claims to have measured real work. */
+
+.load__inner {
+  position: relative;
+  z-index: 1;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: 1fr auto auto auto;
+  justify-items: center;
+  align-content: center;
+  gap: var(--space-6);
+  padding: var(--space-8) var(--gutter) var(--space-8);
+  text-align: center;
+}
+
+/* The stage is deliberately larger than the mark it holds. The ripple leaves
+   the red dot — which sits off-centre — and travels well past the sphere's
+   rim, so a canvas cropped to the mark's own bounds clips the ripple exactly
+   where it is most visible. The extra area is empty by design. */
+.load__stage {
+  align-self: end;
+  width: min(64vmin, 440px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+
+.load__globe {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.load__copy {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  min-height: 4.5em;      /* reserves the slot so the mark never shifts */
+  align-content: start;
+}
+
+.load__file {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--muted);
+  max-width: 40ch;
+  /* a long filename truncates in the middle; the full name is one tap away */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The rotating status line keeps its box at every length, so swapping the two
+   lines never pushes the mark around. The change itself is a short crossfade:
+   the words turn over on the mark's beat, and cutting a sentence in half at
+   the exact frame the ripple leaves reads as a glitch rather than as a beat.
+   js/upload.js swaps the text at the bottom of the fade. */
+.load__line {
+  font-size: var(--text-lg);
+  color: var(--fg);
+  min-height: 1.6em;
+  letter-spacing: 0.01em;
+  transition: opacity 140ms var(--ease);
+}
+
+.load__line--swap { opacity: 0; }
+
+.load__bar {
+  width: min(280px, 60vw);
+  height: 2px;
+  background: var(--border);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+/* The fill is scaled, not widened. `transition: width` was the only layout
+   property animated anywhere in the piece: every step re-ran layout on a page
+   whose whole job is to look calm while it waits. Transforms stay on the
+   compositor. */
+.load__bar-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--node-red);
+  border-radius: inherit;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--motion-base) var(--ease);
+}
+
+.load__cancel {
+  min-height: 44px;
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease),
+              border-color var(--motion-fast) var(--ease),
+              transform var(--motion-fast) var(--ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .load__cancel:hover { color: var(--fg); border-color: var(--muted); }
+}
+
+.load__cancel:active { transform: scale(var(--press-scale)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .load__bar-fill { transition: none; }
+  .load__line { transition: none; }
+}
+
+@media (max-width: 599px) {
+  .load__stage { width: min(76vmin, 340px); }
+  .load__inner { gap: var(--space-5); }
+}

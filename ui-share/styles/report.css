@@ -1,0 +1,724 @@
+/* ── Report view ────────────────────────────────────────────────────
+   Aurora keeps drifting underneath; a 40% glass sheet sits on top of it
+   so the report stays legible while the veil still reads. The sheet is a
+   single layer — not a stack of cards — so text contrast never depends on
+   where the aurora happens to be. */
+
+.report {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+/* the veil — 40% sheet over the aurora. It fades both ways: in as the report
+   arrives, and out as the user leaves, so the aurora is never cut to. */
+.report__veil {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(112%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(112%);
+  opacity: 0;
+  transition: opacity var(--motion-enter) var(--ease);
+}
+
+/* the frost deepens only once the report is actually on screen */
+.report-open .report__veil { opacity: 1; }
+
+/* While the view is leaving, the sheet lifts off over the aurora. The state is
+   scoped to the node rather than the document: two subpages can be on screen at
+   once during a crossfade, and only the outgoing one may be dissolving. */
+.report.is-leaving .report__veil { opacity: 0; transition-duration: var(--motion-exit); }
+
+[data-theme="light"] .report__veil {
+  background: var(--glass);
+}
+
+/* While a subpage is open the aurora sits behind a full-screen blur. If it
+   keeps drifting, that blur is recomputed across the whole viewport every
+   frame, so it is frozen on arrival — the glass then blurs a still image and
+   the effect is unchanged to the eye, because the sheet covers it anyway.
+
+   The veil is a WebGL canvas now, not a CSS-animated layer, so this pause is a
+   JS call (`KBPAurora.stop()` when a subpage opens) rather than a
+   `animation-play-state` rule. */
+
+/* without backdrop blur the sheet still reads as one surface, but it has to
+   carry contrast on its own — push it to near-opaque */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .report__veil { background: var(--bg); }
+  [data-theme="light"] .report__veil { background: var(--bg); }
+}
+
+.report__inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: var(--shell);
+  margin-inline: auto;
+  padding: var(--space-5) var(--gutter) var(--space-12);
+}
+
+/* ── Section entrance (option A: staggered rise) ───────────────────
+   Every subpage shares this: each `.panel` block rises into place on its own
+   delay so the page reads top-down instead of appearing all at once.
+
+   Both numbers come from the motion tokens — `--motion-enter` for the block
+   itself and `--stagger-step` for the gap between arrivals — so the whole
+   sequence retimes from one place. The step is capped by `--stagger-max`: a
+   page with twelve blocks must not spend a second and a half assembling itself
+   before the last one is readable.
+
+   Delay comes from `--i` on the element rather than six hardcoded rules, so
+   a page with four blocks and a page with eight both stagger correctly
+   without new selectors. */
+
+.report .panel {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity var(--motion-enter) var(--ease),
+              transform var(--motion-enter) var(--ease);
+}
+
+.report-open .panel {
+  opacity: 1;
+  transform: none;
+  transition-delay: min(calc(var(--stagger-step) * (var(--i, 0) + 1)), var(--stagger-max));
+}
+
+/* Leaving: one quick sink for the whole view, not a staggered exit — an exit
+   that mirrors the entrance would feel twice as slow. The sheet outlives the
+   content on purpose: that is what makes the exit read as falling back through
+   the glass.
+
+   The panels are locked out of the exit entirely. The router drops
+   `report-open` on the way home, and without this every block would fade a
+   second time on the entrance's own clock, on top of the single fade below.
+   One layer carries the exit; that is what makes it read as one movement.
+
+   The node is taken out of flow while it dissolves, so the destination page can
+   already be laid out underneath. `top` is set inline to the negative scroll
+   offset by the router; without it a scrolled page would jump to its own top
+   the instant it became fixed. */
+.report.is-leaving {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 6;
+  min-height: 100vh;
+  pointer-events: none;
+}
+
+.report.is-leaving .panel { transition: none; }
+
+.report.is-leaving .report__inner,
+.report.is-leaving .load__inner {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity var(--motion-exit) var(--ease-exit),
+              transform var(--motion-exit) var(--ease-exit);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .report__veil { transition: none; }
+  .report .panel {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .report__veil { opacity: 1; }
+  .report.is-leaving .panel { transition: none; }
+  .report.is-leaving .report__inner,
+  .report.is-leaving .load__inner { transition: none; }
+}
+/* ── Report top bar ──────────────────────────────────────────────── */
+
+.rbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-2) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.rbar__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  padding: 6px 12px 6px 10px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease),
+              border-color var(--motion-fast) var(--ease),
+              transform var(--motion-fast) var(--ease);
+}
+
+/* pointer-only: on a touch screen the tapped control would keep this state
+   until something else was tapped */
+@media (hover: hover) and (pointer: fine) {
+  .rbar__back:hover { color: var(--fg); border-color: var(--muted); }
+}
+
+.rbar__back:active { transform: scale(var(--press-scale)); }
+.rbar__back .od-icon { --od-icon-size: 14px; }
+
+.rbar__context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.rbar__sep { color: var(--meta); }
+
+.rbar__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.rbar__badge--study { color: var(--fg); border-color: var(--muted); }
+
+/* ── Score header ────────────────────────────────────────────────── */
+
+.score {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-6) var(--space-8);
+  padding-block: var(--space-8) var(--space-6);
+  border-bottom: 1px solid var(--border);
+}
+
+.score__figure {
+  display: grid;
+  gap: 2px;
+  min-width: 152px;
+}
+
+.score__value {
+  font-family: var(--font-mono);
+  font-size: clamp(40px, 7vw, 60px);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--fg);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.score__value small {
+  font-size: 0.42em;
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: 4px;
+}
+
+.score__caption {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  line-height: 1.5;
+  margin-top: var(--space-2);
+}
+
+.score__lede { display: grid; gap: var(--space-3); }
+
+.score__headline {
+  font-size: clamp(20px, 3vw, var(--text-3xl));
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+  max-width: 30ch;
+}
+
+.score__note {
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 56ch;
+}
+
+.score__note strong { color: var(--fg); font-weight: 600; }
+
+@media (max-width: 767px) {
+  .score { grid-template-columns: 1fr; gap: var(--space-5); padding-block: var(--space-6) var(--space-5); }
+  .score__figure { min-width: 0; }
+}
+
+/* ── Unfrozen banner ─────────────────────────────────────────────
+   A statement of what is withheld and why, not a warning. It carries no accent
+   colour: nothing is wrong here, the map simply is not finished. */
+
+.hold {
+  display: grid;
+  gap: var(--space-2);
+  margin-block: var(--space-6) 0;
+  padding: var(--space-5) var(--space-6);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.hold__tag {
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.hold__title {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.hold__body {
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 62ch;
+  margin: 0;
+}
+
+.history__empty {
+  padding: var(--space-8) 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+/* ── Error taxonomy ──────────────────────────────────────────────── */
+
+.taxonomy {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  padding-block: var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+/* A card that ends up with nothing to report stops being a filled card and
+   becomes an outline. The border *style* is not animatable, so that step is
+   instant by nature; the surface and the border colour fade, which is what the
+   eye reads as the card settling rather than blinking. */
+.tax {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: background-color var(--motion-fast) var(--ease),
+              border-color var(--motion-fast) var(--ease);
+}
+
+.tax--zero { background: transparent; border-style: dashed; }
+
+.tax__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.tax__count {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xl);
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+  margin-top: var(--space-2);
+}
+
+.tax--zero .tax__count { color: var(--muted); }
+
+.tax__desc {
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* the four marks: shape, never colour */
+.mark { flex: none; display: inline-block; }
+
+@media (max-width: 899px) {
+  .taxonomy { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 479px) {
+  .taxonomy { grid-template-columns: 1fr; }
+}
+
+/* ── Diff diagram ────────────────────────────────────────────────── */
+
+.diff {
+  padding-block: var(--space-6);
+  border-bottom: 1px solid var(--border);
+}
+
+.diff__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.diff__title {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.diff__sub {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  max-width: 46ch;
+  line-height: 1.55;
+}
+
+/* filter — one inline control, not a toolbar */
+.diff__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease),
+              border-color var(--motion-fast) var(--ease),
+              background-color var(--motion-fast) var(--ease),
+              transform var(--motion-fast) var(--ease);
+}
+
+/* pointer-only: on a touch screen the tapped chip would keep this state until
+   something else was tapped */
+@media (hover: hover) and (pointer: fine) {
+  .chip:hover { color: var(--fg); border-color: var(--muted); }
+}
+
+.chip:active { transform: scale(var(--press-scale)); }
+
+.chip[aria-pressed="true"] {
+  color: var(--fg);
+  border-color: var(--muted);
+  background: var(--elevated);
+}
+
+.chip .mono { font-size: var(--text-xs); color: inherit; }
+
+/* legend is permanent, never hover-only */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) 0 0;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.legend__item { display: inline-flex; align-items: center; gap: 6px; }
+/* the stroke hint is content, not decoration — it has to stay readable */
+.legend__item .mono { color: var(--muted); }
+
+.diff__canvas-wrap {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+/* the diagram keeps a legible scale: shrinking a 960-unit viewBox into a
+   phone would take its 16px labels down to ~6px, so narrow screens pan the
+   field instead of scaling the type away */
+/* The box keeps the viewBox's own ratio. Changing it on narrow screens would
+   letterbox the drawing inside the frame — the SVG fits its viewBox with
+   `meet`, so a 4:3 box leaves empty bands above and below the graph instead of
+   making it taller. The field pans horizontally instead, which keeps the type
+   near its drawn size. */
+#diffmap {
+  display: block;
+  width: 100%;
+  min-width: 720px;
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
+/* ── Detail list ─────────────────────────────────────────────────── */
+
+.detail {
+  padding-block: var(--space-6) var(--space-2);
+}
+
+.detail__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.detail__title { font-size: var(--text-xl); font-weight: 600; }
+
+.detail__count { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted); }
+
+.rows { display: grid; gap: 0; border-top: 1px solid var(--border); }
+
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-2);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease),
+              transform var(--motion-fast) var(--ease);
+}
+
+/* The list is rebuilt whenever a different record is opened, and every row used
+   to arrive already finished. `--i` is written by renderRows(); `backwards`
+   holds the row at its start state through the delay and then lets go, so the
+   animation leaves no transform behind for the press state below. */
+@media (prefers-reduced-motion: no-preference) {
+  .report .row {
+    animation: report-row-in var(--motion-fast) var(--ease) backwards;
+    animation-delay: min(calc(var(--stagger-step) * (var(--i, 0) + 1)), var(--stagger-max));
+  }
+}
+
+@keyframes report-row-in {
+  from { opacity: 0; transform: translateY(4px); }
+}
+
+/* pointer-only, and kept ahead of the pressed rule so a selected row keeps its
+   stronger fill while the pointer is over it */
+@media (hover: hover) and (pointer: fine) {
+  .row:hover { background: var(--surface); }
+}
+
+.row:active { transform: scale(var(--press-scale)); }
+
+.row[aria-pressed="true"] { background: var(--elevated); }
+
+.row__mark { display: flex; align-items: center; padding-top: 3px; }
+
+.row__body { display: grid; gap: 2px; min-width: 0; }
+
+.row__prop {
+  font-size: var(--text-base);
+  line-height: 1.45;
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+
+.row__prop .ct { color: var(--muted); }
+
+.row__meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
+
+.row__tag {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  padding-top: 3px;
+  white-space: nowrap;
+}
+
+@media (max-width: 599px) {
+  .row { grid-template-columns: auto minmax(0, 1fr); }
+  .row__tag { grid-column: 2; padding-top: 0; }
+}
+
+/* ── Empty state ─────────────────────────────────────────────────── */
+
+.empty {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  padding: var(--space-8) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.empty__title { font-size: var(--text-base); font-weight: 600; }
+.empty__body { font-size: var(--text-sm); color: var(--muted); max-width: 46ch; }
+
+/* ── Closing action ──────────────────────────────────────────────── */
+
+.closing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-8) 0;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  border: 1px solid transparent;
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--ease),
+              border-color var(--motion-fast) var(--ease),
+              color var(--motion-fast) var(--ease),
+              transform var(--motion-fast) var(--ease);
+}
+
+.btn:active:not(:disabled) { transform: scale(var(--press-scale)); }
+
+.btn--primary { background: var(--accent-fill); color: var(--accent-on); }
+
+@media (hover: hover) and (pointer: fine) {
+  .btn--primary:hover { background: var(--accent-fill-hover); }
+}
+
+/* A disabled primary action steps down onto a real surface instead of fading
+   into the page. `opacity: 0.45` over white-on-purple put the label at roughly
+   2:1, and the very first control this product shows is a disabled one
+   ("先选一份教材"), so the dimmed state is the one most people read first. The
+   label keeps a readable colour and the state is carried by surface and border,
+   the same way `.entry[disabled]` carries its own in home.css. */
+.btn--primary:disabled {
+  background: var(--elevated);
+  border-color: var(--border);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.btn--ghost { background: transparent; color: var(--fg); border-color: var(--border); }
+
+@media (hover: hover) and (pointer: fine) {
+  .btn--ghost:hover { background: var(--elevated); border-color: var(--muted); }
+}
+
+/* Reachable on the canvas: submitting locks 撤销 / 清空 / 存草稿 through
+   `paintLock()` in rebuild.js, and these three had no disabled styling at all —
+   a locked map left three buttons that still looked pressable. */
+.btn--ghost:disabled {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.btn .od-icon { --od-icon-size: 15px; }
+
+.closing__note {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  line-height: 1.55;
+  max-width: 52ch;
+}
+
+/* ── History list, motion only ───────────────────────────────────────
+   `.rec`'s resting look is its own view's business and lives in subpage.css.
+   Only movement is layered here, scoped by the view id so it cannot reach any
+   other use of the class, and it restates the two colour transitions because
+   the press state needs `transform` in the same list. */
+#view-history .rec {
+  transition: background-color var(--motion-fast) var(--ease),
+              border-color var(--motion-fast) var(--ease),
+              transform var(--motion-fast) var(--ease);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  #view-history .rec {
+    animation: report-rec-in var(--motion-fast) var(--ease) backwards;
+    animation-delay: min(calc(var(--stagger-step) * (var(--i, 0) + 1)), var(--stagger-max));
+  }
+}
+
+@keyframes report-rec-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
+
+#view-history .rec:active { transform: scale(var(--press-scale)); }
+
+/* subpage.css owns `.rec:hover`, so a coarse pointer has to be told to forget
+   it here: a tapped row must not stay lit after the finger is gone. The current
+   record keeps its own edge while hovered. */
+@media (hover: none), (pointer: coarse) {
+  #view-history .rec:hover { background: var(--surface); border-color: var(--border); }
+  #view-history .rec--current:hover { border-color: var(--accent-subtle); }
+}
+
+/* ── One polite line for the whole page ──────────────────────────────
+   The score, the four counters, the row count and the empty state all change
+   silently otherwise. Kept visually hidden: it is a status channel, not copy,
+   so it adds nothing to the page it reports on. */
+.report__live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The press scale is motion, so it goes with the entrances above. Colour
+   feedback (hover, aria-pressed, disabled) is not motion and stays. */
+@media (prefers-reduced-motion: reduce) {
+  .report .btn:active,
+  .report .chip:active,
+  .report .row:active,
+  #view-history .rec:active { transform: none; }
+}
