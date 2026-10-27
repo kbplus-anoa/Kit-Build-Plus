@@ -453,9 +453,14 @@
   color: var(--muted);
 }
 
-.legend__item { display: inline-flex; align-items: center; gap: 6px; }
-/* the stroke hint is content, not decoration — it has to stay readable */
-.legend__item .mono { color: var(--muted); }
+.legend__item { display: inline-flex; align-items: baseline; gap: 6px; }
+/* 图例说明读作标签的下标：灰一档、小一档，落在标签基线之下。 */
+.legend__item .legend__desc {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1;
+  transform: translateY(1px);
+}
 
 .diff__canvas-wrap {
   position: relative;

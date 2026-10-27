@@ -18,7 +18,7 @@ export function Legend(props: { filter: DiffFilter }) {
         <span key={kind} className={"legend__item legend__item--" + kind}>
           <Mark kind={kind} size={16} />
           <span>{LABEL[kind]}</span>
-          <span className="mono">{LEGEND_DESC[kind]}</span>
+          <span className="mono legend__desc">{LEGEND_DESC[kind]}</span>
         </span>
       ))}
     </div>
