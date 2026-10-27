@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 OPENAI_COMPATIBLE = "openai_compatible"
@@ -11,6 +12,12 @@ MAX_TIMEOUT_S = 300
 KEY_ENV_NAME = "KBP_API_KEY"
 
 KEY_ENV = {OPENAI_COMPATIBLE: KEY_ENV_NAME}
+
+ENV_MODEL = "KBP_EXTRACT_MODEL"
+ENV_BASE_URL = "KBP_EXTRACT_BASE_URL"
+ENV_TIMEOUT_S = "KBP_EXTRACT_TIMEOUT_S"
+ENV_MAX_CHARS = "KBP_EXTRACT_MAX_CHARS"
+ENV_ENABLED = "KBP_EXTRACT_ENABLED"
 
 PROVIDER_LABELS = {OPENAI_COMPATIBLE: "自定义 / OpenAI 兼容"}
 
@@ -74,3 +81,45 @@ def default_config() -> ExtractConfig:
     return ExtractConfig(provider=DEFAULT_PROVIDER, model=DEFAULT_MODEL,
                          base_url=DEFAULT_BASE, timeout_s=60,
                          max_chars=12000, enabled=True)
+
+
+def from_env(values: Mapping[str, str] | None = None) -> ExtractConfig:
+    """纯函数契约：把 .env 里的值读成配置；缺失或非法的项退回默认。
+
+    键：KBP_EXTRACT_MODEL / KBP_EXTRACT_BASE_URL / KBP_EXTRACT_TIMEOUT_S /
+    KBP_EXTRACT_MAX_CHARS / KBP_EXTRACT_ENABLED。密钥不在这里，只认环境变量。
+    """
+    import os
+    src = os.environ if values is None else values
+    base = default_config()
+
+    def text(name: str, fallback: str) -> str:
+        return str(src.get(name, "")).strip() or fallback
+
+    return ExtractConfig(
+        provider=DEFAULT_PROVIDER,
+        model=text(ENV_MODEL, base.model),
+        base_url=text(ENV_BASE_URL, base.base_url).rstrip("/"),
+        timeout_s=_int(src.get(ENV_TIMEOUT_S), base.timeout_s, 1,
+                       MAX_TIMEOUT_S),
+        max_chars=_int(src.get(ENV_MAX_CHARS), base.max_chars, 1, 1000000),
+        enabled=_truthy(src.get(ENV_ENABLED), base.enabled))
+
+
+def _int(raw, fallback: int, low: int, high: int) -> int:
+    """取整数并夹在范围内；空值或非数字退回 fallback。"""
+    try:
+        value = int(str(raw).strip())
+    except (TypeError, ValueError):
+        return fallback
+    return min(max(value, low), high)
+
+
+def _truthy(raw, fallback: bool) -> bool:
+    """只有认识的真/假字样才改变取值；空值与看不懂的字样退回 fallback。"""
+    text = str(raw or "").strip().lower()
+    if text in ("1", "true", "yes", "on"):
+        return True
+    if text in ("0", "false", "no", "off"):
+        return False
+    return fallback

@@ -40,10 +40,11 @@ def to_config(row) -> kbp.contracts.extractconfig.ExtractConfig:
 
 
 def load_config(conn) -> kbp.contracts.extractconfig.ExtractConfig:
-    """读配置；没保存过时返回空配置（地址与模型留给用户填）。"""
+    """读配置：库里保存过就用库（界面覆盖），否则读 .env 的 KBP_EXTRACT_*。"""
     row = load(conn)
     if row is None:
-        return kbp.contracts.extractconfig.default_config()
+        import os
+        return kbp.contracts.extractconfig.from_env(os.environ)
     return to_config(row)
 
 

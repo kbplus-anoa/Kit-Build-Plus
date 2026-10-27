@@ -33,6 +33,21 @@ def test_未保存时返回空配置(client):
     assert body["base_url"] == ""
 
 
+def test_未保存时读_env里的模型(client, monkeypatch):
+    """模型与地址写在 .env 里，界面不用先填也能抽出目标图。"""
+    monkeypatch.setenv(extractconfig.ENV_MODEL, "env-model")
+    monkeypatch.setenv(extractconfig.ENV_BASE_URL, "http://127.0.0.1:8799/")
+    body = client.get("/api/config").json()
+    assert body["model"] == "env-model"
+    assert body["base_url"] == "http://127.0.0.1:8799"
+
+
+def test_库里的设置盖过_env(client, monkeypatch):
+    monkeypatch.setenv(extractconfig.ENV_MODEL, "env-model")
+    client.put("/api/config", json=BODY)
+    assert client.get("/api/config").json()["model"] == "some-model"
+
+
 def test_未保存时的空配置带中文原因(client):
     body = client.get("/api/config").json()
     assert "模型" in body["error"]

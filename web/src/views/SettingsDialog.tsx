@@ -145,6 +145,8 @@ export function SettingsDialog(props: Props) {
         {keyLine}
         <br />
         密钥不写进库，也不经过浏览器；换密钥只需重启后端。
+        <br />
+        这些值也可以写在仓库根 .env（KBP_EXTRACT_*），这里保存的优先。
       </p>
 
       {config?.error ? <p className="settings__error">{config.error}</p> : null}

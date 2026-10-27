@@ -76,6 +76,31 @@ def test_默认配置不预设服务商():
     assert cfg.base_url == "" and cfg.model == ""
 
 
+def test_从环境变量读配置():
+    cfg = extractconfig.from_env({
+        extractconfig.ENV_MODEL: " some-model ",
+        extractconfig.ENV_BASE_URL: "https://api.test/",
+        extractconfig.ENV_TIMEOUT_S: "30",
+        extractconfig.ENV_MAX_CHARS: "800",
+        extractconfig.ENV_ENABLED: "0",
+    })
+    assert cfg.model == "some-model"
+    assert cfg.base_url == "https://api.test"
+    assert cfg.timeout_s == 30 and cfg.max_chars == 800
+    assert cfg.enabled is False
+    assert extractconfig.config_error(cfg) == ""
+
+
+def test_环境变量非法时退回默认():
+    cfg = extractconfig.from_env({
+        extractconfig.ENV_TIMEOUT_S: "abc",
+        extractconfig.ENV_MAX_CHARS: "-5",
+        extractconfig.ENV_ENABLED: "???",
+    })
+    assert cfg.timeout_s == 60 and cfg.max_chars == 1
+    assert cfg.enabled is True
+
+
 def test_历史供应商值归一():
     assert extractconfig.canonical_provider("deepseek") == \
         extractconfig.OPENAI_COMPATIBLE

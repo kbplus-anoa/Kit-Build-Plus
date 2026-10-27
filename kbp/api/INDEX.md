@@ -10,9 +10,10 @@
 | `main.py` | FastAPI 实例、路由挂载、`/` 与 `/api/health` |
 | `deps.py` | 进程级数据库连接与写锁（两把锁分开，见下） |
 | `bootstrap.py` | 建表装配：各 feature 的 `ensure` + 抽取配置表、阈值表、抽取留档表、导出快照表、教材登记表、量表作答表；库默认落在仓库根 `tmp/kb.sqlite3` |
+| `envfile.py` | 启动时把仓库根 `.env` 补进环境变量（已存在的变量优先；`KBP_ENV_FILE` 可指到别处） |
 | `schemas.py` | 通用请求/响应模型，只做格式约束，不含业务规则 |
 | `schemas_tam.py` | TAM 量表的请求/响应模型，独立成文件以避开 200 行上限 |
-| `config_store.py` | 抽取配置表（一行一条）的读写 |
+| `config_store.py` | 抽取配置表（一行一条）的读写；库里没保存过时按 `.env` 的 `KBP_EXTRACT_*` 出默认值 |
 | `routes_config.py` | `GET/PUT /api/config`：读写配置；**只回显密钥是否已配置** |
 | `routes_text.py` | `/api/upload`（multipart 落盘→解析→登记教材，回正文）、`GET /api/materials`、`GET /api/materials/{id}/text`（按落盘文件重读旧教材正文，命中解析缓存）、`/api/ingest`、`/api/extract`、`/api/kit/auto`（先查题库，命中不重抽；`retry` 跳过复用要求重抽）；丢弃与整次抽取都落留档 |
 | `routes_flow.py` | `/api/adjudicate`（开发期）、`/api/kit`、`/api/lock`、`/api/draft`、`/api/submit`（回提交序号、内容指纹、FMS、四类错误明细与目标命题，并落被试级快照） |
@@ -40,6 +41,10 @@
 - `/api/config` 的响应只含 `has_key: bool` 与 `key_env: str`，
   **不返回密钥本身、不返回前后缀**
 - 日志与异常信息里不出现密钥
+- 模型与地址可写在仓库根 `.env`：`KBP_EXTRACT_MODEL`、`KBP_EXTRACT_BASE_URL`、
+  `KBP_EXTRACT_TIMEOUT_S`、`KBP_EXTRACT_MAX_CHARS`、`KBP_EXTRACT_ENABLED`；
+  设置页保存过的值优先于 `.env`
+- `.env` 只在服务启动时读一次，改完要重启后端
 
 ## 自动路与人工路的接口分工
 
