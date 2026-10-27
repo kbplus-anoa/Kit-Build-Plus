@@ -9,6 +9,7 @@ DEFAULT_PROVIDER = OPENAI_COMPATIBLE
 DEFAULT_MODEL = ""
 DEFAULT_BASE = ""
 MAX_TIMEOUT_S = 300
+DEFAULT_TIMEOUT_S = 120
 KEY_ENV_NAME = "KBP_API_KEY"
 
 KEY_ENV = {OPENAI_COMPATIBLE: KEY_ENV_NAME}
@@ -18,6 +19,10 @@ ENV_BASE_URL = "KBP_EXTRACT_BASE_URL"
 ENV_TIMEOUT_S = "KBP_EXTRACT_TIMEOUT_S"
 ENV_MAX_CHARS = "KBP_EXTRACT_MAX_CHARS"
 ENV_ENABLED = "KBP_EXTRACT_ENABLED"
+ENV_REASONING = "KBP_EXTRACT_REASONING_EFFORT"
+
+EFFORTS = ("", "low", "medium", "high")
+EFFORT_LABELS = {"": "默认（不传）", "low": "低", "medium": "中", "high": "高"}
 
 PROVIDER_LABELS = {OPENAI_COMPATIBLE: "自定义 / OpenAI 兼容"}
 
@@ -37,6 +42,7 @@ class ExtractConfig:
     timeout_s: int  # 单次请求超时；单位：秒；不可空，1~MAX_TIMEOUT_S
     max_chars: int  # 单次送入正文的最大字数；不可空，>0
     enabled: bool  # 是否启用；为 False 时不发起任何网络请求
+    reasoning_effort: str = ""  # 思考强度，取值见 EFFORTS；空串表示不传，用模型默认
 
 
 def config_error(config: ExtractConfig) -> str:
@@ -56,6 +62,8 @@ def config_error(config: ExtractConfig) -> str:
         return "超时须在 1~" + str(MAX_TIMEOUT_S) + " 秒之间"
     if config.max_chars <= 0:
         return "单次送入字数须为正"
+    if config.reasoning_effort not in EFFORTS:
+        return "思考强度只能是 low/medium/high，留空用模型默认"
     return ""
 
 
@@ -79,7 +87,7 @@ def canonical_provider(value: str) -> str:
 def default_config() -> ExtractConfig:
     """纯函数契约：空配置。地址与模型留给用户填，不预设任何服务商。"""
     return ExtractConfig(provider=DEFAULT_PROVIDER, model=DEFAULT_MODEL,
-                         base_url=DEFAULT_BASE, timeout_s=60,
+                         base_url=DEFAULT_BASE, timeout_s=DEFAULT_TIMEOUT_S,
                          max_chars=12000, enabled=True)
 
 
@@ -103,7 +111,14 @@ def from_env(values: Mapping[str, str] | None = None) -> ExtractConfig:
         timeout_s=_int(src.get(ENV_TIMEOUT_S), base.timeout_s, 1,
                        MAX_TIMEOUT_S),
         max_chars=_int(src.get(ENV_MAX_CHARS), base.max_chars, 1, 1000000),
-        enabled=_truthy(src.get(ENV_ENABLED), base.enabled))
+        enabled=_truthy(src.get(ENV_ENABLED), base.enabled),
+        reasoning_effort=_effort(src.get(ENV_REASONING)))
+
+
+def _effort(raw) -> str:
+    """思考强度：只认 EFFORTS 里的值，其余一律视为不传。"""
+    text = str(raw or "").strip().lower()
+    return text if text in EFFORTS else ""
 
 
 def _int(raw, fallback: int, low: int, high: int) -> int:

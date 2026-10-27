@@ -13,15 +13,22 @@ CREATE TABLE IF NOT EXISTS extract_config (
     base_url TEXT NOT NULL,
     timeout_s INTEGER NOT NULL,
     max_chars INTEGER NOT NULL,
-    enabled INTEGER NOT NULL
+    enabled INTEGER NOT NULL,
+    reasoning_effort TEXT NOT NULL DEFAULT ''
 );
 """
 
-FIELDS = ("provider", "model", "base_url", "timeout_s", "max_chars", "enabled")
+FIELDS = ("provider", "model", "base_url", "timeout_s", "max_chars", "enabled",
+          "reasoning_effort")
 
 
 def ensure(conn) -> None:
     conn.executescript(SCHEMA)
+    have = {row[1] for row in conn.execute("PRAGMA table_info(extract_config)")}
+    if "reasoning_effort" not in have:
+        conn.execute("ALTER TABLE extract_config ADD COLUMN"
+                     " reasoning_effort TEXT NOT NULL DEFAULT ''")
+    conn.commit()
 
 
 def load(conn):
@@ -36,7 +43,7 @@ def to_config(row) -> kbp.contracts.extractconfig.ExtractConfig:
     return kbp.contracts.extractconfig.ExtractConfig(
         provider=kbp.contracts.extractconfig.canonical_provider(row[0]),
         model=row[1], base_url=row[2], timeout_s=row[3], max_chars=row[4],
-        enabled=bool(row[5]))
+        enabled=bool(row[5]), reasoning_effort=row[6] or "")
 
 
 def load_config(conn) -> kbp.contracts.extractconfig.ExtractConfig:
@@ -53,6 +60,6 @@ def load_config(conn) -> kbp.contracts.extractconfig.ExtractConfig:
 
 def save(conn, fields: tuple) -> None:
     conn.execute("INSERT OR REPLACE INTO extract_config (id, "
-                 + ", ".join(FIELDS) + ") VALUES (1, ?, ?, ?, ?, ?, ?)",
+                 + ", ".join(FIELDS) + ") VALUES (1, ?, ?, ?, ?, ?, ?, ?)",
                  tuple(fields))
     conn.commit()

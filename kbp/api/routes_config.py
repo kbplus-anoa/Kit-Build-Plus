@@ -35,7 +35,7 @@ def _load() -> kbp.contracts.extractconfig.ExtractConfig:
 
 def _fields(cfg: kbp.contracts.extractconfig.ExtractConfig) -> tuple:
     return (cfg.provider, cfg.model, cfg.base_url, cfg.timeout_s,
-            cfg.max_chars, int(cfg.enabled))
+            cfg.max_chars, int(cfg.enabled), cfg.reasoning_effort)
 
 
 def _to_out(cfg: kbp.contracts.extractconfig.ExtractConfig
@@ -43,6 +43,7 @@ def _to_out(cfg: kbp.contracts.extractconfig.ExtractConfig
     return kbp.api.schemas.ConfigOut(
         provider=cfg.provider, model=cfg.model, base_url=cfg.base_url,
         timeout_s=cfg.timeout_s, max_chars=cfg.max_chars, enabled=cfg.enabled,
+        reasoning_effort=cfg.reasoning_effort,
         has_key=kbp.extract.chat_client.has_key(cfg),
         key_env=kbp.contracts.extractconfig.key_env(cfg.provider),
         error=kbp.contracts.extractconfig.config_error(cfg))

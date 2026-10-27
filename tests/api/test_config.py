@@ -118,10 +118,22 @@ def test_历史供应商值读回时归一(client):
     """库里可能留着旧值，读出来要与当前枚举对得上。"""
     conn = deps.get_conn()
     conn.execute("INSERT OR REPLACE INTO extract_config VALUES (1, 'deepseek',"
-                 " 'some-model', 'http://127.0.0.1:8788', 60, 12000, 1)")
+                 " 'some-model', 'http://127.0.0.1:8788', 60, 12000, 1, '')")
     conn.commit()
     assert client.get("/api/config").json()["provider"] == \
         extractconfig.OPENAI_COMPATIBLE
+
+
+def test_思考强度保存后读回(client):
+    body = dict(BODY, reasoning_effort="high")
+    assert client.put("/api/config", json=body).status_code == 200
+    assert client.get("/api/config").json()["reasoning_effort"] == "high"
+
+
+def test_非法思考强度被拒(client):
+    resp = client.put("/api/config", json=dict(BODY, reasoning_effort="ultra"))
+    assert resp.status_code == 400
+    assert "思考强度" in resp.json()["detail"]
 
 
 def test_换服务商只改地址与模型(client):

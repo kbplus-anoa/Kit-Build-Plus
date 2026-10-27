@@ -54,6 +54,8 @@ def chat(config: kbp.contracts.extractconfig.ExtractConfig,
         "temperature": 0,
         "stream": False,
     }
+    if config.reasoning_effort:
+        payload["reasoning_effort"] = config.reasoning_effort
     last = ""
     for attempt in range(MAX_RETRY + 1):
         try:
@@ -81,6 +83,10 @@ def _post(config, payload, transport) -> dict:
     try:
         with httpx.Client(timeout=config.timeout_s, transport=transport) as client:
             resp = client.post(endpoint(config), json=payload, headers=headers)
+    except httpx.TimeoutException as exc:
+        raise ApiError("网络错误：" + type(exc).__name__ + "，等了 "
+                       + str(config.timeout_s) + " 秒没有回应；"
+                       "可在设置里调大超时，或调小单次送入字数") from None
     except httpx.HTTPError as exc:
         raise ApiError("网络错误：" + type(exc).__name__) from None
     if resp.status_code != 200:

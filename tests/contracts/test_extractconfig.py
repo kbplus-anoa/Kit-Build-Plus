@@ -97,8 +97,26 @@ def test_环境变量非法时退回默认():
         extractconfig.ENV_MAX_CHARS: "-5",
         extractconfig.ENV_ENABLED: "???",
     })
-    assert cfg.timeout_s == 60 and cfg.max_chars == 1
+    assert cfg.timeout_s == 120 and cfg.max_chars == 1
     assert cfg.enabled is True
+
+
+def test_思考强度只认枚举值():
+    assert "思考强度" in extractconfig.config_error(
+        make(reasoning_effort="ultra"))
+
+
+def test_从环境变量读思考强度():
+    cfg = extractconfig.from_env({
+        extractconfig.ENV_REASONING: " HIGH ",
+    })
+    assert cfg.reasoning_effort == "high"
+    assert extractconfig.from_env({
+        extractconfig.ENV_REASONING: "turbo"}).reasoning_effort == ""
+
+
+def test_默认超时够大够慢的模型():
+    assert extractconfig.default_config().timeout_s == 120
 
 
 def test_历史供应商值归一():

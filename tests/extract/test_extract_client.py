@@ -20,6 +20,31 @@ def _ok(content):
     return {"choices": [{"message": {"content": json.dumps(content)}}]}
 
 
+def test_思考强度随请求发出(monkeypatch):
+    monkeypatch.setenv(extractconfig.KEY_ENV_NAME, "sk-dev")
+    seen = {}
+
+    def handler(request):
+        seen.update(json.loads(request.content))
+        return httpx.Response(200, json=_ok({"propositions": []}))
+
+    chat_client.chat(make_config(reasoning_effort="high"), [],
+                     transport=httpx.MockTransport(handler))
+    assert seen["reasoning_effort"] == "high"
+
+
+def test_留空时不发思考强度(monkeypatch):
+    monkeypatch.setenv(extractconfig.KEY_ENV_NAME, "sk-dev")
+    seen = {}
+
+    def handler(request):
+        seen.update(json.loads(request.content))
+        return httpx.Response(200, json=_ok({"propositions": []}))
+
+    chat_client.chat(make_config(), [], transport=httpx.MockTransport(handler))
+    assert "reasoning_effort" not in seen
+
+
 def test_接口地址拼成_openai_兼容路径():
     cfg = make_config(base_url="http://127.0.0.1:8788/")
     assert chat_client.endpoint(cfg) == \

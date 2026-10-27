@@ -16,13 +16,14 @@ class ConfigIn(BaseModel):
     timeout_s: int = Field(ge=1, le=300)
     max_chars: int = Field(ge=1, le=100000)
     enabled: bool = True
+    reasoning_effort: str = Field(default="", max_length=20)
 
     def to_config(self):
         import kbp.contracts.extractconfig
         return kbp.contracts.extractconfig.ExtractConfig(
             provider=self.provider, model=self.model, base_url=self.base_url,
             timeout_s=self.timeout_s, max_chars=self.max_chars,
-            enabled=self.enabled)
+            enabled=self.enabled, reasoning_effort=self.reasoning_effort)
 
 
 class ConfigOut(BaseModel):
@@ -34,6 +35,7 @@ class ConfigOut(BaseModel):
     timeout_s: int
     max_chars: int
     enabled: bool
+    reasoning_effort: str
     has_key: bool
     key_env: str
     error: str

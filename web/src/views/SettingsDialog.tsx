@@ -11,9 +11,16 @@ interface Props {
 
 const FALLBACK = {
   provider: "openai_compatible",
-  timeout_s: 60,
+  timeout_s: 120,
   max_chars: 12000,
 };
+
+const EFFORTS = [
+  { value: "", label: "默认（不传）" },
+  { value: "low", label: "低" },
+  { value: "medium", label: "中" },
+  { value: "high", label: "高" },
+];
 
 function reason(error: unknown): string {
   return error instanceof Error ? error.message : "请求失败";
@@ -25,6 +32,7 @@ export function SettingsDialog(props: Props) {
   const [model, setModel] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
   const [maxChars, setMaxChars] = useState(String(FALLBACK.max_chars));
+  const [effort, setEffort] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -49,6 +57,7 @@ export function SettingsDialog(props: Props) {
         setModel(loaded.model);
         setBaseUrl(loaded.base_url);
         setMaxChars(String(loaded.max_chars));
+        setEffort(loaded.reasoning_effort);
       })
       .catch((failure: unknown) => {
         if (live) setError(reason(failure));
@@ -82,6 +91,7 @@ export function SettingsDialog(props: Props) {
         timeout_s: config?.timeout_s ?? FALLBACK.timeout_s,
         max_chars: chars,
         enabled: true,
+        reasoning_effort: effort,
       });
       setConfig(next);
       setSaved(true);
@@ -141,12 +151,29 @@ export function SettingsDialog(props: Props) {
         <span className="settings__hint">正文超出时按段切开分别送，默认 12000。</span>
       </label>
 
+      <label className="settings__field">
+        <span className="settings__label">思考强度</span>
+        <select
+          className="settings__input"
+          value={effort}
+          onChange={(event) => setEffort(event.target.value)}
+        >
+          {EFFORTS.map((item) => (
+            <option key={item.value} value={item.value}>{item.label}</option>
+          ))}
+        </select>
+        <span className="settings__hint">
+          越强越慢也越贵；取「默认」时不给接口传这个参数。
+        </span>
+      </label>
+
       <p className="settings__note">
         {keyLine}
         <br />
         密钥不写进库，也不经过浏览器；换密钥只需重启后端。
         <br />
-        这些值也可以写在仓库根 .env（KBP_EXTRACT_*），这里保存的优先。
+        这些值也可以写在仓库根 .env（KBP_EXTRACT_*），这里保存的优先；
+        密钥与思考强度也可用 KBP_EXTRACT_REASONING_EFFORT 给默认值。
       </p>
 
       {config?.error ? <p className="settings__error">{config.error}</p> : null}

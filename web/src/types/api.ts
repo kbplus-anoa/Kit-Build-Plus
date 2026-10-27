@@ -42,6 +42,7 @@ export interface ConfigIn {
   timeout_s: number;
   max_chars: number;
   enabled: boolean;
+  reasoning_effort: string;
 }
 
 export interface ConfigOut extends ConfigIn {
