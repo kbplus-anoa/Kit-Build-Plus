@@ -67,6 +67,15 @@ def by_fingerprint(conn: sqlite3.Connection, material_id: int, fingerprint: str)
     return _entry(cur.fetchone())
 
 
+def by_version(conn: sqlite3.Connection, material_id: int, map_version: str):
+    """按教材与版本号取冻结图；没有返回 None。"""
+    if not map_version:
+        return None
+    cur = conn.execute("SELECT * FROM target_map WHERE material_id = ?"
+                       " AND map_version = ?", (material_id, map_version))
+    return _entry(cur.fetchone())
+
+
 def latest(conn: sqlite3.Connection, material_id: int, vocab_version: str):
     """该教材该词表版本下最新入库的一张图。"""
     cur = conn.execute(

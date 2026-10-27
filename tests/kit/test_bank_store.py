@@ -46,6 +46,15 @@ def test_登记后可按指纹查到同一张图():
     assert found.batch_id == "b1"
 
 
+def test_按教材与版本号取回冻结图():
+    db = conn()
+    bank_store.register(db, entry())
+    assert bank_store.by_version(db, 1, "v1").target_map.fingerprint == "fp-v1"
+    assert bank_store.by_version(db, 1, "v9") is None
+    assert bank_store.by_version(db, 2, "v1") is None
+    assert bank_store.by_version(db, 1, "") is None
+
+
 def test_同一教材版本号不可重复():
     db = conn()
     bank_store.register(db, entry())
