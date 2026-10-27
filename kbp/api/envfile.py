@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_NAME = ".env"
+_FROM_FILE: set = set()
 
 
 def path() -> Path:
@@ -33,18 +34,38 @@ def parse(text: str) -> dict:
 
 def apply(target=None) -> dict:
     """把 .env 补进环境变量，返回真正补进去的键；文件不在就什么都不做。"""
-    try:
-        text = path().read_text(encoding="utf-8-sig")
-    except OSError:
-        return {}
     env = os.environ if target is None else target
     applied = {}
-    for key, value in parse(text).items():
+    for key, value in _read().items():
         if key in env:
             continue
         env[key] = value
         applied[key] = value
+    if target is None:
+        _FROM_FILE.update(applied)
     return applied
+
+
+def reload() -> dict:
+    """重读 .env 但不重启进程：只改上次由文件写入的键，shell 里设的键仍优先。"""
+    updated = {}
+    for key, value in _read().items():
+        current = os.environ.get(key, "")
+        if key not in _FROM_FILE and current:
+            continue
+        _FROM_FILE.add(key)
+        if current == value:
+            continue
+        os.environ[key] = value
+        updated[key] = value
+    return updated
+
+
+def _read() -> dict:
+    try:
+        return parse(path().read_text(encoding="utf-8-sig"))
+    except OSError:
+        return {}
 
 
 def _unquote(value: str) -> str:

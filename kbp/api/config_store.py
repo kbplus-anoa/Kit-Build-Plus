@@ -44,6 +44,9 @@ def load_config(conn) -> kbp.contracts.extractconfig.ExtractConfig:
     row = load(conn)
     if row is None:
         import os
+
+        import kbp.api.envfile
+        kbp.api.envfile.reload()
         return kbp.contracts.extractconfig.from_env(os.environ)
     return to_config(row)
 

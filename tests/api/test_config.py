@@ -16,6 +16,19 @@ BODY = {"provider": extractconfig.OPENAI_COMPATIBLE, "model": "some-model",
         "max_chars": 12000, "enabled": True}
 
 
+ENV_KEYS = (extractconfig.ENV_MODEL, extractconfig.ENV_BASE_URL,
+            extractconfig.ENV_TIMEOUT_S, extractconfig.ENV_MAX_CHARS,
+            extractconfig.ENV_ENABLED, KEY)
+
+
+@pytest.fixture
+def clean_env(monkeypatch, tmp_path):
+    """挡掉开发机上真实的 .env 与 shell 变量，空配置用例才稳定。"""
+    monkeypatch.setenv("KBP_ENV_FILE", str(tmp_path / "none.env"))
+    for key in ENV_KEYS:
+        monkeypatch.delenv(key, raising=False)
+
+
 @pytest.fixture
 def client():
     import sqlite3
@@ -27,13 +40,13 @@ def client():
     conn.close()
 
 
-def test_未保存时返回空配置(client):
+def test_未保存时返回空配置(client, clean_env):
     body = client.get("/api/config").json()
     assert body["provider"] == extractconfig.OPENAI_COMPATIBLE
     assert body["base_url"] == ""
 
 
-def test_未保存时读_env里的模型(client, monkeypatch):
+def test_未保存时读_env里的模型(client, monkeypatch, clean_env):
     """模型与地址写在 .env 里，界面不用先填也能抽出目标图。"""
     monkeypatch.setenv(extractconfig.ENV_MODEL, "env-model")
     monkeypatch.setenv(extractconfig.ENV_BASE_URL, "http://127.0.0.1:8799/")
@@ -48,7 +61,7 @@ def test_库里的设置盖过_env(client, monkeypatch):
     assert client.get("/api/config").json()["model"] == "some-model"
 
 
-def test_未保存时的空配置带中文原因(client):
+def test_未保存时的空配置带中文原因(client, clean_env):
     body = client.get("/api/config").json()
     assert "模型" in body["error"]
 
@@ -74,7 +87,7 @@ def test_响应不含密钥本身(client, monkeypatch):
     assert "sk-very-secret" not in client.get("/api/config").text
 
 
-def test_未配置密钥时报告未配置(client, monkeypatch):
+def test_未配置密钥时报告未配置(client, monkeypatch, clean_env):
     monkeypatch.delenv(KEY, raising=False)
     assert client.get("/api/config").json()["has_key"] is False
 

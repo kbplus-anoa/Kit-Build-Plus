@@ -36,3 +36,23 @@ def test_已有的环境变量优先(tmp_path, monkeypatch):
 def test_文件不存在时什么都不做(tmp_path, monkeypatch):
     monkeypatch.setenv("KBP_ENV_FILE", str(tmp_path / "missing.env"))
     assert envfile.apply() == {}
+
+
+def test_改了文件重读就生效(tmp_path, monkeypatch):
+    file = tmp_path / "x.env"
+    file.write_text("KBP_ENVFIELD_RELOAD=旧\n", encoding="utf-8")
+    monkeypatch.setenv("KBP_ENV_FILE", str(file))
+    monkeypatch.delenv("KBP_ENVFIELD_RELOAD", raising=False)
+    envfile.apply()
+    file.write_text("KBP_ENVFIELD_RELOAD=新\n", encoding="utf-8")
+    assert envfile.reload() == {"KBP_ENVFIELD_RELOAD": "新"}
+    assert os.environ["KBP_ENVFIELD_RELOAD"] == "新"
+
+
+def test_重读不动shell里设的变量(tmp_path, monkeypatch):
+    file = tmp_path / "x.env"
+    file.write_text("KBP_ENVFIELD_SHELL=file\n", encoding="utf-8")
+    monkeypatch.setenv("KBP_ENV_FILE", str(file))
+    monkeypatch.setenv("KBP_ENVFIELD_SHELL", "shell")
+    envfile.reload()
+    assert os.environ["KBP_ENVFIELD_SHELL"] == "shell"
