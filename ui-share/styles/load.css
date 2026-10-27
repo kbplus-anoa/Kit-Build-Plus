@@ -124,3 +124,62 @@
   .load__stage { width: min(76vmin, 340px); }
   .load__inner { gap: var(--space-5); }
 }
+
+/* 上传后真实进度：三步阶段加不确定进度条。原型的百分比是假进度，
+   长文档会一直停在接近满格，看起来像卡住。 */
+.load__bar { position: relative; }
+.load__bar.is-sweep .load__bar-fill {
+  width: 38%;
+  transform: none;
+  transition: none;
+  animation: load-sweep 1.5s var(--ease) infinite;
+}
+.load__bar.is-done .load__bar-fill {
+  width: 100%;
+  transform: none;
+  transition: width var(--motion-base) var(--ease);
+}
+@keyframes load-sweep {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(300%); }
+}
+
+.load__steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3) var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.load__step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+.load__step--on { color: var(--fg); }
+.load__step__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--border-strong);
+}
+.load__step--on .load__step__dot { background: var(--node-red); }
+.load__step--done .load__step__dot { background: var(--fg); }
+
+.load__foot {
+  min-height: 1.4em;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .load__bar.is-sweep .load__bar-fill {
+    width: 100%;
+    animation: none;
+  }
+}

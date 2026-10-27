@@ -1,4 +1,4 @@
-/** 上传后先给一段解析动画：进度封顶 90%，真解析完再走；取消就整段作废。 */
+/** 上传后先给一段解析动画：三步真实阶段加不确定进度条，真解析完再走；取消就整段作废。 */
 import { useEffect, useRef, useState } from "react";
 
 import { api } from "../api/client";
@@ -16,9 +16,8 @@ interface Props {
 }
 
 const LINES = ["AI 正在分解知识", "AI 正在试着连接", "AI 正在抠字眼", "AI 正在试着理解", "AI 去喝了口水", "AI 回到了书桌前"];
-const CAP = 90;
-const STEP_MS = 260;
-const MIN_MS = 1200;
+const STEPS = ["读文档", "抽概念", "排画布"];
+const SLOW_MS = 10000;
 
 function cssMs(name: string, fallback: number): number {
   const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -28,12 +27,21 @@ function cssMs(name: string, fallback: number): number {
 }
 
 function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : "解析失败了，请稍后再试。";
+  return error instanceof Error ? error.message : "解析失败了，请稍后再试";
+}
+
+function slowHint(step: number, elapsed: number): string {
+  if (step > 1) return "正在把概念摆到画布上，马上就好。";
+  if (elapsed * 1000 < SLOW_MS) return "";
+  if (step === 0) return `已经用了 ${elapsed} 秒，正在读这份文件；大 PDF 会慢一些。`;
+  return `已经用了 ${elapsed} 秒，正在逐段抽概念；长文档要等一会儿，可以先去做别的，页面会继续。`;
 }
 
 export function LoadView(props: Props) {
   const { frame, file } = props;
-  const [progress, setProgress] = useState(0);
+  const [step, setStep] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+  const [finished, setFinished] = useState(false);
   const [line, setLine] = useState(0);
   const [swap, setSwap] = useState(false);
   const [failure, setFailure] = useState("");
@@ -48,7 +56,9 @@ export function LoadView(props: Props) {
     const target = file;
     busy.current = target;
     let cancelled = false;
-    setProgress(0);
+    setStep(0);
+    setElapsed(0);
+    setFinished(false);
     setLine(0);
     setSwap(false);
     setFailure("");
@@ -66,14 +76,16 @@ export function LoadView(props: Props) {
       });
     });
 
-    const step = window.setInterval(() => {
-      setProgress((value) => Math.min(CAP, value + Math.max(1, (CAP - value) * 0.06)));
-    }, STEP_MS);
+    const tick = window.setInterval(() => {
+      setElapsed(Math.floor((Date.now() - started) / 1000));
+    }, 1000);
 
     async function run() {
       try {
         const uploaded = await api.upload(target);
         material.current = uploaded.material_id;
+        if (cancelled) return;
+        setStep(1);
         const auto = await api.kitAuto({
           material_id: uploaded.material_id,
           text: uploaded.text,
@@ -81,16 +93,14 @@ export function LoadView(props: Props) {
         });
         if (cancelled) return;
         completed.current = true;
-        const wait = Math.max(0, MIN_MS - (Date.now() - started));
-        window.setTimeout(() => {
-          if (cancelled) return;
-          setProgress(100);
-          window.setTimeout(() => {
-            if (!cancelled) {
-              done.current(kitFrom(auto, uploaded.material_id, uploaded.file_name));
-            }
-          }, cssMs("--motion-base", 220));
-        }, wait);
+        setStep(2);
+        await new Promise((resolve) => window.setTimeout(resolve, cssMs("--motion-base", 220)));
+        if (cancelled) return;
+        setFinished(true);
+        await new Promise((resolve) => window.setTimeout(resolve, 320));
+        if (!cancelled) {
+          done.current(kitFrom(auto, uploaded.material_id, uploaded.file_name));
+        }
       } catch (error) {
         busy.current = null;
         drop();
@@ -110,7 +120,7 @@ export function LoadView(props: Props) {
 
     return () => {
       cancelled = true;
-      window.clearInterval(step);
+      window.clearInterval(tick);
       window.KBPLoadGlobe?.onBeat(() => undefined);
       stopLoadGlobe();
       drop();
@@ -118,7 +128,7 @@ export function LoadView(props: Props) {
   }, [frame.hidden, file]);
 
   const style = frame.leaving ? { top: frame.leavingTop } : undefined;
-  const pct = Math.round(progress);
+  const hint = slowHint(step, elapsed);
 
   return (
     <div
@@ -145,17 +155,33 @@ export function LoadView(props: Props) {
           </p>
         </div>
 
-        <div
-          className="load__bar"
-          role="progressbar"
-          aria-label="解析进度"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={pct}
-          id="load-bar-wrap"
-        >
-          <span className="load__bar-fill" id="load-bar" style={{ transform: `scaleX(${progress / 100})` }} />
-        </div>
+        {failure ? null : (
+          <>
+            <div
+              className={"load__bar" + (finished ? " is-done" : " is-sweep")}
+              role="progressbar"
+              aria-label="解析进度：正在进行，完成后结束"
+              aria-busy={!finished}
+              id="load-bar-wrap"
+            >
+              <span className="load__bar-fill" id="load-bar" />
+            </div>
+
+            <ol className="load__steps">
+              {STEPS.map((label, index) => {
+                const state = finished || index < step ? "done" : index === step ? "on" : "wait";
+                return (
+                  <li key={label} className={"load__step load__step--" + state}>
+                    <span className="load__step__dot" aria-hidden="true" />
+                    {label}
+                  </li>
+                );
+              })}
+            </ol>
+
+            <p className="load__foot">{finished ? "画布准备好了，正在打开。" : hint || " "}</p>
+          </>
+        )}
 
         <button type="button" className="load__cancel" onClick={props.onHome}>
           {failure ? "返回" : "取消上传"}
