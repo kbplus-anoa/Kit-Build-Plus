@@ -14,6 +14,7 @@
 - [x] `bank_store`：`target_map` 表落库，版本号与指纹唯一
 - [x] 自动路先查题库，命中不重抽；未命中才登记新版本
 - [x] 落库前过 `lock.assert_mutable`
+- [x] 重抽另起一批，旧批不覆盖；列版本与切回旧批
 - [ ] 人工裁定路 freeze 后落库（`/api/kit/build` 还缺 material_id）
 - [ ] 自动路界面（暂不实现 GUI）
 

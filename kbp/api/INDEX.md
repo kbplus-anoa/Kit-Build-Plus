@@ -14,8 +14,9 @@
 | `schemas_tam.py` | TAM 量表的请求/响应模型，独立成文件以避开 200 行上限 |
 | `config_store.py` | 抽取配置表（一行一条）的读写 |
 | `routes_config.py` | `GET/PUT /api/config`：读写配置；**只回显密钥是否已配置** |
-| `routes_text.py` | `/api/ingest`、`/api/extract`、`/api/kit/auto`（先查题库，命中不重抽）；丢弃与整次抽取都落留档 |
+| `routes_text.py` | `/api/ingest`、`/api/extract`、`/api/kit/auto`（先查题库，命中不重抽；`retry` 跳过复用要求重抽）；丢弃与整次抽取都落留档 |
 | `routes_flow.py` | `/api/adjudicate`（开发期）、`/api/kit`、`/api/lock`、`/api/draft`、`/api/submit`（回提交序号、内容指纹、FMS，并落被试级快照） |
+| `routes_kit.py` | `GET /api/kit/versions`（列出各批）、`POST /api/kit/use`（切回某一批） |
 | `routes_data.py` | `/api/quiz`（落题级快照）、`GET /api/export/subject`、`GET /api/export/question`（三条件筛选，空即全选） |
 | `routes_tam.py` | `GET /api/tam/items`、`POST /api/tam/answers`（整卷落库）、`GET /api/tam/alpha`（读库算） |
 
@@ -46,6 +47,11 @@
 
 自动路每次抽一条留档（批次号 `auto-*`）：配置快照、候选、丢弃、逐段原始输出与段数；
 冻结成功后回填图版本与指纹，回填失败即 503。留档不进 CSV。
+
+批次重抽与切回：`POST /api/kit/auto` 带 `retry: true` 时跳过题库复用另抽，
+旧批不动；`GET /api/kit/versions?material_id=` 按入库先后列出各批（可再带
+`vocab_version` 筛），`POST /api/kit/use` 把某一批标为投用，版本不存在返 404。
+切回只标投用，学生用旧 `map_version` 继续草稿与提交，图不改不删。
 
 导出：筛选条件走查询参数（`participant_id`、`material_id`、`time_point`，可重复给），
 查不到记录返 404，行不合法返 400。组别 `condition` 在提交时必填（exp/con），

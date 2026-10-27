@@ -101,6 +101,18 @@ def versions(conn: sqlite3.Connection, material_id: int) -> tuple[str, ...]:
     return tuple(row[0] for row in cur.fetchall())
 
 
+def history(conn: sqlite3.Connection, material_id: int,
+            vocab_version: str = "") -> tuple:
+    """该教材已冻结的图，按入库先后；带词表版本时只取那一个词表版本。"""
+    sql = "SELECT * FROM target_map WHERE material_id = ?"
+    params = [material_id]
+    if vocab_version:
+        sql += " AND vocab_version = ?"
+        params.append(vocab_version)
+    cur = conn.execute(sql + " ORDER BY rowid", params)
+    return tuple(_entry(row) for row in cur.fetchall())
+
+
 def mark_in_use(conn: sqlite3.Connection, material_id: int,
                 map_version: str) -> None:
     """标记为已投用；此后该版本拒改，也不再被重抽覆盖。"""

@@ -155,6 +155,7 @@ class KitAutoIn(BaseModel):
     text: str = Field(min_length=1, max_length=MAX_TEXT)
     vocab: VocabIn
     map_version: str = Field(default="", max_length=50)  # 期望版本号；被占用则自动往后排
+    retry: bool = False  # 抽崩后要求重抽：跳过题库复用另抽一批，旧批不动
 
 
 class ReadyOut(BaseModel):

@@ -111,11 +111,17 @@ def _kit_out(kit, target, report=None, from_bank=False) -> KitAutoOut:
 
 @router.post("/kit/auto", response_model=KitAutoOut)
 def kit_auto(body: KitAutoIn) -> KitAutoOut:
-    """运行期自动裁 kit：先查题库，命中即复用；未命中才抽取并登记新版本。"""
+    """运行期自动裁 kit：先查题库，命中即复用；未命中或要求重抽才抽取。
+
+    retry 是学生看到抽崩提示后的重抽：不问题库另抽一批；内容指纹相同的
+    仍回旧图，内容不同则登记新版本，旧批原样留着，可随时切回。
+    """
     vocab = _to_vocab(body.vocab)
     conn = kbp.api.deps.get_conn()
-    entry = kbp.kit.kit_service.bank_find(conn, body.material_id,
-                                          vocab.vocab_version)
+    entry = None
+    if not body.retry:
+        entry = kbp.kit.kit_service.bank_find(conn, body.material_id,
+                                              vocab.vocab_version)
     if entry is not None:
         target, kit = kbp.kit.kit_service.bank_kit(entry)
         return _kit_out(kit, target, from_bank=True)

@@ -55,6 +55,20 @@ def bank_kit(entry):
     return entry.target_map, kbp.kit.split.split(entry.target_map)
 
 
+def history(conn, material_id: int, vocab_version: str = ""):
+    """该教材已冻结的各批，按入库先后；新抽的排在旧批之后，旧批不动。"""
+    return kbp.kit.bank_store.history(conn, material_id, vocab_version)
+
+
+def use(conn, material_id: int, map_version: str):
+    """把某一版本标为已投用；学生切回旧批也走这里，版本不存在抛 BankError。"""
+    entry = kbp.kit.bank_store.by_version(conn, material_id, map_version)
+    if entry is None:
+        raise kbp.kit.bank_store.BankError("版本不存在: " + map_version)
+    kbp.kit.bank_store.mark_in_use(conn, material_id, map_version)
+    return kbp.kit.bank_store.by_version(conn, material_id, map_version)
+
+
 def next_free_version(conn, material_id: int, want: str = "") -> str:
     """分配版本号：想要且未占用就用它，被占用了往后排，绝不覆盖旧图。"""
     used = kbp.kit.bank_store.versions(conn, material_id)

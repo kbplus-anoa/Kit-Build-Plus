@@ -5,9 +5,10 @@
 
 ## 交接
 
-已验证：.venv/bin/python -m pytest 483 passed；.venv/bin/python -m flake8 . 退出 0；GET / 返 200。
+已验证：.venv/bin/python -m pytest 492 passed；.venv/bin/python -m flake8 . 退出 0；GET / 返 200。
 真实调用已跑通：本机 OpenAI 兼容代理 127.0.0.1:8788，deepseek-v4.1-flash，8 句教材得 5 条、0 越界、31.85s。
 TAM 已通：POST /api/tam/answers 整卷落库，GET /api/tam/alpha 从库算 α。
+阶段 6 已完：导出按库检索、量表作答落库、重抽批次并存可切回。下一步阶段 7 前端，等用户 HTML 原型。
 
 未完成：见未解决。研究线（R 脚本、双人标注、docs/research）不在本板。
 
@@ -89,7 +90,7 @@ TAM 已通：POST /api/tam/answers 整卷落库，GET /api/tam/alpha 从库算 �
 
 - [x] 导出改服务端检索：按被试、教材、时点单多全选，前端不再自己攒数
 - [x] 量表作答落库，α 从库算
-- [ ] 学生重抽：新旧两批并存不覆盖，旧批可切回
+- [x] 学生重抽：新旧两批并存不覆盖，旧批可切回
 
 ### 阶段 7 前端
 

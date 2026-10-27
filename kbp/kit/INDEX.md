@@ -11,7 +11,7 @@
 | `store.py` | SQLite：裁定表 + 词表表；同批次不可覆盖、词表不可静默改写 |
 | `bank_store.py` | SQLite 题库 `target_map`：版本号与内容指纹唯一，概念/命题/词表整份存 |
 | `lock.py` | 改图前门槛：已被学生用过即拒改（`MapUsagePort` 注入） |
-| `kit_service.py` | 编排入口：`build_kit_auto` / `build_kit` / `adjudicate` / `bank_find` / `freeze_to_bank` |
+| `kit_service.py` | 编排入口：`build_kit_auto` / `build_kit` / `adjudicate` / `bank_find` / `freeze_to_bank` / `history` / `use` |
 
 ## 两条路
 
@@ -44,5 +44,14 @@
 未命中才抽取：冻结后先按内容指纹查重，同指纹回旧图，不新开版本；不同指纹才登记新版本。
 期望版本号被占就往后排（v 号只区分第几版，同一张图靠指纹认）。
 入库前过 `lock.assert_mutable`，已投用版本拒改。
+
+## 重抽与切回
+
+抽崩提示后学生可要求重抽：请求带 `retry`，跳过题库复用另抽一次。
+重抽不覆盖旧批——同指纹仍回旧图，不同指纹登记新版本；旧批原样留着。
+
+`history` 按入库先后列出该教材各批（版本、指纹、词表版本、来源、是否投用、
+命题数），`use` 把某一批标为投用。切回旧批只是标投用，学生继续拿旧 `map_version`
+走草稿与提交，图不改不删；同教材可先后有多个版本被投用，标记只增不减。
 
 <!-- /@zone code -->
