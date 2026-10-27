@@ -29,6 +29,7 @@ def test_同字节复用同一个教材号(conn):
     first = add(conn)
     again = add(conn, name="改过名.pdf", at="2026-01-02T00:00:00")
     assert again == first
+    materials.mark_ready(conn, first)
     assert len(materials.list_all(conn)) == 1
 
 
@@ -36,15 +37,31 @@ def test_内容变了就新开一行(conn):
     first = add(conn)
     second = add(conn, digest="b2")
     assert second != first
+    materials.mark_ready(conn, first)
+    materials.mark_ready(conn, second)
     assert len(materials.list_all(conn)) == 2
 
 
 def test_列表新在前且按上限截断(conn):
-    add(conn, name="一.pdf", digest="d1")
-    add(conn, name="二.pdf", digest="d2")
-    add(conn, name="三.pdf", digest="d3")
+    for name, digest in (("一.pdf", "d1"), ("二.pdf", "d2"), ("三.pdf", "d3")):
+        materials.mark_ready(conn, add(conn, name=name, digest=digest))
     rows = materials.list_all(conn, limit=2)
     assert [r[1] for r in rows] == ["三.pdf", "二.pdf"]
+
+
+def test_没抽出kit的教材不列出(conn):
+    mid = add(conn)
+    assert materials.list_all(conn) == []
+    assert materials.mark_ready(conn, mid) is True
+    assert [r[1] for r in materials.list_all(conn)] == ["记忆.pdf"]
+
+
+def test_删掉一行返回旧值(conn):
+    mid = add(conn)
+    row = materials.remove(conn, mid)
+    assert row[0] == mid and row[1] == "记忆.pdf"
+    assert materials.get(conn, mid) is None
+    assert materials.remove(conn, mid) is None
 
 
 def test_同字节后再上传会补上原文路径(conn):

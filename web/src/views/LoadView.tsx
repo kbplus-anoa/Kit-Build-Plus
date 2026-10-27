@@ -15,7 +15,7 @@ interface Props {
   onDone: (kit: Kit) => void;
 }
 
-const LINES = ["AI 正在分解知识", "AI 正在试着连接"];
+const LINES = ["AI 正在分解知识", "AI 正在试着连接", "AI 正在抠字眼", "AI 正在试着理解", "AI 去喝了口水", "AI 回到了书桌前"];
 const CAP = 90;
 const STEP_MS = 260;
 const MIN_MS = 1200;
@@ -39,6 +39,8 @@ export function LoadView(props: Props) {
   const [failure, setFailure] = useState("");
   const done = useRef(props.onDone);
   const busy = useRef<File | null>(null);
+  const material = useRef<number | null>(null);
+  const completed = useRef(false);
   done.current = props.onDone;
 
   useEffect(() => {
@@ -71,12 +73,14 @@ export function LoadView(props: Props) {
     async function run() {
       try {
         const uploaded = await api.upload(target);
+        material.current = uploaded.material_id;
         const auto = await api.kitAuto({
           material_id: uploaded.material_id,
           text: uploaded.text,
           vocab: VOCAB,
         });
         if (cancelled) return;
+        completed.current = true;
         const wait = Math.max(0, MIN_MS - (Date.now() - started));
         window.setTimeout(() => {
           if (cancelled) return;
@@ -89,7 +93,16 @@ export function LoadView(props: Props) {
         }, wait);
       } catch (error) {
         busy.current = null;
+        drop();
         if (!cancelled) setFailure(messageOf(error));
+      }
+    }
+
+    function drop() {
+      const id = material.current;
+      material.current = null;
+      if (id !== null && !completed.current) {
+        void api.removeMaterial(id).catch(() => undefined);
       }
     }
 
@@ -100,6 +113,7 @@ export function LoadView(props: Props) {
       window.clearInterval(step);
       window.KBPLoadGlobe?.onBeat(() => undefined);
       stopLoadGlobe();
+      drop();
     };
   }, [frame.hidden, file]);
 

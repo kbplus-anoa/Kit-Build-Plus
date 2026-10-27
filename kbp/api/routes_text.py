@@ -117,6 +117,19 @@ async def upload(file: UploadFile = File(...)) -> UploadOut:
                      text=doc.text)
 
 
+@router.delete("/materials/{material_id}")
+def remove_material(material_id: int) -> dict:
+    """删掉一份教材与它的原文；上传失败回滚时前端调这里。"""
+    conn = kbp.api.deps.get_conn()
+    with kbp.api.deps.db_lock():
+        row = kbp.ingest.materials.remove(conn, material_id)
+    if row is None:
+        raise HTTPException(404, "教材不存在: " + str(material_id))
+    if row[6]:
+        kbp.ingest.uploads.drop(Path(row[6]))
+    return {"ok": True}
+
+
 @router.get("/materials", response_model=MaterialsOut)
 def materials(limit: int = 200) -> MaterialsOut:
     """上传过的教材，新的在前；limit 上限 1000。"""
@@ -165,6 +178,11 @@ def extract(body: ExtractIn) -> ExtractOut:
                  for t in result.triples])
 
 
+def _ready(conn, material_id: int) -> None:
+    with kbp.api.deps.db_lock():
+        kbp.ingest.materials.mark_ready(conn, material_id)
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -206,6 +224,7 @@ def kit_auto(body: KitAutoIn) -> KitAutoOut:
                                               vocab.vocab_version)
     if entry is not None:
         target, kit = kbp.kit.kit_service.bank_kit(entry)
+        _ready(conn, body.material_id)
         return _kit_out(kit, target, from_bank=True)
     try:
         cfg = _config()
@@ -240,4 +259,5 @@ def kit_auto(body: KitAutoIn) -> KitAutoOut:
     thresholds = kbp.extract.threshold_store.load(conn)
     report = kbp.extract.quality.assess(details.result, body.text,
                                         thresholds)
+    _ready(conn, body.material_id)
     return _kit_out(kit, target, report)

@@ -58,10 +58,30 @@ def test_没有正文的文件被拒(client):
     assert "没有可用的文字" in resp.json()["detail"]
 
 
-def test_教材列表含刚上传的一行(client):
+def test_没抽出kit前教材不列出(client):
+    """上传成功但还没裁出 kit：列表里不出现，免得点了报 503。"""
     _upload(client)
+    assert client.get("/api/materials").json()["items"] == []
+
+
+def test_抽出kit后教材才列出(client):
+    mid = _upload(client).json()["material_id"]
+    import kbp.ingest.materials as materials
+    materials.mark_ready(deps.get_conn(), mid)
     items = client.get("/api/materials").json()["items"]
     assert [i["file_name"] for i in items] == ["记忆.txt"]
+
+
+def test_删除教材连原文一起清掉(client, tmp_path):
+    mid = _upload(client).json()["material_id"]
+    resp = client.delete("/api/materials/" + str(mid))
+    assert resp.status_code == 200 and resp.json()["ok"] is True
+    assert client.get("/api/materials/" + str(mid) + "/text").status_code == 404
+    assert list((tmp_path / "uploads").iterdir()) == []
+
+
+def test_删除不存在的教材_404(client):
+    assert client.delete("/api/materials/999").status_code == 404
 
 
 def test_重读旧教材回正文(client):

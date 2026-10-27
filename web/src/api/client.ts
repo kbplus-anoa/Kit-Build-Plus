@@ -68,6 +68,9 @@ export const api = {
   materialText: (materialId: number): Promise<MaterialTextOut> =>
     send<MaterialTextOut>(`/api/materials/${materialId}/text`, { method: "GET" }),
 
+  removeMaterial: (materialId: number): Promise<{ ok: boolean }> =>
+    send<{ ok: boolean }>(`/api/materials/${materialId}`, { method: "DELETE" }),
+
   kitAuto: (body: KitAutoIn): Promise<KitAutoOut> => postJson<KitAutoOut>("/api/kit/auto", body),
 
   submit: (body: SubmitIn): Promise<SubmitOut> => postJson<SubmitOut>("/api/submit", body),

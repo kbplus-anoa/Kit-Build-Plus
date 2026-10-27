@@ -15,7 +15,7 @@
 | `schemas_tam.py` | TAM 量表的请求/响应模型，独立成文件以避开 200 行上限 |
 | `config_store.py` | 抽取配置表（一行一条）的读写；库里没保存过时按 `.env` 的 `KBP_EXTRACT_*` 出默认值 |
 | `routes_config.py` | `GET/PUT /api/config`：读写配置；**只回显密钥是否已配置** |
-| `routes_text.py` | `/api/upload`（multipart 落盘→解析→登记教材，回正文）、`GET /api/materials`、`GET /api/materials/{id}/text`（按落盘文件重读旧教材正文，命中解析缓存）、`/api/ingest`、`/api/extract`、`/api/kit/auto`（先查题库，命中不重抽；`retry` 跳过复用要求重抽）；丢弃与整次抽取都落留档 |
+| `routes_text.py` | `/api/upload`（multipart 落盘→解析→登记教材，回正文）、`GET /api/materials`（只列已抽出 kit 的教材）、`DELETE /api/materials/{id}`（删登记与原文，失败上传回滚用）、`GET /api/materials/{id}/text`（按落盘文件重读旧教材正文，命中解析缓存）、`/api/ingest`、`/api/extract`、`/api/kit/auto`（先查题库，命中不重抽；`retry` 跳过复用要求重抽）；丢弃与整次抽取都落留档 |
 | `routes_flow.py` | `/api/adjudicate`（开发期）、`/api/kit`、`/api/lock`、`/api/draft`、`/api/submit`（回提交序号、内容指纹、FMS、四类错误明细与目标命题，并落被试级快照） |
 | `routes_kit.py` | `GET /api/kit/versions`（列出各批）、`POST /api/kit/use`（切回某一批） |
 | `routes_data.py` | `/api/quiz`（落题级快照）、`GET /api/export/subject`、`GET /api/export/question`（三条件筛选，空即全选） |
