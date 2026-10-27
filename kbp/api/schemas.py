@@ -1,5 +1,7 @@
 """路由层的请求/响应模型。只做格式转换，不含业务规则。"""
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 MAX_TEXT = 2_000_000
@@ -174,6 +176,13 @@ class SubmitIn(BaseModel):
     batch_id: str = Field(default="", max_length=100)  # 人工裁定批次；自动裁出的图走题库
     map_version: str = Field(min_length=1, max_length=50)
     mode: str
+    condition: Literal["exp", "con"]  # 组别；导出要求明确到组，未分组不许提交
+    is_practice: int = Field(default=0, ge=0, le=1)
+    possibly_inaccurate: int = Field(default=0, ge=0, le=1)  # 来自裁 kit 时的体检
+    signal_isolated: float | None = None  # 孤立概念率，0~1
+    signal_coverage: float | None = None  # 连接词覆盖率，0~1
+    signal_concentration: float | None = None  # 概念集中度，0~1
+    signal_baseline: float | None = None  # 基线偏离度，Z 分数
     participant_id: int = Field(ge=1)
     material_id: int = Field(ge=1)
     time_point: str = Field(min_length=1, max_length=20)
@@ -249,6 +258,7 @@ class QuestionIn(BaseModel):
 
 class QuizIn(BaseModel):
     quiz_id: str = Field(min_length=1, max_length=100)
+    target_map_version: str = Field(default="", max_length=50)  # 本次作答对应的图版本
     participant_id: int = Field(ge=1)
     material_id: int = Field(ge=1)
     time_point: str
@@ -261,53 +271,3 @@ class QuizOut(BaseModel):
     time_point: str
     percent: float
     answered: int
-
-
-class SubjectRowIn(BaseModel):
-    """被试级一行，关联键为四元组。"""
-
-    participant_id: int = Field(ge=1)
-    material_id: int = Field(ge=1)
-    time_point: str = Field(min_length=1, max_length=20)
-    submit_seq: int = Field(ge=1)
-    target_map_version: str = Field(min_length=1, max_length=50)
-    mode: str
-    condition: str
-    is_practice: int = Field(ge=0, le=1)
-    correct_propositions: int = Field(ge=0)
-    total_propositions: int = Field(ge=0)
-    n_lacking: int = Field(ge=0)
-    n_excessive: int = Field(ge=0)
-    n_leaving: int = Field(ge=0)
-    n_reversed: int = Field(ge=0)
-    possibly_inaccurate: int = Field(ge=0, le=1)
-    map_size: int = Field(ge=0)
-    map_node_count: int = Field(ge=0)
-    fingerprint: str = Field(default="", max_length=64)
-    signal_isolated: float | None = None
-    signal_coverage: float | None = None
-    signal_concentration: float | None = None
-    signal_baseline: float | None = None
-
-
-class SubjectExportIn(BaseModel):
-    rows: list[SubjectRowIn] = Field(min_length=1, max_length=10000)
-
-
-class QuestionRowIn(BaseModel):
-    """题级一行，关联键为四元组。"""
-
-    participant_id: int = Field(ge=1)
-    material_id: int = Field(ge=1)
-    time_point: str = Field(min_length=1, max_length=20)
-    submit_seq: int = Field(ge=1)
-    target_map_version: str = Field(min_length=1, max_length=50)
-    question_id: str = Field(min_length=1, max_length=50)
-    correct: int = Field(ge=0, le=1)
-    score: float | None = None
-    qtype: str
-    content_dimension: str = Field(default="", max_length=200)
-
-
-class QuestionExportIn(BaseModel):
-    rows: list[QuestionRowIn] = Field(min_length=1, max_length=100000)

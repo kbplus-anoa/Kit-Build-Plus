@@ -9,6 +9,8 @@ from fastapi import APIRouter, HTTPException
 import kbp.contracts.adjudication
 import kbp.contracts.submission
 import kbp.api.deps
+import kbp.export.row_build
+import kbp.export.row_store
 import kbp.kit.bank_store
 import kbp.kit.kit_service
 import kbp.kit.lock
@@ -132,7 +134,14 @@ def submit(body: SubmitIn) -> SubmitOut:
             kbp.rebuild.rebuild_service.submit(conn, kit, sub)
         except Exception as exc:
             raise HTTPException(400, str(exc))
-    result = kbp.score.score_service.score(target, sub)
+        result = kbp.score.score_service.score(target, sub)
+        kbp.export.row_store.save_subject(
+            conn, kbp.export.row_build.subject_row(
+                sub, result, condition=body.condition,
+                is_practice=body.is_practice,
+                possibly_inaccurate=body.possibly_inaccurate,
+                signals=(body.signal_isolated, body.signal_coverage,
+                         body.signal_concentration, body.signal_baseline)))
     return SubmitOut(submit_seq=seq, fingerprint=target.fingerprint,
                      fms=kbp.score.score_service.fms(result))
 

@@ -48,8 +48,8 @@ def _seed(client) -> dict:
 
 
 def _draft(ids, propositions, submit_seq=1, time_point="post", mode="test"):
-    return {"map_version": "v1", "mode": mode, "participant_id": 1,
-            "material_id": 1, "time_point": time_point,
+    return {"map_version": "v1", "mode": mode, "condition": "exp",
+            "participant_id": 1, "material_id": 1, "time_point": time_point,
             "submit_seq": submit_seq, "propositions": propositions}
 
 

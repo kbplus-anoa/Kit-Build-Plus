@@ -9,14 +9,14 @@
 |---|---|
 | `main.py` | FastAPI 实例、路由挂载、`/` 与 `/api/health` |
 | `deps.py` | 进程级数据库连接与写锁（两把锁分开，见下） |
-| `bootstrap.py` | 建表装配：各 feature 的 `ensure` + 抽取配置表、阈值表、抽取留档表；库默认落在仓库根 `tmp/kb.sqlite3` |
+| `bootstrap.py` | 建表装配：各 feature 的 `ensure` + 抽取配置表、阈值表、抽取留档表、导出快照表；库默认落在仓库根 `tmp/kb.sqlite3` |
 | `schemas.py` | 通用请求/响应模型，只做格式约束，不含业务规则 |
 | `schemas_tam.py` | TAM 量表的请求/响应模型，独立成文件以避开 200 行上限 |
 | `config_store.py` | 抽取配置表（一行一条）的读写 |
 | `routes_config.py` | `GET/PUT /api/config`：读写配置；**只回显密钥是否已配置** |
 | `routes_text.py` | `/api/ingest`、`/api/extract`、`/api/kit/auto`（先查题库，命中不重抽）；丢弃与整次抽取都落留档 |
-| `routes_flow.py` | `/api/adjudicate`（开发期）、`/api/kit`、`/api/lock`、`/api/draft`、`/api/submit`（回提交序号、内容指纹、FMS） |
-| `routes_data.py` | `/api/quiz`、`/api/export/subject`、`/api/export/question` |
+| `routes_flow.py` | `/api/adjudicate`（开发期）、`/api/kit`、`/api/lock`、`/api/draft`、`/api/submit`（回提交序号、内容指纹、FMS，并落被试级快照） |
+| `routes_data.py` | `/api/quiz`（落题级快照）、`GET /api/export/subject`、`GET /api/export/question`（三条件筛选，空即全选） |
 | `routes_tam.py` | `GET /api/tam/items`、`POST /api/tam/alpha`（只算不存） |
 
 `/api/ingest` 失败码：文件不存在 404、格式不支持 400、
@@ -46,6 +46,10 @@
 
 自动路每次抽一条留档（批次号 `auto-*`）：配置快照、候选、丢弃、逐段原始输出与段数；
 冻结成功后回填图版本与指纹，回填失败即 503。留档不进 CSV。
+
+导出：筛选条件走查询参数（`participant_id`、`material_id`、`time_point`，可重复给），
+查不到记录返 404，行不合法返 400。组别 `condition` 在提交时必填（exp/con），
+因为导出契约不允许空组别；未分组的提交直接 422，不在库里补默认值。
 
 `/api/submit` 与 `/api/draft` 取图走 `_kit_for`：先按 `material_id` + `map_version` 查题库，
 命中就直接用（自动路的图没有 `batch_id`），没命中才回退人工裁定批次。
