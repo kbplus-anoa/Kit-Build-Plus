@@ -37,10 +37,11 @@ interface Options {
   locked: boolean;
   onMove: (id: string, x: number, y: number) => void;
   onPick: (id: string) => void;
+  onDrop?: (id: string) => void;
 }
 
 export function useNodeDrag(options: Options) {
-  const { concepts, placedAt, locked, onMove, onPick } = options;
+  const { concepts, placedAt, locked, onMove, onPick, onDrop } = options;
   const drag = useRef<DragState | null>(null);
   const detach = useRef<(() => void) | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
@@ -83,7 +84,9 @@ export function useNodeDrag(options: Options) {
     const onPointerUp = () => {
       const state = drag.current;
       stop();
-      if (state && !state.moved) onPick(state.id);
+      if (!state) return;
+      if (state.moved) onDrop?.(state.id);
+      else onPick(state.id);
     };
 
     window.addEventListener("pointermove", onPointerMove);

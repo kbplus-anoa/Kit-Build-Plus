@@ -38,8 +38,8 @@ export function ReportView(props: Props) {
       <HoldPanel hidden={record.frozen} />
       {record.frozen ? <ScorePanel counts={state.counts} total={state.total} /> : null}
       <TaxonomyGrid counts={state.counts} />
-      {record.frozen ? <DiffSection state={state} stamp={stamp} /> : null}
-      <DetailSection state={state} title={record.frozen ? "逐条明细" : "你当前连上的命题"} />
+      {record.frozen ? <DiffSection state={state} stamp={stamp} layoutKey={record.id} /> : null}
+      <DetailSection state={state} title={record.frozen ? "明细" : "你当前连上的命题"} />
       <Closing frozen={record.frozen} onRevise={() => onRevise(record)} />
     </ReportShell>
   );

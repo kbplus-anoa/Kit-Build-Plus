@@ -1,8 +1,9 @@
 /** 报告页的数据：判定清单、四类计数、筛选与选中。 */
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { DiffFilter, DiffItem } from "../../../../ui-share/canvas/diffTypes";
 import { conceptsOf, countsOf, itemsOf, type Attempt } from "../../data/attempt";
+import { readLayout, writeLayout, type Layout } from "../../data/layouts";
 import type { Kind } from "../../data/reportText";
 
 export interface FilterOption {
@@ -45,11 +46,23 @@ export function useReportView(record: Attempt) {
   );
   const counts = useMemo(() => countsOf(record), [record]);
   const concepts = useMemo(() => conceptsOf(record), [record]);
+  const [layout, setLayout] = useState<Layout>(() => readLayout(record.id));
+  useEffect(() => {
+    setLayout(readLayout(record.id));
+  }, [record.id]);
+  const saveLayout = useCallback(
+    (next: Layout) => {
+      setLayout(next);
+      writeLayout(record.id, next);
+    },
+    [record.id],
+  );
   const { hidden, shown } = visibility(items, filter);
   const filters = options(all.length, counts);
   return {
     all, items, counts, concepts, total: record.total,
     filter, setFilter, selected, setSelected, hidden, shown, filters,
+    layout, saveLayout,
   };
 }
 

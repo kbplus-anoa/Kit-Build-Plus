@@ -106,8 +106,12 @@
 
 /* nodes */
 #diffmap .dnode {
+  cursor: grab;
+  touch-action: none;
   transition: opacity var(--motion-fast) var(--ease);
 }
+
+#diffmap .dnode.is-dragging { cursor: grabbing; }
 
 @media (prefers-reduced-motion: no-preference) {
   #diffmap .dnode {

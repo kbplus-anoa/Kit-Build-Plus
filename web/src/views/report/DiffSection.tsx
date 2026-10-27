@@ -4,8 +4,8 @@ import { DiffMap } from "../../../../ui-share/canvas/DiffMap";
 import { Legend } from "./Legend";
 import type { ReportState } from "./useReportView";
 
-export function DiffSection(props: { state: ReportState; stamp: string }) {
-  const { items, concepts, filters, filter, setFilter, selected, setSelected } = props.state;
+export function DiffSection(props: { state: ReportState; stamp: string; layoutKey: string }) {
+  const { items, concepts, filters, filter, setFilter, selected, setSelected, layout, saveLayout } = props.state;
   return (
     <section className="panel diff">
       <div className="diff__head">
@@ -34,6 +34,9 @@ export function DiffSection(props: { state: ReportState; stamp: string }) {
           selected={selected}
           onSelect={setSelected}
           stamp={props.stamp}
+          layoutKey={props.layoutKey}
+          layout={layout}
+          onLayout={saveLayout}
         />
       </div>
       <Legend filter={filter} />
