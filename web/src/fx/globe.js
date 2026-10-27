@@ -456,8 +456,8 @@
 
       ctx.beginPath();
       ctx.arc(ox, oy, oR * 2.7, 0, Math.PI * 2);
-      ctx.strokeStyle = redPrefix + (0.30 * o.alpha * oDepth).toFixed(3) + ')';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = redPrefix + (0.42 * o.alpha * oDepth).toFixed(3) + ')';
+      ctx.lineWidth = 2;
       ctx.stroke();
 
       ctx.beginPath();

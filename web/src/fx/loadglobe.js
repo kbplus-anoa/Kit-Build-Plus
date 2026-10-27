@@ -324,8 +324,8 @@
     if (ringScale > 0.001) {
       ctx.beginPath();
       ctx.arc(ox, oy, Math.max(0.1, homeR * ringScale), 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(' + theme.red + ',' + (0.30 * oDepth * ringScale).toFixed(3) + ')';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(' + theme.red + ',' + (0.42 * oDepth * ringScale).toFixed(3) + ')';
+      ctx.lineWidth = 2;
       ctx.stroke();
     }
 
@@ -342,16 +342,16 @@
         ripple.active = false;
       } else {
         /* The ripple leaves the ring rather than replacing it: it starts at
-           the ring's own peak alpha and weight (0.30, 1px) and falls away
+           the ring's own peak alpha and weight (0.42, 2px) and falls away
            from there. It used to start at 0.5 with the trailing front drawn
            on top at the same radius, which put a frame ~2.4x brighter than
            the resting ring on screen at every single beat. */
         var rr = ripple.baseR + (homeR * 4.4) * easeOutCubic(rT);
-        var ra = (1 - rT) * (1 - rT) * 0.30 * oDepth;
+        var ra = (1 - rT) * (1 - rT) * 0.42 * oDepth;
         ctx.beginPath();
         ctx.arc(ripple.x, ripple.y, Math.max(0.1, rr), 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(' + theme.red + ',' + ra.toFixed(3) + ')';
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 2;
         ctx.stroke();
 
         /* a second, fainter front a little behind it gives the ripple body
@@ -363,7 +363,7 @@
           ctx.beginPath();
           ctx.arc(ripple.x, ripple.y, Math.max(0.1, rr2), 0, Math.PI * 2);
           ctx.strokeStyle = 'rgba(' + theme.red + ',' + (ra * 0.45).toFixed(3) + ')';
-          ctx.lineWidth = 1;
+          ctx.lineWidth = 1.4;
           ctx.stroke();
         }
       }
