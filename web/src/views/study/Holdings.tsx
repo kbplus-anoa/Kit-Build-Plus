@@ -1,5 +1,5 @@
 /** 未冻结的记录留在这里，不混进历史报告。 */
-import { type Attempt } from "../../data/demo";
+import type { Attempt } from "../../data/attempt";
 
 function conceptCount(record: Attempt): number {
   const seen = new Set<string>();

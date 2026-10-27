@@ -1,7 +1,7 @@
 /** 逐条明细：一条命题一行，点一行在图上聚焦它。 */
 import { Mark } from "../../../../ui-share/atoms/Mark";
 import type { DiffItem } from "../../../../ui-share/canvas/diffTypes";
-import { LABEL, NOTE } from "../../data/demo";
+import { LABEL, NOTE } from "../../data/reportText";
 
 interface Props {
   items: DiffItem[];

@@ -16,7 +16,7 @@ export const MODES = [
   },
 ];
 
-export function prepareStatus(picked: string | null, mode: boolean): string {
-  if (!picked) return "先选一份教材。选定后模式才会解锁。";
-  return "已选「" + picked + "」。" + (mode ? "再点「进入画布」。" : "现在可以选一种模式。");
+export function prepareStatus(name: string | null, mode: boolean): string {
+  if (!name) return "先选一份教材。选定后模式才会解锁。";
+  return "已选「" + name + "」。" + (mode ? "再点「进入画布」。" : "现在可以选一种模式。");
 }

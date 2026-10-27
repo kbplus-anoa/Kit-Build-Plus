@@ -1,7 +1,7 @@
 /** 分数只报一个数：目标命题里连对了几条。 */
 import type { ReactNode } from "react";
 
-import { scoreHeadline, type Kind } from "../../data/demo";
+import { scoreHeadline, type Kind } from "../../data/reportText";
 
 function part(count: number, label: string): ReactNode {
   return (

@@ -2,8 +2,8 @@
 import { useMemo, useState } from "react";
 
 import type { DiffFilter, DiffItem } from "../../../../ui-share/canvas/diffTypes";
-import { TARGET, tally, type Attempt, type Kind } from "../../data/demo";
-import { buildItems } from "../../data/diff";
+import { conceptsOf, countsOf, itemsOf, type Attempt } from "../../data/attempt";
+import type { Kind } from "../../data/reportText";
 
 export interface FilterOption {
   id: DiffFilter;
@@ -38,15 +38,19 @@ function options(total: number, counts: Record<Kind, number>): FilterOption[] {
 export function useReportView(record: Attempt) {
   const [filter, setFilter] = useState<DiffFilter>("all");
   const [selected, setSelected] = useState<number | null>(null);
-  const all = useMemo(() => buildItems(record.edges), [record.edges]);
+  const all = useMemo(() => itemsOf(record), [record]);
   const items = useMemo(
     () => (record.frozen ? all : all.filter((item) => item.kind !== "lacking")),
     [all, record.frozen],
   );
-  const counts = useMemo(() => tally(record.edges), [record.edges]);
+  const counts = useMemo(() => countsOf(record), [record]);
+  const concepts = useMemo(() => conceptsOf(record), [record]);
   const { hidden, shown } = visibility(items, filter);
   const filters = options(all.length, counts);
-  return { all, items, counts, total: TARGET.length, filter, setFilter, selected, setSelected, hidden, shown, filters };
+  return {
+    all, items, counts, concepts, total: record.total,
+    filter, setFilter, selected, setSelected, hidden, shown, filters,
+  };
 }
 
 export type ReportState = ReturnType<typeof useReportView>;

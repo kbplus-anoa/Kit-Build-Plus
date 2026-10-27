@@ -1,20 +1,21 @@
 /** 重建页的两步：先选教材与模式，再进画布。 */
+import type { MaterialOut } from "../../types/api";
 import { PrepareStep } from "./PrepareStep";
 import { RebuildStep } from "./RebuildStep";
 import type { StudyFlow } from "./useStudyFlow";
 
 interface Props {
-  docs: string[];
+  materials: MaterialOut[];
   flow: StudyFlow;
-  onFile: (name: string) => void;
+  onFile: (file: File) => void;
 }
 
 export function StudyStep(props: Props) {
-  const { docs, flow, onFile } = props;
+  const { materials, flow, onFile } = props;
   if (flow.step === "prepare") {
     return (
       <PrepareStep
-        docs={docs}
+        materials={materials}
         picked={flow.picked}
         mode={flow.mode}
         onPickDoc={flow.setPicked}

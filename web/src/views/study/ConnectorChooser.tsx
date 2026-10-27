@@ -1,7 +1,7 @@
 /** 选中起点后从画布底部展开的连接词条，收起时先塌陷再摘掉。 */
 import { useEffect, useState } from "react";
 
-import { CONNECTORS } from "../../data/demo";
+import { connectors } from "../../data/kit";
 
 const CLOSE_MS = 280;
 
@@ -26,6 +26,7 @@ export function ConnectorChooser(props: {
   }, [props.open, mounted]);
 
   if (!mounted) return null;
+  const CONNECTORS = connectors();
   return (
     <div className={"rb__bar rb__chooser" + (lit ? " is-open" : "")}>
       <div className="rb__chooser__inner">

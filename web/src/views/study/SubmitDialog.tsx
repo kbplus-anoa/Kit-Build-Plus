@@ -1,7 +1,7 @@
 /** 提交前确认一次：命题数、概念数、评分口径与冻结规则。 */
 import { useEffect, useRef } from "react";
 
-import { TARGET, type Edge } from "../../data/demo";
+import type { Edge } from "../../data/kit";
 import type { StudyFlow } from "./useStudyFlow";
 
 function conceptCount(edges: Edge[]): number {
@@ -13,7 +13,7 @@ function conceptCount(edges: Edge[]): number {
   return seen.size;
 }
 
-export function SubmitDialog(props: { flow: StudyFlow }) {
+export function SubmitDialog(props: { flow: StudyFlow; total: number }) {
   const { flow } = props;
   const dialog = useRef<HTMLDialogElement | null>(null);
 
@@ -30,7 +30,7 @@ export function SubmitDialog(props: { flow: StudyFlow }) {
       <p className="confirm__body">
         你连了 <b>{flow.api.edges.length}</b> 条命题，用了 <b>{conceptCount(flow.api.edges)}</b> 个概念。
         <br />
-        提交后进入评分，分数 = 连对的命题数 / {TARGET.length}，不给部分分。
+        提交后进入评分，分数 = 连对的命题数 / {props.total}，不给部分分。
       </p>
       <p className="confirm__warn">
         {flow.mode === "quiz"

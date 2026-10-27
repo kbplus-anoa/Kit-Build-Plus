@@ -1,5 +1,5 @@
 /** 画布快照：一次渲染要看的一切，以及与操作函数之间的接口。 */
-import type { Edge } from "../../data/demo";
+import type { Edge } from "../../data/kit";
 import type { At } from "./model";
 
 export interface Pair {

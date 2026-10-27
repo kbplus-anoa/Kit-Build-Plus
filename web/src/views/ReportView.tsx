@@ -1,7 +1,7 @@
 /** 报告页：先给结论，再给差异图与逐条明细。未冻结的自检不显示目标图。 */
 import { useMemo } from "react";
 
-import { type Attempt } from "../data/demo";
+import type { Attempt } from "../data/attempt";
 import type { Frame } from "../hooks/useRoute";
 import { usePanelStagger } from "../hooks/usePanelStagger";
 import { ReportShell } from "./ReportShell";

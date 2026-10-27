@@ -11,6 +11,7 @@ interface Props {
   onToggleTheme: () => void;
   onStudy: () => void;
   onHistory: () => void;
+  onSettings: () => void;
 }
 
 const ENTRANCE = { halo: 40, brand: 120, entries: 380 };
@@ -59,6 +60,28 @@ export function HomeView(props: Props) {
           Kit Build <span className="brand__plus">Plus</span>
         </a>
         <div className="topbar__spacer" />
+        <button
+          type="button"
+          className="theme-toggle"
+          id="settings-open"
+          aria-label="抽取设置：模型名与接口地址"
+          onClick={props.onSettings}
+        >
+          <svg
+            className="od-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="3.2" />
+            <path d="M12 2.8v2.4M12 18.8v2.4M4.5 12H2.1M21.9 12h-2.4M6.7 6.7 5 5M19 19l-1.7-1.7M17.3 6.7 19 5M5 19l1.7-1.7" />
+          </svg>
+          <span className="theme-toggle__label">设置</span>
+        </button>
         <button
           type="button"
           className="theme-toggle"

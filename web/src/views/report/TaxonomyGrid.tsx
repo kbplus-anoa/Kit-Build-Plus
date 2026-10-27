@@ -1,6 +1,6 @@
 /** 四类差异各自的形状与含义，数量来自这一份图。 */
 import { Mark } from "../../../../ui-share/atoms/Mark";
-import { LABEL, type Kind } from "../../data/demo";
+import { LABEL, type Kind } from "../../data/reportText";
 
 const ROWS: { kind: Kind; desc: string }[] = [
   { kind: "lacking", desc: "目标里有，你没连" },

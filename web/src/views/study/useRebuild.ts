@@ -5,7 +5,7 @@
 
 import { useCallback, useRef, useState } from "react";
 
-import type { Edge } from "../../data/demo";
+import type { Edge } from "../../data/kit";
 import { writeDraft, type Mode } from "./draft";
 import { clampAt, type At } from "./model";
 import * as ops from "./rebuildOps";

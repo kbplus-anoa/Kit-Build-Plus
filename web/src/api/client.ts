@@ -1,22 +1,15 @@
-/** 与后端通信的唯一出口。页面不直接 fetch，一律经此层。 */
-
+/** 与后端通信的唯一出口：路径、错误解析、请求形状都收在这里。 */
 import type {
-  BatchIn,
-  BatchOut,
-  BuildKitIn,
-  ExtractIn,
-  ExtractOut,
+  ConfigIn,
+  ConfigOut,
   HealthOut,
-  IngestIn,
-  IngestOut,
-  KitOut,
-  QuestionRowIn,
-  QuizIn,
-  QuizOut,
-  ReadyOut,
-  ScoreOut,
-  SubjectRowIn,
+  KitAutoIn,
+  KitAutoOut,
+  MaterialsOut,
+  MaterialTextOut,
   SubmitIn,
+  SubmitOut,
+  UploadOut,
 } from "../types/api";
 
 const BASE = "";
@@ -33,93 +26,58 @@ export class ApiError extends Error {
 
 async function parseError(resp: Response): Promise<string> {
   try {
-    const body = await resp.json();
-    if (typeof body.detail === "string") return body.detail;
-    if (Array.isArray(body.detail)) {
-      return body.detail.map((d: { msg?: string }) => d.msg ?? "").join("；");
-    }
+    const data = (await resp.json()) as { detail?: unknown };
+    if (typeof data.detail === "string") return data.detail;
+    if (data.detail) return JSON.stringify(data.detail);
   } catch {
-    /* 响应体不是 JSON，落到统一文案 */
+    // 非 JSON 响应就退回状态码
   }
-  return `请求失败（HTTP ${resp.status}）`;
+  return `请求失败（${resp.status}）`;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const resp = await fetch(BASE + path, {
-    headers: { "Content-Type": "application/json" },
-    ...init,
-  });
+async function send<T>(path: string, init: RequestInit): Promise<T> {
+  let resp: Response;
+  try {
+    resp = await fetch(BASE + path, init);
+  } catch {
+    throw new ApiError(0, "连不上后端服务，请确认它已经在运行。");
+  }
   if (!resp.ok) throw new ApiError(resp.status, await parseError(resp));
   return (await resp.json()) as T;
 }
 
-async function requestBlob(path: string, body: unknown): Promise<Blob> {
-  const resp = await fetch(BASE + path, {
+function postJson<T>(path: string, body: unknown): Promise<T> {
+  return send<T>(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!resp.ok) throw new ApiError(resp.status, await parseError(resp));
-  return await resp.blob();
 }
 
 export const api = {
-  health: () => request<HealthOut>("/api/health"),
+  health: (): Promise<HealthOut> => send<HealthOut>("/api/health", { method: "GET" }),
 
-  ingest: (body: IngestIn) =>
-    request<IngestOut>("/api/ingest", {
-      method: "POST",
+  upload: (file: File): Promise<UploadOut> => {
+    const form = new FormData();
+    form.append("file", file);
+    return send<UploadOut>("/api/upload", { method: "POST", body: form });
+  },
+
+  materials: (): Promise<MaterialsOut> => send<MaterialsOut>("/api/materials", { method: "GET" }),
+
+  materialText: (materialId: number): Promise<MaterialTextOut> =>
+    send<MaterialTextOut>(`/api/materials/${materialId}/text`, { method: "GET" }),
+
+  kitAuto: (body: KitAutoIn): Promise<KitAutoOut> => postJson<KitAutoOut>("/api/kit/auto", body),
+
+  submit: (body: SubmitIn): Promise<SubmitOut> => postJson<SubmitOut>("/api/submit", body),
+
+  config: (): Promise<ConfigOut> => send<ConfigOut>("/api/config", { method: "GET" }),
+
+  saveConfig: (body: ConfigIn): Promise<ConfigOut> =>
+    send<ConfigOut>("/api/config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }),
-
-  extract: (body: ExtractIn) =>
-    request<ExtractOut>("/api/extract", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
-
-  adjudicate: (body: BatchIn) =>
-    request<BatchOut>("/api/adjudicate", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
-
-  buildKit: (body: BuildKitIn) =>
-    request<KitOut>("/api/kit", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
-
-  lockState: (mapVersion: string) =>
-    request<ReadyOut>(
-      `/api/lock?map_version=${encodeURIComponent(mapVersion)}`,
-    ),
-
-  submit: (body: SubmitIn) =>
-    request<ScoreOut>("/api/submit", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
-
-  saveQuiz: (body: QuizIn) =>
-    request<QuizOut>("/api/quiz", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
-
-  exportSubject: (rows: SubjectRowIn[]) =>
-    requestBlob("/api/export/subject", { rows }),
-
-  exportQuestion: (rows: QuestionRowIn[]) =>
-    requestBlob("/api/export/question", { rows }),
 };
-
-/** 触发浏览器下载；BOM 由后端加，此处不碰字节。 */
-export function downloadBlob(blob: Blob, fileName: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = fileName;
-  a.click();
-  URL.revokeObjectURL(url);
-}

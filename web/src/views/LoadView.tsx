@@ -1,20 +1,24 @@
-/** 上传后先给一段解析动画：进度封顶 90%，等够了才走；取消就整段作废。 */
+/** 上传后先给一段解析动画：进度封顶 90%，真解析完再走；取消就整段作废。 */
 import { useEffect, useRef, useState } from "react";
 
+import { api } from "../api/client";
+import type { Kit } from "../data/kit";
+import { VOCAB } from "../data/vocab";
 import { initLoadGlobe, stopLoadGlobe } from "../fx/init";
 import type { Frame } from "../hooks/useRoute";
+import { kitFrom } from "./study/attemptBuild";
 
 interface Props {
   frame: Frame;
-  file: string;
+  file: File | null;
   onHome: () => void;
-  onDone: (file: string) => void;
+  onDone: (kit: Kit) => void;
 }
 
 const LINES = ["AI 正在分解知识", "AI 正在试着连接"];
 const CAP = 90;
 const STEP_MS = 260;
-const HOLD_MS = 2600;
+const MIN_MS = 1200;
 
 function cssMs(name: string, fallback: number): number {
   const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -23,20 +27,30 @@ function cssMs(name: string, fallback: number): number {
   return raw.includes("ms") ? value : value * 1000;
 }
 
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : "解析失败了，请稍后再试。";
+}
+
 export function LoadView(props: Props) {
   const { frame, file } = props;
   const [progress, setProgress] = useState(0);
   const [line, setLine] = useState(0);
   const [swap, setSwap] = useState(false);
+  const [failure, setFailure] = useState("");
   const done = useRef(props.onDone);
+  const busy = useRef<File | null>(null);
   done.current = props.onDone;
 
   useEffect(() => {
-    if (frame.hidden || !file) return;
+    if (frame.hidden || !file || busy.current === file) return;
+    const target = file;
+    busy.current = target;
     let cancelled = false;
     setProgress(0);
     setLine(0);
     setSwap(false);
+    setFailure("");
+    const started = Date.now();
 
     void initLoadGlobe().then(() => {
       if (cancelled) return;
@@ -54,18 +68,36 @@ export function LoadView(props: Props) {
       setProgress((value) => Math.min(CAP, value + Math.max(1, (CAP - value) * 0.06)));
     }, STEP_MS);
 
-    const hold = window.setTimeout(() => {
-      if (cancelled) return;
-      setProgress(100);
-      window.setTimeout(() => {
-        if (!cancelled) done.current(file);
-      }, cssMs("--motion-base", 220));
-    }, HOLD_MS);
+    async function run() {
+      try {
+        const uploaded = await api.upload(target);
+        const auto = await api.kitAuto({
+          material_id: uploaded.material_id,
+          text: uploaded.text,
+          vocab: VOCAB,
+        });
+        if (cancelled) return;
+        const wait = Math.max(0, MIN_MS - (Date.now() - started));
+        window.setTimeout(() => {
+          if (cancelled) return;
+          setProgress(100);
+          window.setTimeout(() => {
+            if (!cancelled) {
+              done.current(kitFrom(auto, uploaded.material_id, uploaded.file_name));
+            }
+          }, cssMs("--motion-base", 220));
+        }, wait);
+      } catch (error) {
+        busy.current = null;
+        if (!cancelled) setFailure(messageOf(error));
+      }
+    }
+
+    void run();
 
     return () => {
       cancelled = true;
       window.clearInterval(step);
-      window.clearTimeout(hold);
       window.KBPLoadGlobe?.onBeat(() => undefined);
       stopLoadGlobe();
     };
@@ -93,9 +125,9 @@ export function LoadView(props: Props) {
         </div>
 
         <div className="load__copy" aria-live="polite">
-          <p className="load__file" id="load-file">{file}</p>
+          <p className="load__file" id="load-file">{file ? file.name : ""}</p>
           <p className={"load__line" + (swap ? " load__line--swap" : "")} id="load-line">
-            {LINES[line]}
+            {failure || LINES[line]}
           </p>
         </div>
 
@@ -112,7 +144,7 @@ export function LoadView(props: Props) {
         </div>
 
         <button type="button" className="load__cancel" onClick={props.onHome}>
-          取消上传
+          {failure ? "返回" : "取消上传"}
         </button>
       </div>
     </div>

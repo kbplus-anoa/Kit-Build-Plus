@@ -1,6 +1,7 @@
 /** 教材选择：上传入口与已上传列表。上传按钮只是外壳，真正接文件的是藏起来的 input。 */
 import { useRef, useState } from "react";
 
+import type { MaterialOut } from "../../types/api";
 import { UPLOAD_NOTE } from "./copy";
 
 const ALLOWED = ["pdf", "epub", "txt"];
@@ -28,24 +29,28 @@ function UploadIcon() {
   );
 }
 
-function DocList(props: { docs: string[]; picked: string | null; onPick: (name: string) => void }) {
-  if (props.docs.length === 0) {
+function DocList(props: {
+  materials: MaterialOut[];
+  picked: number | null;
+  onPick: (id: number) => void;
+}) {
+  if (props.materials.length === 0) {
     return <span className="doc doc--empty">还没有上传过文档</span>;
   }
   return (
     <>
-      {props.docs.map((name) => (
+      {props.materials.map((material) => (
         <button
-          key={name}
+          key={material.material_id}
           type="button"
-          className={"doc" + (props.picked === name ? " doc--active" : "")}
-          aria-pressed={props.picked === name}
-          onClick={() => props.onPick(name)}
+          className={"doc" + (props.picked === material.material_id ? " doc--active" : "")}
+          aria-pressed={props.picked === material.material_id}
+          onClick={() => props.onPick(material.material_id)}
         >
-          <span className="doc__name" title={name + "." + (extOf(name) || "pdf")}>
-            {name}
+          <span className="doc__name" title={material.file_name}>
+            {material.file_name}
           </span>
-          <span className="doc__ext">{extOf(name) || "pdf"}</span>
+          <span className="doc__ext">{material.ext}</span>
         </button>
       ))}
     </>
@@ -53,10 +58,10 @@ function DocList(props: { docs: string[]; picked: string | null; onPick: (name: 
 }
 
 export function DocPicker(props: {
-  docs: string[];
-  picked: string | null;
-  onPick: (name: string) => void;
-  onFile: (name: string) => void;
+  materials: MaterialOut[];
+  picked: number | null;
+  onPick: (id: number) => void;
+  onFile: (file: File) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
@@ -70,7 +75,7 @@ export function DocPicker(props: {
       return;
     }
     setError("");
-    props.onFile(file.name);
+    props.onFile(file);
   }
 
   return (
@@ -102,7 +107,7 @@ export function DocPicker(props: {
         </p>
       </div>
       <div className="doclist" aria-label="已上传的文档">
-        <DocList docs={props.docs} picked={props.picked} onPick={props.onPick} />
+        <DocList materials={props.materials} picked={props.picked} onPick={props.onPick} />
       </div>
     </div>
   );

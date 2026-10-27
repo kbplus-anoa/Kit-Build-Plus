@@ -8,6 +8,7 @@ import "../../ui-share/styles/diagram.css";
 import "../../ui-share/styles/subpage.css";
 import "../../ui-share/styles/canvas.css";
 import "../../ui-share/styles/load.css";
+import "../../ui-share/styles/settings.css";
 import { App } from "./App";
 
 const root = document.getElementById("root");

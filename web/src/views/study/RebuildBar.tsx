@@ -1,5 +1,5 @@
 /** 画布底栏：模式与状态在左，动作在右。状态只说事实，不给操作提示。 */
-import type { Edge } from "../../data/demo";
+import type { Edge } from "../../data/kit";
 import { clockOf, usedConceptCount } from "./model";
 
 interface Props {

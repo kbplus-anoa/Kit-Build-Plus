@@ -1,6 +1,6 @@
 /** 画布的几何与词表小工具：放哪、怎么念、用了几件。 */
 import { CHIP_H, chipWidth } from "../../../../ui-share/canvas/geometry";
-import { CONCEPTS, type Edge } from "../../data/demo";
+import { concepts, known as inKit, labelOf as catalogLabel, type Edge } from "../../data/kit";
 
 export const VIEW_W = 960;
 export const VIEW_H = 540;
@@ -13,11 +13,11 @@ export interface At {
 }
 
 export function labelOf(id: string): string {
-  return CONCEPTS.find((concept) => concept.id === id)?.label ?? id;
+  return catalogLabel(id);
 }
 
-function known(id: string): boolean {
-  return CONCEPTS.some((concept) => concept.id === id);
+export function kitCount(): number {
+  return concepts().length;
 }
 
 export function clampAt(id: string, x: number, y: number): At {
@@ -48,7 +48,7 @@ export function seedPlacements(edges: Edge[]): Record<string, At> {
   const out: Record<string, At> = {};
   edges.forEach((edge) => {
     [edge.from, edge.to].forEach((id) => {
-      if (out[id] || !known(id)) return;
+      if (out[id] || !inKit(id)) return;
       out[id] = findSlot(out, id);
     });
   });
@@ -76,5 +76,5 @@ export function clockOf(at: number): string {
 }
 
 export function sane(edge: Edge): boolean {
-  return known(edge.from) && known(edge.to) && typeof edge.conn === "string";
+  return inKit(edge.from) && inKit(edge.to) && typeof edge.conn === "string";
 }

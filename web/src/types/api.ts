@@ -1,11 +1,54 @@
 /** 由后端 openapi.json 手工对应生成；改后端 schemas 时须同步本文件。 */
+export interface HealthOut {
+  ok: boolean;
+  tables: number;
+}
 
-export type TextSource = "TEXT_LAYER" | "EPUB" | "OCR_CLOUD";
-export type Mode = "test" | "study";
-export type TimePoint = "pre" | "post" | "delayed";
-export type Decision = "accepted" | "rejected";
-export type ErrorKind = "lacking" | "excessive" | "leaving" | "reversed";
-export type LockState = "locked" | "mutable";
+export interface UploadOut {
+  material_id: number;
+  file_name: string;
+  ext: string;
+  source: string;
+  chars: number;
+  has_ocr: boolean;
+  page_count: number;
+  text: string;
+}
+
+export interface MaterialOut {
+  material_id: number;
+  file_name: string;
+  ext: string;
+  chars: number;
+  created_at: string;
+}
+
+export interface MaterialsOut {
+  items: MaterialOut[];
+}
+
+export interface MaterialTextOut {
+  material_id: number;
+  file_name: string;
+  ext: string;
+  chars: number;
+  text: string;
+}
+
+export interface ConfigIn {
+  provider: string;
+  model: string;
+  base_url: string;
+  timeout_s: number;
+  max_chars: number;
+  enabled: boolean;
+}
+
+export interface ConfigOut extends ConfigIn {
+  has_key: boolean;
+  key_env: string;
+  error: string;
+}
 
 export interface VocabIn {
   vocab_id: string;
@@ -13,60 +56,12 @@ export interface VocabIn {
   connections: string[];
 }
 
-export interface IngestIn {
-  path: string;
-}
-
-export interface IngestOut {
-  file_name: string;
-  source: TextSource;
-  has_ocr: boolean;
-  page_count: number;
-  chars: number;
-}
-
-export interface ExtractIn {
+export interface KitAutoIn {
+  material_id: number;
   text: string;
   vocab: VocabIn;
-}
-
-export interface TripleOut {
-  head: string;
-  connection: string;
-  tail: string;
-  confidence: number;
-}
-
-export interface ExtractOut {
-  vocab_id: string;
-  vocab_version: string;
-  count: number;
-  triples: TripleOut[];
-}
-
-export interface AdjudicationIn {
-  head: string;
-  connection: string;
-  tail: string;
-  confidence: number;
-  decision: Decision;
-  reason?: string;
-}
-
-export interface BatchIn {
-  batch_id: string;
-  vocab: VocabIn;
-  items: AdjudicationIn[];
-}
-
-export interface BatchOut {
-  batch_id: string;
-  saved: number;
-}
-
-export interface BuildKitIn {
-  batch_id: string;
-  map_version: string;
+  map_version?: string;
+  retry?: boolean;
 }
 
 export interface ConceptOut {
@@ -74,120 +69,65 @@ export interface ConceptOut {
   label: string;
 }
 
-export interface KitOut {
+export interface SignalOut {
+  name: string;
+  label: string;
+  value: number | null;
+  threshold: number | null;
+  triggered: boolean;
+}
+
+export interface KitAutoOut {
   map_version: string;
   concepts: ConceptOut[];
   connections: string[];
   total_propositions: number;
+  fingerprint: string;
+  from_bank: boolean;
+  possibly_inaccurate: boolean;
+  message: string;
+  signals: SignalOut[];
+  calibrated: boolean;
+  baseline_n: number;
+  baseline_source: string;
 }
 
-export interface ReadyOut {
-  map_version: string;
-  locked: LockState;
-}
-
-export interface Vec2In {
+export interface PropositionIn {
   head_id: string;
   connection: string;
   tail_id: string;
 }
 
 export interface SubmitIn {
-  batch_id: string;
+  batch_id?: string;
   map_version: string;
-  mode: Mode;
+  mode: "study" | "test";
+  condition: "exp" | "con";
+  is_practice?: number;
+  possibly_inaccurate?: number;
   participant_id: number;
   material_id: number;
-  session: number;
-  propositions: Vec2In[];
+  time_point: string;
+  propositions: PropositionIn[];
 }
 
-export interface ErrorOut {
-  kind: ErrorKind;
+export interface ErrorChain {
+  kind: string;
   head_id: string;
   connection: string;
   tail_id: string;
 }
 
-export interface ScoreOut {
+export interface SubmitOut {
+  submit_seq: number;
+  fingerprint: string;
+  fms: number;
   total_propositions: number;
   correct_propositions: number;
-  score: number;
   lacking: number;
   excessive: number;
   leaving: number;
   reversed: number;
-  errors: ErrorOut[];
-}
-
-export interface AnswerIn {
-  question_id: string;
-  choice_index: number;
-}
-
-export interface QuestionIn {
-  question_id: string;
-  stem: string;
-  choices: string[];
-  answer_index: number;
-  qtype: string;
-  content_dimension?: string;
-}
-
-export interface QuizIn {
-  quiz_id: string;
-  participant_id: number;
-  material_id: number;
-  session: number;
-  time_point: TimePoint;
-  questions: QuestionIn[];
-  answers: AnswerIn[];
-}
-
-export interface QuizOut {
-  quiz_id: string;
-  time_point: TimePoint;
-  percent: number;
-  answered: number;
-}
-
-export interface SubjectRowIn {
-  participant_id: number;
-  material_id: number;
-  target_map_version: string;
-  session: number;
-  mode: Mode;
-  condition: "exp" | "con";
-  is_practice: 0 | 1;
-  correct_propositions: number;
-  total_propositions: number;
-  n_lacking: number;
-  n_excessive: number;
-  n_leaving: number;
-  n_reversed: number;
-  possibly_inaccurate: 0 | 1;
-  map_size: number;
-  map_node_count: number;
-  signal_isolated?: number | null;
-  signal_coverage?: number | null;
-  signal_concentration?: number | null;
-  signal_baseline?: number | null;
-}
-
-export interface QuestionRowIn {
-  participant_id: number;
-  material_id: number;
-  target_map_version: string;
-  session: number;
-  question_id: string;
-  time_point: TimePoint;
-  correct: 0 | 1;
-  score?: number | null;
-  qtype: string;
-  content_dimension?: string;
-}
-
-export interface HealthOut {
-  ok: boolean;
-  tables: number;
+  errors: ErrorChain[];
+  target_propositions: PropositionIn[];
 }

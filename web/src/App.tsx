@@ -1,28 +1,62 @@
 /** 五个视图之间的唯一状态机：谁开着、带着哪份记录。视图常挂，动画类由路由挂在节点上。 */
 import { useEffect, useState } from "react";
 
-import { RECORDS, type Attempt } from "./data/demo";
+import { api } from "./api/client";
+import type { Attempt } from "./data/attempt";
+import { setKit, type Kit } from "./data/kit";
+import { VOCAB } from "./data/vocab";
 import { initAurora } from "./fx/init";
 import { useRoute } from "./hooks/useRoute";
 import { useTheme } from "./hooks/useTheme";
+import type { MaterialOut } from "./types/api";
 import { HistoryView } from "./views/HistoryView";
 import { HomeView } from "./views/HomeView";
 import { LoadView } from "./views/LoadView";
 import { ReportView } from "./views/ReportView";
+import { SettingsDialog } from "./views/SettingsDialog";
 import { StudyView } from "./views/StudyView";
+import { kitFrom } from "./views/study/attemptBuild";
 
 export function App() {
   const route = useRoute("home");
   const { theme, toggle } = useTheme(route.view);
-  const [docs, setDocs] = useState<string[]>(["认知心理学 · 记忆系统"]);
-  const [records, setRecords] = useState<Attempt[]>(RECORDS);
-  const [current, setCurrent] = useState<Attempt>(RECORDS[0]);
-  const [pending, setPending] = useState("");
+  const [materials, setMaterials] = useState<MaterialOut[]>([]);
+  const [kit, setKitState] = useState<Kit | null>(null);
+  const [records, setRecords] = useState<Attempt[]>([]);
+  const [current, setCurrent] = useState<Attempt | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [seed, setSeed] = useState<Attempt | null>(null);
   const [visit, setVisit] = useState(0);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  async function refreshMaterials() {
+    try {
+      const out = await api.materials();
+      setMaterials(out.items);
+    } catch {
+      // 列表拉不到就先空着，上传入口照常可用
+    }
+  }
+
+  function adopt(next: Kit) {
+    setKit(next);
+    setKitState(next);
+  }
+
+  /** 换一份教材进画布前先把它读回来；同一个词表版本会直接复用库里的目标图。 */
+  async function needKit(materialId: number) {
+    const text = await api.materialText(materialId);
+    const auto = await api.kitAuto({
+      material_id: materialId,
+      text: text.text,
+      vocab: VOCAB,
+    });
+    adopt(kitFrom(auto, materialId, text.file_name));
+  }
 
   useEffect(() => {
     void initAurora();
+    void refreshMaterials();
   }, []);
 
   function open(record: Attempt) {
@@ -48,17 +82,17 @@ export function App() {
     route.show("study");
   }
 
-  function upload(name: string) {
-    setPending(name);
+  function upload(next: File) {
+    setFile(next);
     route.show("load");
   }
 
-  function doneUpload(file: string) {
-    const name = file.replace(/\.[^.]+$/, "") || "未命名教材";
-    setDocs((list) => (list.includes(name) ? list : [name, ...list]));
-    setPending("");
+  function loaded(next: Kit) {
+    adopt(next);
+    setFile(null);
     setSeed(null);
     setVisit((value) => value + 1);
+    void refreshMaterials();
     route.show("study");
   }
 
@@ -76,33 +110,46 @@ export function App() {
         onToggleTheme={toggle}
         onStudy={start}
         onHistory={() => route.show("history")}
+        onSettings={() => setSettingsOpen(true)}
+      />
+
+      <SettingsDialog
+        open={settingsOpen}
+        onClose={() => {
+          setSettingsOpen(false);
+          void refreshMaterials();
+        }}
       />
 
       <LoadView
         frame={route.frame("load")}
-        file={pending}
+        file={file}
         onHome={route.home}
-        onDone={doneUpload}
+        onDone={loaded}
       />
 
       <StudyView
         key={(seed ? seed.id : "blank") + "-" + visit}
         frame={route.frame("study")}
-        docs={docs}
+        materials={materials}
+        total={kit?.total ?? 0}
         seed={seed}
         records={records}
         onHome={route.home}
         onFile={upload}
+        onNeedKit={needKit}
         onSubmit={submit}
         onOpenRecord={open}
       />
 
-      <ReportView
-        frame={route.frame("report")}
-        record={current}
-        onHome={route.home}
-        onRevise={revise}
-      />
+      {current ? (
+        <ReportView
+          frame={route.frame("report")}
+          record={current}
+          onHome={route.home}
+          onRevise={revise}
+        />
+      ) : null}
 
       <HistoryView
         frame={route.frame("history")}

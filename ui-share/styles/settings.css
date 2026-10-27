@@ -1,0 +1,89 @@
+/* 抽取设置：模型与接口地址。密钥不进界面，只从后端进程的环境变量读。 */
+
+.settings {
+  width: min(520px, calc(100vw - 32px));
+  padding: var(--space-6);
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+}
+
+.settings::backdrop { background: rgba(0, 0, 0, 0.62); }
+
+.settings__title { font-size: var(--text-xl); font-weight: 600; }
+
+.settings__lede {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.settings__field {
+  display: block;
+  margin-top: var(--space-5);
+}
+
+.settings__label {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.settings__input {
+  display: block;
+  width: 100%;
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--fg);
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--motion-fast) var(--ease);
+}
+
+.settings__input:hover { border-color: var(--border-strong); }
+
+.settings__input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.settings__hint {
+  margin-top: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--meta);
+  line-height: 1.6;
+}
+
+.settings__hint--warn { color: var(--node-red); }
+
+.settings__note {
+  margin-top: var(--space-5);
+  padding: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--muted);
+  line-height: 1.7;
+  background: var(--accent-subtle);
+  border-radius: var(--radius-md);
+}
+
+.settings__note .mono { color: var(--fg); }
+
+.settings__error {
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--node-red);
+}
+
+.settings__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  margin-top: var(--space-5);
+}

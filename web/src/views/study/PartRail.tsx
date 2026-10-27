@@ -1,6 +1,6 @@
 /** 零件栏：概念与连接词放在这里。点一下放进画布，拖到画布也能放。 */
 import { RailGroup } from "../../../../ui-share/layout/RailGroup";
-import { CONCEPTS, CONNECTORS, type Edge } from "../../data/demo";
+import { concepts, connectors, type Edge } from "../../data/kit";
 import type { At } from "./model";
 
 interface Props {
@@ -14,6 +14,8 @@ interface Props {
 }
 
 export function PartRail(props: Props) {
+  const CONCEPTS = concepts();
+  const CONNECTORS = connectors();
   const used = new Set(props.edges.flatMap((edge) => [edge.from, edge.to]));
   const conns = new Set(props.edges.map((edge) => edge.conn));
   const ordered = [...CONCEPTS].sort(

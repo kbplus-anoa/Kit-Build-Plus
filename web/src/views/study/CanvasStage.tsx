@@ -1,6 +1,6 @@
 /** 画布本体与它的即时提示。 */
 import { RebuildCanvas } from "../../../../ui-share/canvas/RebuildCanvas";
-import { CONCEPTS, type Edge } from "../../data/demo";
+import { concepts, type Edge } from "../../data/kit";
 import { Notice } from "./Notice";
 import type { At } from "./model";
 import type { NoticeMsg } from "./useRebuild";
@@ -24,11 +24,12 @@ interface Props {
 }
 
 export function CanvasStage(props: Props) {
+  const kitConcepts = concepts().map((concept) => ({ ...concept, x: 0, y: 0 }));
   return (
     <div className="rb__stage">
       <div className="rb__field">
         <RebuildCanvas
-          concepts={CONCEPTS}
+          concepts={kitConcepts}
           placed={props.placed}
           edges={props.edges}
           entering={props.entering}

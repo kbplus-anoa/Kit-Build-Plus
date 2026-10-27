@@ -1,6 +1,7 @@
 /** 历史报告：只列已冻结的测验记录。 */
 import { PageHead, SubBar } from "../../../ui-share/layout/SubBar";
-import { scoreHeadline, tally, TARGET, type Attempt } from "../data/demo";
+import { countsOf, type Attempt } from "../data/attempt";
+import { scoreHeadline } from "../data/reportText";
 import type { Frame } from "../hooks/useRoute";
 import { usePanelStagger } from "../hooks/usePanelStagger";
 import { ReportShell } from "./ReportShell";
@@ -15,7 +16,7 @@ interface Props {
 function Score(props: { record: Attempt }) {
   return (
     <span className="rec__score">
-      {tally(props.record.edges).correct} <small>/ {TARGET.length}</small>
+      {props.record.correct} <small>/ {props.record.total}</small>
     </span>
   );
 }
@@ -45,7 +46,7 @@ export function HistoryView(props: Props) {
                     <span className="rec__when">{record.when}</span>
                     <span className="rec__mode">{record.mode === "quiz" ? "测验模式" : "学习模式"}</span>
                   </span>
-                  <span className="rec__summary">{scoreHeadline(tally(record.edges), TARGET.length)}</span>
+                  <span className="rec__summary">{scoreHeadline(countsOf(record), record.total)}</span>
                 </span>
                 <Score record={record} />
               </button>

@@ -1,7 +1,7 @@
 /** 图例：五种笔迹各代表什么，跟着当前筛选一起收窄。 */
 import { Mark } from "../../../../ui-share/atoms/Mark";
 import type { DiffFilter } from "../../../../ui-share/canvas/diffTypes";
-import { LABEL, LEGEND_DESC, type Kind } from "../../data/demo";
+import { LABEL, LEGEND_DESC, type Kind } from "../../data/reportText";
 
 const KINDS: Kind[] = ["correct", "lacking", "excessive", "leaving", "reversed"];
 
