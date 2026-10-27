@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 
 
 import kbp.contracts.adjudication
+import kbp.contracts.report
 import kbp.contracts.submission
 import kbp.api.deps
 import kbp.export.row_build
@@ -23,8 +24,8 @@ import kbp.contracts.triple
 import kbp.rebuild.draft_store
 import kbp.rebuild.usage
 from kbp.api.schemas import (
-    BatchIn, BatchOut, BuildKitIn, ConceptOut, DraftIn, DraftOut, KitOut,
-    ReadyOut, SubmitIn, SubmitOut, Vec2In)
+    BatchIn, BatchOut, BuildKitIn, ConceptOut, DraftIn, DraftOut, ErrorOut,
+    KitOut, ReadyOut, SubmitIn, SubmitOut, Vec2In)
 
 router = APIRouter(prefix="/api", tags=["流程"])
 
@@ -143,7 +144,22 @@ def submit(body: SubmitIn) -> SubmitOut:
                 signals=(body.signal_isolated, body.signal_coverage,
                          body.signal_concentration, body.signal_baseline)))
     return SubmitOut(submit_seq=seq, fingerprint=target.fingerprint,
-                     fms=kbp.score.score_service.fms(result))
+                     fms=kbp.score.score_service.fms(result),
+                     **_score_detail(result))
+
+
+def _score_detail(result) -> dict:
+    """四类错误按类别计数，错误链原样带出，报告页直接渲染。"""
+    counts = {kind: 0 for kind in kbp.contracts.report.ERROR_KINDS}
+    for err in result.errors:
+        counts[err.kind] = counts.get(err.kind, 0) + 1
+    return dict(
+        total_propositions=result.total_propositions,
+        correct_propositions=result.correct_propositions,
+        **counts,
+        errors=[ErrorOut(kind=e.kind, head_id=e.head_id,
+                         connection=e.connection, tail_id=e.tail_id)
+                for e in result.errors])
 
 
 def _assign_seq(conn, body: SubmitIn) -> int:

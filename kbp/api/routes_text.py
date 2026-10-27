@@ -1,9 +1,11 @@
-"""教材侧路由：读原文、抽取候选、运行期自动裁 kit。"""
+"""教材侧路由：收上传、读原文、抽取候选、运行期自动裁 kit。"""
 
+import dataclasses
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 
 import kbp.api.config_store
@@ -17,14 +19,16 @@ import kbp.extract.quality
 import kbp.extract.record_store
 import kbp.extract.threshold_store
 import kbp.ingest.ingest_service
+import kbp.ingest.materials
 import kbp.ingest.ocr
+import kbp.ingest.uploads
 import kbp.kit.bank_store
 import kbp.kit.kit_service
 import kbp.kit.lock
 import kbp.rebuild.usage
 from kbp.api.schemas import (
     ConceptOut, ExtractIn, ExtractOut, IngestIn, IngestOut, KitAutoIn, KitAutoOut,
-    SignalOut, TripleOut)
+    MaterialOut, MaterialsOut, MAX_TEXT, SignalOut, TripleOut, UploadOut)
 
 router = APIRouter(prefix="/api", tags=["教材"])
 
@@ -56,6 +60,64 @@ def ingest(body: IngestIn) -> IngestOut:
     return IngestOut(file_name=doc.file_name, source=doc.source,
                      has_ocr=doc.has_ocr, page_count=doc.page_count,
                      chars=len(doc.text))
+
+
+def _upload_ext(name: str) -> str:
+    ext = kbp.ingest.uploads.ext_of(name)
+    if ext not in kbp.ingest.uploads.ALLOWED:
+        raise HTTPException(
+            400, "这个格式暂不支持：「" + (ext or "未知") + "」。"
+                 "请上传 PDF、EPUB 或 TXT 文件。")
+    return ext
+
+
+def _ingest_upload(path: Path, name: str):
+    """解析上传的文件；失败时删掉落盘文件，别留半个教材。"""
+    try:
+        doc = kbp.ingest.ingest_service.ingest(str(path))
+    except kbp.ingest.ocr.MinerUUnavailable as exc:
+        kbp.ingest.uploads.drop(path)
+        raise HTTPException(503, "扫描件需要云端解析，云端不可用: " + str(exc))
+    except Exception as exc:
+        kbp.ingest.uploads.drop(path)
+        raise HTTPException(502, "解析失败: " + str(exc))
+    if not doc.text.strip():
+        kbp.ingest.uploads.drop(path)
+        raise HTTPException(400, "这个文件里没有可用的文字")
+    if len(doc.text) > MAX_TEXT:
+        raise HTTPException(413, "正文太长，上限 200 万字")
+    return dataclasses.replace(doc, file_name=name)
+
+
+@router.post("/upload", response_model=UploadOut)
+async def upload(file: UploadFile = File(...)) -> UploadOut:
+    """收浏览器上传的文件：落盘、解析成正文、登记成一份教材。"""
+    name = Path(file.filename or "").name or "未命名"
+    ext = _upload_ext(name)
+    data = await file.read()
+    if not data:
+        raise HTTPException(400, "文件是空的")
+    if len(data) > kbp.ingest.uploads.MAX_BYTES:
+        raise HTTPException(413, "文件太大，上限 40 MB")
+    path, digest = kbp.ingest.uploads.save(data, name)
+    doc = _ingest_upload(path, name)
+    conn = kbp.api.deps.get_conn()
+    with kbp.api.deps.db_lock():
+        material_id = kbp.ingest.materials.add_or_get(
+            conn, name, ext, doc.source, len(doc.text), digest, _now())
+    return UploadOut(material_id=material_id, file_name=name, ext=ext,
+                     source=doc.source, chars=len(doc.text),
+                     has_ocr=doc.has_ocr, page_count=doc.page_count,
+                     text=doc.text)
+
+
+@router.get("/materials", response_model=MaterialsOut)
+def materials(limit: int = 200) -> MaterialsOut:
+    """上传过的教材，新的在前；limit 上限 1000。"""
+    rows = kbp.ingest.materials.list_all(kbp.api.deps.get_conn(), limit)
+    return MaterialsOut(items=[
+        MaterialOut(material_id=r[0], file_name=r[1], ext=r[2], chars=r[4],
+                    created_at=r[5]) for r in rows])
 
 
 @router.post("/extract", response_model=ExtractOut)

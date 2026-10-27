@@ -12,8 +12,12 @@
 | `pdf.py` | `read_pdf`：返回（文本, 页数, 是否扫描件） |
 | `ocr.py` | `upload_and_parse`：MinerU 云批次上传；任一步失败都抛 `MinerUUnavailable`（不降级） |
 | `ingest_service.py` | `ingest(path) -> TextDoc`：本 feature 唯一出口；先查缓存，未命中才解析 |
+| `uploads.py` | `save(data, name) -> (路径, 字节哈希)`：浏览器上传落盘；`ext_of`/`ALLOWED` 判格式；默认目录 `tmp/uploads`，可用 `KBP_UPLOAD_DIR` 改 |
+| `materials.py` | 教材登记表：`add_or_get` 按字节哈希复用 `material_id`，`get`/`list_all` 供重建与列表用 |
 | `cache.py` | 解析缓存：键 = 文件字节哈希 + 解析器版本；默认落仓库根 `tmp/ingest_cache`，不入 git |
 | `tests/ingest/test_ingest.py` | 格式判定、编码回退、epub 解析、无 token 报错、扫描判定 |
+| `tests/ingest/test_materials.py` | 登记一行、同字节复用、内容变新开、列表顺序与上限 |
+| `tests/api/test_upload.py` | 上传回正文与教材号、重复复用、格式与空文本拒绝、失败不留文件 |
 
 ## 解析缓存
 

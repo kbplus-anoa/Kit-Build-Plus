@@ -53,6 +53,31 @@ class IngestOut(BaseModel):
     chars: int
 
 
+class UploadOut(BaseModel):
+    """上传回执：教材号先行，正文回给前端接着裁 kit。"""
+
+    material_id: int
+    file_name: str
+    ext: str
+    source: str
+    chars: int
+    has_ocr: bool
+    page_count: int
+    text: str
+
+
+class MaterialOut(BaseModel):
+    material_id: int
+    file_name: str
+    ext: str
+    chars: int
+    created_at: str
+
+
+class MaterialsOut(BaseModel):
+    items: list[MaterialOut]
+
+
 class VocabIn(BaseModel):
     """连接词表，顺序即 schema 顺序。"""
 
@@ -190,12 +215,26 @@ class SubmitIn(BaseModel):
     propositions: list[Vec2In] = Field(max_length=500)
 
 
+class ErrorOut(BaseModel):
+    kind: str
+    head_id: str
+    connection: str
+    tail_id: str
+
+
 class SubmitOut(BaseModel):
-    """提交回执：带上服务端分配的提交序号与该图指纹。"""
+    """提交回执：分数与四类错误一次回齐，报告页不必再查。"""
 
     submit_seq: int
     fingerprint: str
     fms: float  # FMS，0~100；文献口径，不是 0~1
+    total_propositions: int
+    correct_propositions: int
+    lacking: int
+    excessive: int
+    leaving: int
+    reversed: int
+    errors: list[ErrorOut]
 
 
 class DraftIn(BaseModel):
@@ -223,13 +262,6 @@ class DraftOut(BaseModel):
     submit_seq: int
     propositions: list[Vec2In]
     saved_at: str
-
-
-class ErrorOut(BaseModel):
-    kind: str
-    head_id: str
-    connection: str
-    tail_id: str
 
 
 class ScoreOut(BaseModel):

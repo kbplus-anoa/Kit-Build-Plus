@@ -37,6 +37,7 @@ def create_schema(conn) -> None:
     import kbp.extract.record_store
     import kbp.extract.threshold_store
     import kbp.export.row_store
+    import kbp.ingest.materials
     import kbp.kit.bank_store
     import kbp.quiz.tam_store
     kit_store.ensure(conn)
@@ -48,6 +49,7 @@ def create_schema(conn) -> None:
     kbp.extract.discard_store.ensure(conn)
     kbp.extract.record_store.ensure(conn)
     kbp.export.row_store.ensure(conn)
+    kbp.ingest.materials.ensure(conn)
     kbp.quiz.tam_store.ensure(conn)
 
 

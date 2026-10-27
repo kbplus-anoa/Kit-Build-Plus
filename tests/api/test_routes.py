@@ -98,6 +98,27 @@ def test_提交后评分并锁定(client):
     assert client.get("/api/lock?map_version=v1").json()["locked"] == "locked"
 
 
+def test_提交回四类错误明细(client):
+    client.post("/api/adjudicate", json=ADJ)
+    kit = client.post("/api/kit",
+                      json={"batch_id": "b1", "map_version": "v1"}).json()
+    ids = {c["label"]: c["concept_id"] for c in kit["concepts"]}
+    body = client.post("/api/submit", json={
+        "batch_id": "b1", "map_version": "v1", "mode": "test",
+        "condition": "exp",
+        "participant_id": 1, "material_id": 1, "time_point": "post",
+        "propositions": [{"head_id": ids["记忆"], "connection": "包括",
+                          "tail_id": ids["感觉记忆"]}]}).json()
+    assert body["total_propositions"] == 2
+    assert body["correct_propositions"] == 1
+    assert body["lacking"] == 1 and body["excessive"] == 0
+    assert body["leaving"] == 0 and body["reversed"] == 0
+    assert body["errors"] == [{"kind": "lacking",
+                               "head_id": ids["感觉记忆"],
+                               "connection": "包括",
+                               "tail_id": ids["短时记忆"]}]
+
+
 def test_越界零件提交被拒(client):
     client.post("/api/adjudicate", json=ADJ)
     resp = client.post("/api/submit", json={
