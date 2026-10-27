@@ -2,10 +2,16 @@ import zipfile
 
 import pytest
 
+import kbp.ingest.cache as cache
 import kbp.ingest.detect as detect
 import kbp.ingest.epub as epub
 import kbp.ingest.ocr as ocr
 import kbp.ingest.ingest_service as service
+
+
+@pytest.fixture(autouse=True)
+def _cache_dir(tmp_path, monkeypatch):
+    monkeypatch.setenv(cache.DIR_ENV, str(tmp_path / "cache"))
 
 
 def test_按魔数识别_pdf(tmp_path):

@@ -5,7 +5,7 @@
 
 ## 交接
 
-已验证：.venv/bin/python -m pytest 441 passed；.venv/bin/python -m flake8 . 退出 0；GET / 返 200。
+已验证：.venv/bin/python -m pytest 448 passed；.venv/bin/python -m flake8 . 退出 0；GET / 返 200。
 真实调用已跑通：本机 OpenAI 兼容代理 127.0.0.1:8788，deepseek-v4.1-flash，8 句教材得 5 条、0 越界、31.85s。
 TAM 已通：GET /api/tam/items 出 14 题，POST /api/tam/alpha 按构念算 α。
 
@@ -82,7 +82,8 @@ TAM 已通：GET /api/tam/items 出 14 题，POST /api/tam/alpha 按构念算 α
 
 ### 阶段 5 ingest
 
-- [ ] 解析结果缓存：键 = 源文件字节哈希 + 解析器版本，落盘 tmp 不入 git（D10）
+- [x] 解析结果缓存：键 = 源文件字节哈希 + 解析器版本，落盘 tmp 不入 git（D10）。
+      实现在 ingest，空文本不缓存，损坏当未命中。
 
 ### 阶段 6 api 与数据出口
 

@@ -1,5 +1,7 @@
+import dataclasses
 from pathlib import Path
 
+import kbp.ingest.cache
 import kbp.ingest.detect
 import kbp.ingest.epub
 import kbp.ingest.ocr
@@ -41,6 +43,15 @@ def _from_epub(path: str) -> TextDoc:
 def ingest(path: str) -> TextDoc:
     """文件进，TextDoc 出。格式判定在此收口，下游只见纯文本。"""
     kind = kbp.ingest.detect.sniff(path)
+    cached = kbp.ingest.cache.load(path)
+    if cached is not None:
+        return dataclasses.replace(cached, file_name=_meta(path)[0])
+    doc = _parse(path, kind)
+    kbp.ingest.cache.save(path, doc)
+    return doc
+
+
+def _parse(path: str, kind: str) -> TextDoc:
     if kind == kbp.ingest.detect.TXT:
         return _from_text(path, TEXT_LAYER)
     if kind == kbp.ingest.detect.PDF:
