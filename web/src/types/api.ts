@@ -112,6 +112,47 @@ export interface SubmitIn {
   propositions: PropositionIn[];
 }
 
+export interface DraftOut {
+  map_version: string;
+  fingerprint: string;
+  mode: string;
+  participant_id: number;
+  material_id: number;
+  time_point: string;
+  submit_seq: number;
+  propositions: PropositionIn[];
+  saved_at: string;
+}
+
+export interface DraftsOut {
+  items: DraftOut[];
+}
+
+export interface CurrentDraftIn {
+  batch_id?: string;
+  map_version: string;
+  mode: "study" | "test";
+  participant_id: number;
+  material_id: number;
+  time_point: string;
+  propositions: PropositionIn[];
+}
+
+export interface RecordOut extends SubmitOut {
+  material_id: number;
+  map_version: string;
+  mode: string;
+  submitted_at: string;
+  scored: boolean;
+  propositions: PropositionIn[];
+  concepts: ConceptOut[];
+  connections: string[];
+}
+
+export interface RecordsOut {
+  items: RecordOut[];
+}
+
 export interface ErrorChain {
   kind: string;
   head_id: string;

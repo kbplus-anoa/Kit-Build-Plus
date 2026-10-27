@@ -65,6 +65,8 @@ def test_提交后能按人列出记录(client):
     assert got["propositions"] == [
         {"head_id": "c1", "connection": "包括", "tail_id": "c2"}]
     assert len(got["target_propositions"]) == 2
+    assert [c["label"] for c in got["concepts"]] == \
+        ["记忆", "短时记忆", "记忆系统"]
 
 
 def test_测验提交后再交被拒但记录还在(client):

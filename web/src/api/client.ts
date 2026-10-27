@@ -2,11 +2,15 @@
 import type {
   ConfigIn,
   ConfigOut,
+  CurrentDraftIn,
+  DraftOut,
+  DraftsOut,
   HealthOut,
   KitAutoIn,
   KitAutoOut,
   MaterialsOut,
   MaterialTextOut,
+  RecordsOut,
   SubmitIn,
   SubmitOut,
   UploadOut,
@@ -54,6 +58,13 @@ function postJson<T>(path: string, body: unknown): Promise<T> {
   });
 }
 
+function query(params: Record<string, string | number | undefined>): string {
+  const parts = Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== "")
+    .map(([key, value]) => key + "=" + encodeURIComponent(String(value)));
+  return parts.length ? "?" + parts.join("&") : "";
+}
+
 export const api = {
   health: (): Promise<HealthOut> => send<HealthOut>("/api/health", { method: "GET" }),
 
@@ -74,6 +85,23 @@ export const api = {
   kitAuto: (body: KitAutoIn): Promise<KitAutoOut> => postJson<KitAutoOut>("/api/kit/auto", body),
 
   submit: (body: SubmitIn): Promise<SubmitOut> => postJson<SubmitOut>("/api/submit", body),
+
+  records: (participantId: number, materialId?: number): Promise<RecordsOut> =>
+    send<RecordsOut>("/api/records" + query({ participant_id: participantId, material_id: materialId }), {
+      method: "GET",
+    }),
+
+  drafts: (participantId: number): Promise<DraftsOut> =>
+    send<DraftsOut>("/api/drafts" + query({ participant_id: participantId }), { method: "GET" }),
+
+  currentDraft: (participantId: number, materialId: number, timePoint: string): Promise<DraftOut> =>
+    send<DraftOut>(
+      "/api/draft/current" + query({ participant_id: participantId, material_id: materialId, time_point: timePoint }),
+      { method: "GET" },
+    ),
+
+  saveCurrent: (body: CurrentDraftIn): Promise<DraftOut> =>
+    postJson<DraftOut>("/api/draft/current", body),
 
   config: (): Promise<ConfigOut> => send<ConfigOut>("/api/config", { method: "GET" }),
 

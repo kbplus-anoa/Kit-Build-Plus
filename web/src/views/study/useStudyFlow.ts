@@ -1,14 +1,13 @@
 /** 重建页的状态机：选教材、选模式、画布、真提交、存草稿。 */
 import { useEffect, useRef, useState } from "react";
 
-import { api as backend } from "../../api/client";
+import { ApiError, api as backend } from "../../api/client";
 import type { Attempt } from "../../data/attempt";
 import { getKit, type Kit } from "../../data/kit";
 import { CONDITION, PARTICIPANT_ID, TIME_POINT } from "../../data/session";
-import type { MaterialOut, SubmitIn, SubmitOut } from "../../types/api";
-import { buildAttempt } from "./attemptBuild";
+import type { CurrentDraftIn, DraftOut, MaterialOut, SubmitIn, SubmitOut } from "../../types/api";
 import { clearDraft, readDraft, rememberMode, type Mode } from "./draft";
-import { clockOf } from "./model";
+import { clockOf, seedPlacements } from "./model";
 import { useRebuild } from "./useRebuild";
 
 export type Step = "prepare" | "rebuild";
@@ -17,13 +16,27 @@ interface Args {
   materials: MaterialOut[];
   seed?: Attempt | null;
   onNeedKit: (materialId: number) => Promise<void>;
-  onSubmit: (record: Attempt, replacing: string | null) => void;
+  onSubmitted: (materialId: number, seq: number, out: SubmitOut) => void;
+  onConflict: (materialId: number) => void;
+  onDraftSaved: () => void;
 }
+
+const MODE_OF: Record<string, "study" | "test"> = { study: "study", quiz: "test" };
+const UI_MODE: Record<string, "study" | "quiz"> = { study: "study", test: "quiz" };
 
 export type StudyFlow = ReturnType<typeof useStudyFlow>;
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : "出错了，稍后再试。";
+}
+
+/** 后端存的当前草稿；没有就当没存过。 */
+async function readRemote(materialId: number): Promise<DraftOut | null> {
+  try {
+    return await backend.currentDraft(PARTICIPANT_ID, materialId, TIME_POINT);
+  } catch {
+    return null;
+  }
 }
 
 export function useStudyFlow(args: Args) {
@@ -38,6 +51,7 @@ export function useStudyFlow(args: Args) {
 
   const apiRef = useRef(api);
   const modeRef = useRef(mode);
+  const saveRef = useRef<() => void>(() => undefined);
   apiRef.current = api;
   modeRef.current = mode;
 
@@ -79,6 +93,17 @@ export function useStudyFlow(args: Args) {
     try {
       const kit = await ensureKit(picked);
       if (!kit) return;
+      const remote = await readRemote(kit.materialId);
+      if (remote && remote.mode === MODE_OF[mode]) {
+        const edges = remote.propositions.map((prop) => ({
+          from: prop.head_id,
+          conn: prop.connection,
+          to: prop.tail_id,
+        }));
+        openCanvas(edges, seedPlacements(edges), Date.parse(remote.saved_at), false);
+        api.say("草稿已恢复：" + clockOf(Date.parse(remote.saved_at)) + " 保存的 " + edges.length + " 条命题。", "↺");
+        return;
+      }
       const draft = readDraft(kit.materialId, kit.mapVersion);
       if (draft && draft.mode === mode) {
         openCanvas(draft.edges, draft.placed, draft.at, false);
@@ -120,18 +145,64 @@ export function useStudyFlow(args: Args) {
     try {
       out = await backend.submit(body);
     } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        api.say("这次测验已经提交过了，直接打开当时那份报告。", "·");
+        args.onConflict(kit.materialId);
+        return;
+      }
       api.say(messageOf(error), "!");
       return;
     }
-    const record = buildAttempt(kit, [...api.edges], api.placed, mode, out);
     clearDraft();
     api.hydrate(api.edges, api.placed, null, false);
     if (mode === "quiz") api.setLocked(true);
-    args.onSubmit(record, revising);
+    args.onSubmitted(kit.materialId, out.submit_seq, out);
   }
 
+  /** 存草稿：本地先落一份，再送后端；后端存不上就只会丢换设备后的恢复。 */
   function saveDraft() {
-    if (mode) api.saveDraft(mode);
+    if (!mode) return;
+    api.saveDraft(mode);
+    const kit = getKit();
+    if (!kit) return;
+    const body: CurrentDraftIn = {
+      map_version: kit.mapVersion,
+      mode: MODE_OF[mode],
+      participant_id: PARTICIPANT_ID,
+      material_id: kit.materialId,
+      time_point: TIME_POINT,
+      propositions: api.edges.map((edge) => ({
+        head_id: edge.from,
+        connection: edge.conn,
+        tail_id: edge.to,
+      })),
+    };
+    void backend
+      .saveCurrent(body)
+      .then(() => args.onDraftSaved())
+      .catch(() => undefined);
+  }
+  saveRef.current = saveDraft;
+
+  /** 从「继续」栏里的一条草稿直接进画布。 */
+  async function resumeDraft(draft: DraftOut) {
+    const uiMode = UI_MODE[draft.mode] ?? "study";
+    setMode(uiMode);
+    setPicked(draft.material_id);
+    setRevising(null);
+    rememberMode(uiMode);
+    try {
+      const kit = await ensureKit(draft.material_id);
+      if (!kit) return;
+      const edges = draft.propositions.map((prop) => ({
+        from: prop.head_id,
+        conn: prop.connection,
+        to: prop.tail_id,
+      }));
+      openCanvas(edges, seedPlacements(edges), Date.parse(draft.saved_at), false);
+    } catch (error) {
+      api.say(messageOf(error), "!");
+    }
   }
 
   async function revise(record: Attempt) {
@@ -171,7 +242,7 @@ export function useStudyFlow(args: Args) {
       const key = event.key.toLowerCase();
       if (meta && key === "s") {
         event.preventDefault();
-        if (modeRef.current) live.saveDraft(modeRef.current);
+        if (modeRef.current) saveRef.current();
         return;
       }
       if (meta && event.key === "Enter") {
@@ -211,6 +282,6 @@ export function useStudyFlow(args: Args) {
 
   return {
     picked, setPicked, mode, setMode, step, confirming, setConfirming,
-    revising, api, enterCanvas, submit, saveDraft, revise,
+    revising, api, enterCanvas, submit, saveDraft, revise, resumeDraft,
   };
 }

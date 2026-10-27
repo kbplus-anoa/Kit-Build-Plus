@@ -322,6 +322,8 @@ class RecordOut(SubmitOut):
     submitted_at: str  # 提交时刻，ISO 8601
     scored: bool = True  # 取不到目标图时只回原图，不评分
     propositions: list[Vec2In] = []  # 学生当时连的命题，原样
+    concepts: list[ConceptOut] = []  # 这张图的零件，含标签；报告页据此显示中文
+    connections: list[str] = []  # 这张图允许的连接词
 
 
 class RecordsOut(BaseModel):

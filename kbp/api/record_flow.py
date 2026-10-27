@@ -11,8 +11,8 @@ import kbp.kit.kit_service
 import kbp.kit.split
 import kbp.rebuild.draft_store
 import kbp.score.score_service
-from kbp.api.schemas import (CurrentDraftIn, DraftOut, ErrorOut, RecordOut,
-                             Vec2In)
+from kbp.api.schemas import (ConceptOut, CurrentDraftIn, DraftOut, ErrorOut,
+                             RecordOut, Vec2In)
 
 
 def kit_for(conn, material_id: int, map_version: str, batch_id: str = ""):
@@ -59,7 +59,7 @@ def record_of(conn, sub) -> RecordOut:
                 submitted_at=sub.submitted_at,
                 propositions=vecs(sub.propositions))
     try:
-        target, _ = kit_for(conn, sub.material_id, sub.map_version)
+        target, kit = kit_for(conn, sub.material_id, sub.map_version)
     except Exception:
         return RecordOut(fingerprint=sub.fingerprint, fms=0.0, scored=False,
                          total_propositions=0, correct_propositions=0,
@@ -68,6 +68,9 @@ def record_of(conn, sub) -> RecordOut:
     result = kbp.score.score_service.score(target, sub)
     return RecordOut(fingerprint=target.fingerprint,
                      fms=kbp.score.score_service.fms(result),
+                     concepts=[ConceptOut(concept_id=c.concept_id, label=c.label)
+                               for c in kit.concepts],
+                     connections=list(kit.connections),
                      target_propositions=[Vec2In(head_id=p.head_id,
                                                  connection=p.connection,
                                                  tail_id=p.tail_id)
