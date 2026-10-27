@@ -15,6 +15,7 @@ class ChatEngine:
     def __init__(self, transport=None) -> None:
         self._transport = transport
         self.last_raw = ""
+        self.last_discards: tuple = ()
 
     def extract(self, text: str, vocab: kbp.contracts.triple.Vocab,
                 config: kbp.contracts.extractconfig.ExtractConfig
@@ -24,4 +25,6 @@ class ChatEngine:
         body = kbp.extract.chat_client.chat(config, messages,
                                             transport=self._transport)
         self.last_raw = str(body)
-        return tuple(kbp.extract.normalize.to_candidates(body, vocab, text))
+        cands, drops = kbp.extract.normalize.collect(body, vocab, text)
+        self.last_discards = tuple(drops)
+        return tuple(cands)

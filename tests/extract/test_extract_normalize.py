@@ -33,6 +33,41 @@ def test_propositions_不是数组报错():
         normalize.to_candidates({"propositions": {}}, make_vocab())
 
 
+def test_越界连接词丢弃时记下原因():
+    got, drops = normalize.collect(body(prop("记忆", "包含", "编码")),
+                                   make_vocab())
+    assert got == []
+    assert [(d.head, d.connection, d.tail, d.reason) for d in drops] == [
+        ("记忆", "包含", "编码", normalize.REASON_UNKNOWN)]
+
+
+def test_自环与重复各记一条():
+    p = prop("记忆", "属于", "记忆")
+    q = prop("记忆", "属于", "认知")
+    _, drops = normalize.collect(body(p, q, dict(q)), make_vocab())
+    reasons = [d.reason for d in drops]
+    assert reasons == [normalize.REASON_SELF, normalize.REASON_DUPLICATE]
+
+
+def test_概念里塞连接词记原因():
+    _, drops = normalize.collect(body(prop("记忆属于认知", "属于", "编码")),
+                                 make_vocab())
+    assert drops[0].reason == normalize.REASON_STUFFED
+
+
+def test_结构不可用也记一条():
+    _, drops = normalize.collect(
+        body(prop("", "属于", "认知"), "不是对象"), make_vocab())
+    assert [d.reason for d in drops] == [normalize.REASON_UNUSABLE] * 2
+    assert drops[1].head == "" and drops[1].connection == ""
+
+
+def test_正常候选不产生丢弃():
+    got, drops = normalize.collect(body(prop("记忆", "属于", "认知")),
+                                   make_vocab())
+    assert len(got) == 1 and drops == []
+
+
 def test_证据缺失时退回原文首句():
     got = normalize.to_candidates(body(prop("记忆", "属于", "认知")),
                                   make_vocab(), "记忆属于认知。第二句。")

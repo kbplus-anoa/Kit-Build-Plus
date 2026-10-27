@@ -14,7 +14,7 @@
 | `schemas_tam.py` | TAM 量表的请求/响应模型，独立成文件以避开 200 行上限 |
 | `config_store.py` | 抽取配置表（一行一条）的读写 |
 | `routes_config.py` | `GET/PUT /api/config`：读写配置；**只回显密钥是否已配置** |
-| `routes_text.py` | `/api/ingest`、`/api/extract`、`/api/kit/auto`（先查题库，命中不重抽） |
+| `routes_text.py` | `/api/ingest`、`/api/extract`、`/api/kit/auto`（先查题库，命中不重抽）；丢弃写进机器侧留档 |
 | `routes_flow.py` | `/api/adjudicate`（开发期）、`/api/kit`、`/api/lock`、`/api/draft`、`/api/submit`（回提交序号、内容指纹、FMS） |
 | `routes_data.py` | `/api/quiz`、`/api/export/subject`、`/api/export/question` |
 | `routes_tam.py` | `GET /api/tam/items`、`POST /api/tam/alpha`（只算不存） |

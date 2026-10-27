@@ -1,3 +1,4 @@
+import kbp.contracts.extraction
 import kbp.contracts.triple
 
 MAX_PROPOSITIONS = 400
@@ -11,8 +12,38 @@ SCORE_SUSPECT = 0.15  # 可疑的上限分：一律排到最后
 OUT_OF_ORDER = 0.6  # 出现位置与模型输出顺序不一致时的折扣
 
 
+REASON_UNUSABLE = "结构不可用"  # 不是对象，或缺头/尾/连接词
+REASON_UNKNOWN = "连接词不在词表"
+REASON_SELF = "自环"
+REASON_STUFFED = "概念里含连接词"
+REASON_DUPLICATE = "重复"
+
+
 class ParseError(ValueError):
     """模型输出结构不可用。"""
+
+
+def collect(body: dict, vocab: kbp.contracts.triple.Vocab,
+            text: str = "") -> tuple[list[kbp.contracts.triple.TripleCandidate],
+                                     list[kbp.contracts.extraction.
+                                          DiscardedCandidate]]:
+    """收口一次模型输出，同时给出被丢掉的那些与原因（D12 留档用）。"""
+    raw = body.get("propositions")
+    if raw is None:
+        raise ParseError("缺少 propositions 字段")
+    if not isinstance(raw, list):
+        raise ParseError("propositions 不是数组")
+    allowed = set(vocab.connections)
+    seen: set[tuple[str, str, str]] = set()
+    out: list[kbp.contracts.triple.TripleCandidate] = []
+    drops: list[kbp.contracts.extraction.DiscardedCandidate] = []
+    for item in raw[:MAX_PROPOSITIONS]:
+        cand, reason = _judge(item, allowed, seen, text)
+        if cand is None:
+            drops.append(_drop(item, reason))
+        else:
+            out.append(cand)
+    return _rank(out, text), drops
 
 
 def to_candidates(body: dict, vocab: kbp.contracts.triple.Vocab,
@@ -23,41 +54,39 @@ def to_candidates(body: dict, vocab: kbp.contracts.triple.Vocab,
     不依赖模型自觉。置信度不用模型自报的（它几乎恒为 1），
     改成本地代理分：evidence 逐字命中原文才算实，排在前面。
     """
-    raw = body.get("propositions")
-    if raw is None:
-        raise ParseError("缺少 propositions 字段")
-    if not isinstance(raw, list):
-        raise ParseError("propositions 不是数组")
-    allowed = set(vocab.connections)
-    seen: set[tuple[str, str, str]] = set()
-    out: list[kbp.contracts.triple.TripleCandidate] = []
-    for item in raw[:MAX_PROPOSITIONS]:
-        cand = _one(item, allowed, seen, text)
-        if cand is not None:
-            out.append(cand)
-    return _rank(out, text)
+    return collect(body, vocab, text)[0]
 
 
-def _one(item, allowed: set, seen: set, text: str):
+def _judge(item, allowed: set, seen: set, text: str):
     if not isinstance(item, dict):
-        return None
+        return None, REASON_UNUSABLE
     head = _text(item.get("head"))
     tail = _text(item.get("tail"))
     connection = _text(item.get("connection"))
-    if not head or not tail or connection not in allowed:
-        return None
+    if not head or not tail or not connection:
+        return None, REASON_UNUSABLE
+    if connection not in allowed:
+        return None, REASON_UNKNOWN
     if head == tail:
-        return None
+        return None, REASON_SELF
     if _stuffed(head, allowed) or _stuffed(tail, allowed):
-        return None
+        return None, REASON_STUFFED
     key = (head, connection, tail)
     if key in seen:
-        return None
+        return None, REASON_DUPLICATE
     seen.add(key)
     return kbp.contracts.triple.TripleCandidate(
         head=head, connection=connection, tail=tail, confidence=0.0,
         evidence=_evidence(item, text),
-        suspect=len(head) > MAX_CONCEPT or len(tail) > MAX_CONCEPT)
+        suspect=len(head) > MAX_CONCEPT or len(tail) > MAX_CONCEPT), ""
+
+
+def _drop(item, reason: str) -> kbp.contracts.extraction.DiscardedCandidate:
+    """丢掉的东西也要能查：头尾与连接词原样留，够不上就留空串。"""
+    get = item.get if isinstance(item, dict) else lambda _key: None
+    return kbp.contracts.extraction.DiscardedCandidate(
+        head=_text(get("head")), connection=_text(get("connection")),
+        tail=_text(get("tail")), reason=reason)
 
 
 def _stuffed(value: str, allowed: set) -> bool:

@@ -2,6 +2,7 @@
 
 import json
 
+import kbp.contracts.extraction as extraction
 import kbp.contracts.triple as triple
 import kbp.extract.extract_service as service
 import kbp.extract.prompt as prompt
@@ -127,3 +128,41 @@ def test_留档记录原文指纹与统计量():
 def test_相同原文指纹相同_不同原文指纹不同():
     assert service.sha256("abc") == service.sha256("abc")
     assert service.sha256("abc") != service.sha256("abd")
+
+
+class DropEngine:
+    """每段都记一条丢弃的假引擎，用来验证丢弃能一路带回来。"""
+
+    def __init__(self):
+        self.last_discards = ()
+        self.calls = 0
+
+    def extract(self, text, vocab, config):
+        self.calls += 1
+        self.last_discards = (extraction.DiscardedCandidate(
+            head="记忆", connection="包含", tail="编码",
+            reason="连接词不在词表"),)
+        return ()
+
+
+def test_丢弃随分段抽取一路带回():
+    engine = DropEngine()
+    result, drops = service.extract_and_discards("甲。\n\n乙。", make_vocab(),
+                                                 make_config(), engine)
+    assert engine.calls == 2
+    assert result.triples == ()
+    assert len(drops) == 2 and drops[0].reason == "连接词不在词表"
+
+
+def test_extract_仍只回结果():
+    result = service.extract("甲。", make_vocab(), make_config(), DropEngine())
+    assert result.triples == ()
+
+
+def test_留档带上丢弃():
+    engine = DropEngine()
+    result, drops = service.extract_and_discards("甲。", make_vocab(),
+                                                 make_config(), engine)
+    record = service.record(result, "b1", make_config(), "甲。",
+                            created_at="t", discards=drops)
+    assert record.discards == drops

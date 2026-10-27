@@ -6,6 +6,20 @@ from kbp.contracts.triple import TripleCandidate, Vocab
 
 
 @dataclass(frozen=True)
+class DiscardedCandidate:
+    """extract 契约：机器侧丢掉的一条候选，留档用。
+
+    人工裁定留档另有一本（adjudication），两者不混：这里记的是
+    "模型给了、但按词表规则不收"的原始三元组与原因。
+    """
+
+    head: str  # 模型给的头实体；可空（结构不可用时拿不到）
+    connection: str  # 模型给的连接词；可空
+    tail: str  # 模型给的尾实体；可空
+    reason: str  # 丢弃原因的中文短名；不可空
+
+
+@dataclass(frozen=True)
 class ExtractionRecord:
     """extract 契约：一次抽取的留档，供事后追溯“这条命题当初怎么抽出来的”。
 
@@ -24,6 +38,7 @@ class ExtractionRecord:
     created_at: str  # 抽取时间，ISO 8601；不可空
     map_version: str = ""  # 冻结成图后的版本号；可空（尚未冻结时为空串）
     fingerprint: str = ""  # 冻结成图后的内容指纹；可空（尚未冻结时为空串）
+    discards: tuple[DiscardedCandidate, ...] = ()  # 机器侧丢弃的候选；可为空元组
 
 
 class ExtractPort(Protocol):

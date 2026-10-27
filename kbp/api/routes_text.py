@@ -10,6 +10,7 @@ import kbp.api.deps
 import kbp.contracts.extractconfig
 import kbp.contracts.triple
 import kbp.extract.chat_client
+import kbp.extract.discard_store
 import kbp.extract.extract_service
 import kbp.extract.quality
 import kbp.extract.threshold_store
@@ -117,7 +118,10 @@ def kit_auto(body: KitAutoIn) -> KitAutoOut:
         target, kit = kbp.kit.kit_service.bank_kit(entry)
         return _kit_out(kit, target, from_bank=True)
     try:
-        result = kbp.extract.extract_service.extract(body.text, vocab, _config())
+        result, drops = kbp.extract.extract_service.extract_and_discards(
+            body.text, vocab, _config())
+        digest = kbp.extract.extract_service.sha256(body.text)
+        kbp.extract.discard_store.save(conn, digest, vocab, drops, _now())
         target, kit, _ = kbp.kit.kit_service.freeze_to_bank(
             conn, body.material_id, result, _now(), body.map_version,
             usage=kbp.rebuild.usage.SubmissionUsage(conn))

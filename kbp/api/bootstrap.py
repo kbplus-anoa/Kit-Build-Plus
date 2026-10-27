@@ -33,6 +33,7 @@ def create_schema(conn) -> None:
     import quiz_store
     import store as kit_store
     import kbp.api.config_store
+    import kbp.extract.discard_store
     import kbp.extract.threshold_store
     import kbp.kit.bank_store
     kit_store.ensure(conn)
@@ -41,6 +42,7 @@ def create_schema(conn) -> None:
     quiz_store.ensure(conn)
     kbp.api.config_store.ensure(conn)
     kbp.extract.threshold_store.ensure(conn)
+    kbp.extract.discard_store.ensure(conn)
 
 
 def open_db():

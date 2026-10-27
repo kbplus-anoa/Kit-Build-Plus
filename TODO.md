@@ -5,7 +5,7 @@
 
 ## 交接
 
-已验证：.venv/bin/python -m pytest 414 passed；.venv/bin/python -m flake8 . 退出 0；GET / 返 200。
+已验证：.venv/bin/python -m pytest 431 passed；.venv/bin/python -m flake8 . 退出 0；GET / 返 200。
 真实调用已跑通：本机 OpenAI 兼容代理 127.0.0.1:8788，deepseek-v4.1-flash，8 句教材得 5 条、0 越界、31.85s。
 TAM 已通：GET /api/tam/items 出 14 题，POST /api/tam/alpha 按构念算 α。
 
@@ -23,6 +23,7 @@ TAM 已通：GET /api/tam/items 出 14 题，POST /api/tam/alpha 按构念算 α
 7 密钥只走环境变量，不进文件、日志、响应、commit
 8 测完服务用 fuser -k 端口/tcp；pkill -f uvicorn 会连承载 shell 一起杀掉
 9 pydantic 字段名不能叫 construct，会与 BaseModel 自带方法撞名
+10 变异验证后必须删 __pycache__：改回同长度的源码若落在同一秒，pyc 被认为有效，跑的还是旧代码
 
 ## 上一轮
 
@@ -74,7 +75,8 @@ TAM 已通：GET /api/tam/items 出 14 题，POST /api/tam/alpha 按构念算 α
 
 - [x] 抽崩阈值配置化：写进配置项，记录基线来源与样本量；冻结图出现前阈值留空并标未校准（D08）。
       已落 `quality_thresholds` 单行表与 `Thresholds` 契约；未校准时信号只带原值。
-- [ ] 越界丢弃留档：机器侧一本，与人工裁定留档分开（D12）
+- [x] 越界丢弃留档：机器侧一本，与人工裁定留档分开（D12）。
+      丢弃由 normalize.collect 收口，引擎逐段带回，落 `discarded_candidate` 表。
 - [ ] ExtractionRecord 落库：原始输出与配置快照存库，不进 CSV
 
 ### 阶段 5 ingest

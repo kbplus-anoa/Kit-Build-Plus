@@ -9,8 +9,9 @@
 | `prompt.py` | 提示词构造：词表入提示、要求有向三元组、JSON Output 的样例与 json 字样 |
 | `chat_client.py` | OpenAI 兼容接口的最小客户端；密钥只从环境变量读；空 content 与限流重试 |
 | `engine.py` | `ChatEngine`：`extract(文本, 词表, 配置)` 的实现，协议与供应商无关 |
-| `normalize.py` | 模型输出 → 契约三元组，唯一收口处：越界/自环/重复/概念里塞连接词一律丢弃；置信度是本地代理分 |
-| `extract_service.py` | `extract(text, vocab, config, engine)`：编排；`record` 产出留档；`sha256` |
+| `normalize.py` | 模型输出 → 契约三元组，唯一收口处：越界/自环/重复/概念里塞连接词一律丢弃并记原因；置信度是本地代理分 |
+| `extract_service.py` | `extract(text, vocab, config, engine)`：编排；`extract_and_discards` 连逐段丢弃一起带回；`record` 产出留档；`sha256` |
+| `discard_store.py` | 丢弃留档：按原文指纹存头/连接/尾与原因；与人工裁定留档分开 |
 | `quality.py` | `assess(result, text, thresholds)`：抽崩检测 S1–S4；未校准只记原值不判；不改结果不拦流程 |
 | `threshold_store.py` | 阈值组落库（单行）；无行即未校准；写入须记基线来源与样本量 |
 | `window.py` | 按空行分段，超长段按字上限硬切；`merge_key` 去重键 |
@@ -50,6 +51,12 @@
 `threshold` 为空、`triggered` 为假，也不出「可能不可信」提示。
 命题数少于 `min_props` 时只记录不提示。提示文案固定为
 「本次组件抽取可能不可信，您可重新抽取（原因）」。
+
+## 越界丢弃留档
+
+丢弃不静默：`normalize.collect` 同时给候选与丢弃（头/连接/尾 + 原因），
+引擎每段把丢弃放在 `last_discards`，服务层跨段汇总，接口写进 `discarded_candidate`。
+表按原文指纹查，与人工裁定留档是两本，互不合并。
 
 配置见 `kbp/contracts/extractconfig.py`；抽取档案见 `kbp/contracts/extraction.py`。
 
