@@ -15,7 +15,7 @@
 | `record_store.py` | 抽取留档落库：批次主键，存配置快照、候选、丢弃、原始输出与段数；冻结后回填图版本与指纹 |
 | `quality.py` | `assess(result, text, thresholds)`：抽崩检测 S1–S4；未校准只记原值不判；不改结果不拦流程 |
 | `threshold_store.py` | 阈值组落库（单行）；无行即未校准；写入须记基线来源与样本量 |
-| `window.py` | 按空行分段，超长段按字上限硬切；`merge_key` 去重键 |
+| `window.py` | 按空行分段，短段装进同一个窗口（上限 max_chars），超长段才按字上限硬切；`merge_key` 去重键 |
 
 ## 协议与供应商
 

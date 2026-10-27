@@ -1,6 +1,9 @@
+import re
+
 DEFAULT_WINDOW = 480
 DEFAULT_OVERLAP = 80
 MAX_WINDOWS = 4000
+BLANK = re.compile(r"\n\s*\n+")
 
 
 def split(text: str, window: int = DEFAULT_WINDOW,
@@ -17,23 +20,41 @@ def split(text: str, window: int = DEFAULT_WINDOW,
         raise ValueError("window 必须为正")
     if overlap < 0 or overlap >= window:
         raise ValueError("overlap 须满足 0 <= overlap < window")
-    step = window - overlap
+    return _pack(_paragraphs(body), window, window - overlap)
+
+
+def _pack(paras: list[str], window: int, step: int) -> list[str]:
+    """短段装进同一个窗口，只有超长段才按字上限硬切。
+
+    一段就是一个空行分隔的语义块；窗口是模型一次能吃的量，
+    因此能把许多短段合并送出，而不必一段一次请求。
+    """
     chunks: list[str] = []
-    for para in _paragraphs(body):
-        chunks.extend(_cut(para, window, step))
+    buf = ""
+    for para in paras:
+        if len(para) > window:
+            if buf:
+                chunks.append(buf)
+                buf = ""
+            chunks.extend(_cut(para, window, step))
+        elif not buf:
+            buf = para
+        elif len(buf) + 2 + len(para) <= window:
+            buf = buf + "\n\n" + para
+        else:
+            chunks.append(buf)
+            buf = para
         if len(chunks) >= MAX_WINDOWS:
             return chunks[:MAX_WINDOWS]
-    return chunks
+    if buf:
+        chunks.append(buf)
+    return chunks[:MAX_WINDOWS]
 
 
 def _paragraphs(body: str) -> list[str]:
-    """先按空行与换行断开，让每段语义尽量完整。"""
-    out: list[str] = []
-    for line in body.splitlines():
-        line = line.strip()
-        if line:
-            out.append(line)
-    return out or [body]
+    """按空行断成语义段；段内换行保留，避免把同一句拆开。"""
+    parts = (part.strip() for part in BLANK.split(body))
+    return [part for part in parts if part] or [body]
 
 
 def _cut(para: str, window: int, step: int) -> list[str]:

@@ -60,8 +60,19 @@ def test_长段落按字上限硬切():
     assert chunks[0] == "甲" * 40
 
 
-def test_空行分段不跨段合并():
-    assert window.split("第一段\n\n第二段") == ["第一段", "第二段"]
+def test_短段装进同一个窗口():
+    assert window.split("第一段\n\n第二段") == ["第一段\n\n第二段"]
+
+
+def test_窗口放不下才分开():
+    assert window.split("第一段\n\n第二段", window=6) == ["第一段", "第二段"]
+
+
+def test_多行短文不再一行一段():
+    body = "\n\n".join("甲" * 5 for _ in range(300))
+    chunks = window.split(body, window=480)
+    assert all(len(chunk) <= 480 for chunk in chunks)
+    assert len(chunks) < 300
 
 
 def test_空文本不切():
@@ -148,7 +159,7 @@ class DropEngine:
 def test_丢弃随分段抽取一路带回():
     engine = DropEngine()
     result, drops = service.extract_and_discards("甲。\n\n乙。", make_vocab(),
-                                                 make_config(), engine)
+                                                 make_config(max_chars=3), engine)
     assert engine.calls == 2
     assert result.triples == ()
     assert len(drops) == 2 and drops[0].reason == "连接词不在词表"
@@ -183,7 +194,7 @@ class RawEngine:
 
 def test_留档带回原始输出与段数():
     details = service.extract_details("甲。\n\n乙。", make_vocab(),
-                                      make_config(), RawEngine())
+                                      make_config(max_chars=3), RawEngine())
     assert details.sections == 2
     assert details.raw == '{"propositions": []}\n{"propositions": []}'
     assert details.result.triples == ()
