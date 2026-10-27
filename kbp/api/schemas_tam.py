@@ -28,16 +28,24 @@ class TamItemsOut(BaseModel):
     items: list[TamItemOut]
 
 
-class TamScoreIn(BaseModel):
-    """一次作答：某人某题得几分；得分限 1–6，越界在本层就拒掉。"""
+class TamAnswerIn(BaseModel):
+    """一题的作答：题号须在量表内，得分限 1–6，越界在本层就拒掉。"""
 
-    participant_id: int = Field(ge=1)
     item_id: str = Field(min_length=1, max_length=20)
     score: float = Field(ge=LIKERT_MIN, le=LIKERT_MAX)
 
 
-class TamAlphaIn(BaseModel):
-    rows: list[TamScoreIn] = Field(default_factory=list, max_length=100000)
+class TamAnswersIn(BaseModel):
+    """整份量表作答：落库后 α 只从库算，不再由调用方送数。"""
+
+    participant_id: int = Field(ge=1)
+    answered_at: str = Field(default="", max_length=40)  # ISO 8601；空串取服务端当前时间
+    answers: list[TamAnswerIn] = Field(min_length=1, max_length=100)
+
+
+class TamSavedOut(BaseModel):
+    participant_id: int
+    saved: int
 
 
 class TamAlphaReportOut(BaseModel):

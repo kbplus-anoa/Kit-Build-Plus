@@ -1,7 +1,7 @@
 <!-- @zone code -->
 
 # quiz — 索引
-职责：题目、整卷作答、判对、百分制，另含 **TAM 量表条目与各构念 Cronbach α**。**不导出**，导出归 `export`。
+职责：题目、整卷作答、判对、百分制，另含 **TAM 量表条目、作答落库与各构念 Cronbach α**。**不导出**，导出归 `export`。
 
 > 本 feature 不在 SPEC 原定七个之内。它存在的理由：题级 CSV 需要
 > `question_id` / `答对` / `time_point` / `题型` / `内容维度`，
@@ -13,10 +13,12 @@
 | `quiz_store.py` | SQLite：题套表 + 逐题作答表，作答表键为四元关联键 + 题号；同一 quiz_id 不可改写，同键同题可更新 |
 | `scale.py` | TAM 14 题条目表（逐字原文），`items_of` / `item_ids` |
 | `alpha.py` | `cronbach_alpha`（样本方差口径）、`alpha_by_construct`（缺答整人剔除） |
+| `tam_store.py` | SQLite 量表作答表：一人一题一行，重答覆盖，读回形状即契约 `ScoreRow` |
 | `tests/quiz/test_grade.py` | 判对、百分制、漏答、空卷、非法题目与非法作答 |
 | `tests/quiz/test_quiz_store.py` | 题套读写、不可改写、逐题落库、时点隔离、重开可读 |
 | `tests/quiz/test_scale.py` | 14 题、题号唯一、构念题数、ATT 可选、不收人口学题 |
 | `tests/quiz/test_alpha.py` | 与 R 的 `psych::alpha` 对照、样本方差、缺答剔除、判据 |
+| `tests/quiz/test_tam_store.py` | 写入读回、同人同题覆盖、跨人同题并存、排序、空库 |
 
 ## 契约
 
@@ -38,12 +40,14 @@
 - TAM 用**六点** Likert（1 强不同意 … 6 强同意），源问卷自称五点，只取题目不取锚点
 - 量表来源 `https://www.wjx.cn/vm/wEMzgZc.aspx`，**人口学两题不收**；态度 ATT 标为可选
 - α 判据 0.7，按构念分别报；缺一题的人整人剔除
+- 量表作答按人按题落库，重答以最后一次为准，不追加行
 
 ## 为什么 TAM 条目与 α 落在 quiz
 
 TAM 的作答本来就落在题级长表里（CSV_PLAN H.5：`得分` 列存 1–6，时点为后测）。
 α 只能从作答算，条目与算法若另起一个 feature，
 就会出现"存一份、算一份"两处口径，迟早对不上——所以条目表与 α 跟作答同层。
-本 feature 只管**算**，作答落库仍等做题表（见 TODO）。
+因此作答（`tam_store.py`）也落在这一层：一人一题一行，重答覆盖；
+α 只从库里的作答算，报告可随时重算，不再由调用方送一份数进来现算。
 
 <!-- /@zone code -->

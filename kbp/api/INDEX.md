@@ -9,7 +9,7 @@
 |---|---|
 | `main.py` | FastAPI 实例、路由挂载、`/` 与 `/api/health` |
 | `deps.py` | 进程级数据库连接与写锁（两把锁分开，见下） |
-| `bootstrap.py` | 建表装配：各 feature 的 `ensure` + 抽取配置表、阈值表、抽取留档表、导出快照表；库默认落在仓库根 `tmp/kb.sqlite3` |
+| `bootstrap.py` | 建表装配：各 feature 的 `ensure` + 抽取配置表、阈值表、抽取留档表、导出快照表、量表作答表；库默认落在仓库根 `tmp/kb.sqlite3` |
 | `schemas.py` | 通用请求/响应模型，只做格式约束，不含业务规则 |
 | `schemas_tam.py` | TAM 量表的请求/响应模型，独立成文件以避开 200 行上限 |
 | `config_store.py` | 抽取配置表（一行一条）的读写 |
@@ -17,7 +17,7 @@
 | `routes_text.py` | `/api/ingest`、`/api/extract`、`/api/kit/auto`（先查题库，命中不重抽）；丢弃与整次抽取都落留档 |
 | `routes_flow.py` | `/api/adjudicate`（开发期）、`/api/kit`、`/api/lock`、`/api/draft`、`/api/submit`（回提交序号、内容指纹、FMS，并落被试级快照） |
 | `routes_data.py` | `/api/quiz`（落题级快照）、`GET /api/export/subject`、`GET /api/export/question`（三条件筛选，空即全选） |
-| `routes_tam.py` | `GET /api/tam/items`、`POST /api/tam/alpha`（只算不存） |
+| `routes_tam.py` | `GET /api/tam/items`、`POST /api/tam/answers`（整卷落库）、`GET /api/tam/alpha`（读库算） |
 
 `/api/ingest` 失败码：文件不存在 404、格式不支持 400、
 扫描件云端不可用（`MinerUUnavailable`）503、其它解析失败 502。
@@ -55,8 +55,9 @@
 命中就直接用（自动路的图没有 `batch_id`），没命中才回退人工裁定批次。
 
 TAM：`GET /api/tam/items` 出量表条目（六点上下限、判据、构念中文名、可选题）；
-`POST /api/tam/alpha` 按构念算 α，题号不在量表内返 400（原因里带题号），
-得分越界（不在 1–6）由本层模型返 422。本层**只算不存**，作答落库等题级表。
+`POST /api/tam/answers` 收整卷落库（一人一题一行，重答覆盖），题号不在量表内
+或同一份卷子同题两答返 400（原因里带题号），得分越界（不在 1–6）由本层模型返 422；
+`GET /api/tam/alpha` 按构念算 α，数只来自库里的作答，缺答整人剔除。
 
 `/api/extract` 的每条候选带 `confidence`（本地代理分，只用于排序）、`evidence`（逐字原文片段）与 `suspect`（概念过长等可疑项，不丢、排最后）。
 
