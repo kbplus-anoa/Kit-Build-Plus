@@ -12,6 +12,7 @@ import kbp.contracts.extraction as extraction
 import kbp.contracts.triple as triple
 import kbp.extract.discard_store as discard_store
 import kbp.extract.extract_service as extract_service
+import kbp.extract.record_store as record_store
 import kbp.extract.threshold_store as threshold_store
 from kbp.api.bootstrap import create_schema
 from kbp.contracts.quality import Thresholds
@@ -34,10 +35,10 @@ def client():
 
 
 def patch_extract(monkeypatch, fn):
-    """把编排层换成假实现：按给定结果返回，丢弃留档为空。"""
+    """把编排层换成假实现：按给定结果返回，丢弃与原始输出为空。"""
     def run(text, vocab, cfg=None, engine=None):
-        return fn(text, vocab, cfg, engine), ()
-    monkeypatch.setattr(extract_service, "extract_and_discards", run)
+        return extract_service.Details(result=fn(text, vocab, cfg, engine))
+    monkeypatch.setattr(extract_service, "extract_details", run)
 
 
 def cand(head, connection, tail, confidence=0.9):
@@ -263,10 +264,11 @@ def test_机器侧丢弃写进留档(client, monkeypatch):
     def run(text, vocab, cfg=None, engine=None):
         got = triple.ExtractionResult(
             vocab=vocab, triples=(cand("记忆", "包括", "短时记忆"),))
-        return got, (extraction.DiscardedCandidate(
-            head="记忆", connection="包含", tail="编码",
-            reason="连接词不在词表"),)
-    monkeypatch.setattr(extract_service, "extract_and_discards", run)
+        return extract_service.Details(result=got, discards=(
+            extraction.DiscardedCandidate(
+                head="记忆", connection="包含", tail="编码",
+                reason="连接词不在词表"),))
+    monkeypatch.setattr(extract_service, "extract_details", run)
     resp = client.post("/api/kit/auto",
                        json={"text": text, "vocab": VOCAB, "material_id": 1,
                              "map_version": "v1"})
@@ -274,6 +276,22 @@ def test_机器侧丢弃写进留档(client, monkeypatch):
     digest = extract_service.sha256(text)
     assert discard_store.by_text(deps.get_conn(), digest) == (
         ("记忆", "包含", "编码", "连接词不在词表"),)
+
+
+def test_自动裁kit后留档带版本与指纹(client, monkeypatch):
+    patch_extract(monkeypatch,
+                  lambda text, vocab, cfg=None, engine=None:
+                  triple.ExtractionResult(vocab=vocab, triples=(
+                      cand("记忆", "包括", "短时记忆"),)))
+    got = client.post("/api/kit/auto",
+                      json={"text": "甲", "vocab": VOCAB, "material_id": 1,
+                            "map_version": "v1"}).json()
+    rows = record_store.by_text(deps.get_conn(), extract_service.sha256("甲"))
+    assert len(rows) == 1
+    assert (rows[0].map_version, rows[0].fingerprint) == (
+        got["map_version"], got["fingerprint"])
+    assert rows[0].batch_id.startswith("auto-")
+    assert rows[0].triples[0].head == "记忆"
 
 
 def test_没有丢弃时不写丢弃表(client, fake):

@@ -1,4 +1,5 @@
 import hashlib
+from dataclasses import dataclass
 
 import kbp.contracts.extractconfig
 import kbp.contracts.extraction
@@ -15,11 +16,21 @@ class ExtractError(ValueError):
     """抽取不可进行（词表为空、配置不可用、未配密钥等）。"""
 
 
+@dataclass(frozen=True)
+class Details:
+    """一次抽取的全部产物：候选、丢弃、逐段原始输出与段数。"""
+
+    result: kbp.contracts.triple.ExtractionResult
+    discards: tuple = ()
+    raw: str = ""
+    sections: int = 0
+
+
 def extract(text: str, vocab: kbp.contracts.triple.Vocab,
             config: kbp.contracts.extractconfig.ExtractConfig | None = None,
             engine=None) -> kbp.contracts.triple.ExtractionResult:
     """编排入口：逐段抽取、按置信度合并去重。引擎可注入以便测试。"""
-    return extract_and_discards(text, vocab, config, engine)[0]
+    return extract_details(text, vocab, config, engine).result
 
 
 def extract_and_discards(
@@ -29,20 +40,31 @@ def extract_and_discards(
                               tuple[kbp.contracts.extraction.
                                     DiscardedCandidate, ...]]:
     """同 extract，另带回机器侧丢掉的候选，供留档（D12）。"""
+    got = extract_details(text, vocab, config, engine)
+    return got.result, got.discards
+
+
+def extract_details(
+        text: str, vocab: kbp.contracts.triple.Vocab,
+        config: kbp.contracts.extractconfig.ExtractConfig | None = None,
+        engine=None) -> Details:
+    """抽取的唯一实现：段数、原始输出与丢弃都随结果带回。"""
     cfg = config or kbp.contracts.extractconfig.default_config()
     _check(vocab, cfg)
     model = engine or kbp.extract.engine.ChatEngine()
     found: list[kbp.contracts.triple.TripleCandidate] = []
     drops: list[kbp.contracts.extraction.DiscardedCandidate] = []
+    raws: list[str] = []
     seen: set[tuple[str, str, str]] = set()
-    for chunk in kbp.extract.window.split(text, cfg.max_chars):
+    chunks = kbp.extract.window.split(text, cfg.max_chars)
+    for chunk in chunks:
         cands = model.extract(chunk, vocab, cfg)
         drops.extend(getattr(model, "last_discards", ()))
-        for cand in cands:
-            _keep(cand, seen, found)
-            if len(found) >= MAX_TRIPLES:
-                return _result(vocab, found), tuple(drops)
-    return _result(vocab, found), tuple(drops)
+        raws.append(getattr(model, "last_raw", "") or "")
+        _take(cands, seen, found)
+    return Details(result=_result(vocab, found), discards=tuple(drops),
+                   raw="\n".join(raw for raw in raws if raw),
+                   sections=len(chunks))
 
 
 def _check(vocab: kbp.contracts.triple.Vocab,
@@ -52,6 +74,14 @@ def _check(vocab: kbp.contracts.triple.Vocab,
     reason = kbp.contracts.extractconfig.config_error(cfg)
     if reason:
         raise ExtractError(reason)
+
+
+def _take(cands, seen, found) -> None:
+    """按上限收候选；到顶就停，后面的段不再进结果。"""
+    for cand in cands:
+        if len(found) >= MAX_TRIPLES:
+            return
+        _keep(cand, seen, found)
 
 
 def _keep(cand: kbp.contracts.triple.TripleCandidate, seen: set,

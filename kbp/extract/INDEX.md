@@ -10,8 +10,9 @@
 | `chat_client.py` | OpenAI 兼容接口的最小客户端；密钥只从环境变量读；空 content 与限流重试 |
 | `engine.py` | `ChatEngine`：`extract(文本, 词表, 配置)` 的实现，协议与供应商无关 |
 | `normalize.py` | 模型输出 → 契约三元组，唯一收口处：越界/自环/重复/概念里塞连接词一律丢弃并记原因；置信度是本地代理分 |
-| `extract_service.py` | `extract(text, vocab, config, engine)`：编排；`extract_and_discards` 连逐段丢弃一起带回；`record` 产出留档；`sha256` |
+| `extract_service.py` | `extract_details` 是唯一实现，一次带回候选、丢弃、逐段原始输出与段数；`extract` / `extract_and_discards` 是薄壳；`record` 产出留档；`sha256` |
 | `discard_store.py` | 丢弃留档：按原文指纹存头/连接/尾与原因；与人工裁定留档分开 |
+| `record_store.py` | 抽取留档落库：批次主键，存配置快照、候选、丢弃、原始输出与段数；冻结后回填图版本与指纹 |
 | `quality.py` | `assess(result, text, thresholds)`：抽崩检测 S1–S4；未校准只记原值不判；不改结果不拦流程 |
 | `threshold_store.py` | 阈值组落库（单行）；无行即未校准；写入须记基线来源与样本量 |
 | `window.py` | 按空行分段，超长段按字上限硬切；`merge_key` 去重键 |
@@ -43,6 +44,13 @@
 `evidence` 在原文里逐字命中得 1.0，对不上得 0.4，没证据也没原文得 0.2；
 位置与输出顺序不一致（越序）乘 0.6；概念超过 20 字置 `suspect` 并封顶 0.15、排在最后。
 同分按首次出现顺序，同一输入两次输出同序 —— 排序负责「先看哪条」，不负责丢人。
+
+## 抽取留档
+
+一次抽取一条，批次号由调用方给，同一批次不可覆盖。存原文指纹与字符数，不存正文；
+另存配置快照（供应商、模型、地址、超时、字上限、是否启用）、候选三元组、机器侧丢弃、
+逐段原始输出与段数。图冻结成功后回填 `map_version` 与 `fingerprint`，回填不到批次即报错。
+留档只在库内用于追溯，不进 CSV。
 
 ## 抽崩阈值
 

@@ -34,6 +34,7 @@ def create_schema(conn) -> None:
     import store as kit_store
     import kbp.api.config_store
     import kbp.extract.discard_store
+    import kbp.extract.record_store
     import kbp.extract.threshold_store
     import kbp.kit.bank_store
     kit_store.ensure(conn)
@@ -43,6 +44,7 @@ def create_schema(conn) -> None:
     kbp.api.config_store.ensure(conn)
     kbp.extract.threshold_store.ensure(conn)
     kbp.extract.discard_store.ensure(conn)
+    kbp.extract.record_store.ensure(conn)
 
 
 def open_db():

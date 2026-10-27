@@ -5,7 +5,7 @@
 
 ## 交接
 
-已验证：.venv/bin/python -m pytest 431 passed；.venv/bin/python -m flake8 . 退出 0；GET / 返 200。
+已验证：.venv/bin/python -m pytest 441 passed；.venv/bin/python -m flake8 . 退出 0；GET / 返 200。
 真实调用已跑通：本机 OpenAI 兼容代理 127.0.0.1:8788，deepseek-v4.1-flash，8 句教材得 5 条、0 越界、31.85s。
 TAM 已通：GET /api/tam/items 出 14 题，POST /api/tam/alpha 按构念算 α。
 
@@ -77,7 +77,8 @@ TAM 已通：GET /api/tam/items 出 14 题，POST /api/tam/alpha 按构念算 α
       已落 `quality_thresholds` 单行表与 `Thresholds` 契约；未校准时信号只带原值。
 - [x] 越界丢弃留档：机器侧一本，与人工裁定留档分开（D12）。
       丢弃由 normalize.collect 收口，引擎逐段带回，落 `discarded_candidate` 表。
-- [ ] ExtractionRecord 落库：原始输出与配置快照存库，不进 CSV
+- [x] ExtractionRecord 落库：原始输出与配置快照存库，不进 CSV。
+      自动路每批一条 `auto-*`，含候选、丢弃、原始输出与段数；冻结后回填版本与指纹。
 
 ### 阶段 5 ingest
 

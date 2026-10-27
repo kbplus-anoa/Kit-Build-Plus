@@ -43,6 +43,7 @@
 | `extraction` | 加 `map_version` / `fingerprint` 回填字段与 `ExtractionStore` | 留档要能追溯"这条命题出自哪张图" |
 | `quality` | `Signal.threshold` 可空；加 `Thresholds`（四阈值 + `min_props` + 基线来源与样本量 + `calibrated`）；`QualityReport` 加 `calibrated` / `baseline_n` / `baseline_source`；`assess` 加 `thresholds` | 阈值取开发期冻结图分位点；未校准只记录不提示（D08） |
 | `extraction` | 加 `DiscardedCandidate`，`ExtractionRecord` 加 `discards` | 越界丢弃也要留档；机器侧一本，与人工裁定留档分开（D12） |
+| `extraction.ExtractionStore` | 实现在 `kbp/extract/record_store.py`；一批一条，含原始输出与配置快照 | 自动路每次抽取留档，冻结后回填图版本与指纹 |
 
 全部有默认值，向后兼容。
 

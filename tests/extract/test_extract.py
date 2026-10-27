@@ -166,3 +166,24 @@ def test_留档带上丢弃():
     record = service.record(result, "b1", make_config(), "甲。",
                             created_at="t", discards=drops)
     assert record.discards == drops
+
+
+class RawEngine:
+    """每段回一段原始输出，用来验证留档的原始输出与段数。"""
+
+    def __init__(self):
+        self.last_raw = ""
+        self.calls = 0
+
+    def extract(self, text, vocab, config):
+        self.calls += 1
+        self.last_raw = '{"propositions": []}'
+        return ()
+
+
+def test_留档带回原始输出与段数():
+    details = service.extract_details("甲。\n\n乙。", make_vocab(),
+                                      make_config(), RawEngine())
+    assert details.sections == 2
+    assert details.raw == '{"propositions": []}\n{"propositions": []}'
+    assert details.result.triples == ()
