@@ -15,7 +15,7 @@
 | `config_store.py` | 抽取配置表（一行一条）的读写 |
 | `routes_config.py` | `GET/PUT /api/config`：读写配置；**只回显密钥是否已配置** |
 | `routes_text.py` | `/api/ingest`、`/api/extract`、`/api/kit/auto`（先查题库，命中不重抽） |
-| `routes_flow.py` | `/api/adjudicate`（开发期）、`/api/kit`、`/api/lock`、`/api/submit`（回提交序号、内容指纹、FMS） |
+| `routes_flow.py` | `/api/adjudicate`（开发期）、`/api/kit`、`/api/lock`、`/api/draft`、`/api/submit`（回提交序号、内容指纹、FMS） |
 | `routes_data.py` | `/api/quiz`、`/api/export/subject`、`/api/export/question` |
 | `routes_tam.py` | `GET /api/tam/items`、`POST /api/tam/alpha`（只算不存） |
 
@@ -43,6 +43,9 @@
 | 开发期 | `POST /api/adjudicate` → `POST /api/kit` | 是（逐条裁定） |
 
 自动路返回 `fingerprint`，导出与统计按它筛同一批人。
+
+`/api/submit` 与 `/api/draft` 取图走 `_kit_for`：先按 `material_id` + `map_version` 查题库，
+命中就直接用（自动路的图没有 `batch_id`），没命中才回退人工裁定批次。
 
 TAM：`GET /api/tam/items` 出量表条目（六点上下限、判据、构念中文名、可选题）；
 `POST /api/tam/alpha` 按构念算 α，题号不在量表内返 400（原因里带题号），

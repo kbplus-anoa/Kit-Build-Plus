@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException
 import kbp.contracts.adjudication
 import kbp.contracts.submission
 import kbp.api.deps
+import kbp.kit.bank_store
 import kbp.kit.kit_service
 import kbp.kit.lock
 import kbp.rebuild.rebuild_service
@@ -20,8 +21,8 @@ import kbp.contracts.triple
 import kbp.rebuild.draft_store
 import kbp.rebuild.usage
 from kbp.api.schemas import (
-    BatchIn, BatchOut, BuildKitIn, ConceptOut, KitOut, ReadyOut, SubmitIn,
-    SubmitOut)
+    BatchIn, BatchOut, BuildKitIn, ConceptOut, DraftIn, DraftOut, KitOut,
+    ReadyOut, SubmitIn, SubmitOut, Vec2In)
 
 router = APIRouter(prefix="/api", tags=["流程"])
 
@@ -76,13 +77,52 @@ def lock_state(map_version: str) -> ReadyOut:
                     locked=kbp.kit.lock.lock_state(map_version, port))
 
 
+def _kit_for(conn, material_id: int, map_version: str, batch_id: str = ""):
+    """先按版本号查题库；题库里没有才回到人工裁定批次。"""
+    entry = kbp.kit.bank_store.by_version(conn, material_id, map_version)
+    if entry is not None:
+        return entry.target_map, kbp.kit.split.split(entry.target_map)
+    target = kbp.kit.kit_service.freeze_batch(conn, batch_id, map_version)
+    return target, kbp.kit.split.split(target)
+
+
+@router.post("/draft", response_model=DraftOut)
+def save_draft(body: DraftIn) -> DraftOut:
+    """保存草稿：按 kit 白名单校验，作答期随时可改，关联键同提交。"""
+    conn = kbp.api.deps.get_conn()
+    with kbp.api.deps.db_lock():
+        try:
+            target, kit = _kit_for(conn, body.material_id, body.map_version,
+                                   body.batch_id)
+            draft = _draft(body, target.fingerprint)
+            kbp.rebuild.rebuild_service.save_draft(conn, kit, draft)
+        except kbp.kit.bank_store.BankError as exc:
+            raise HTTPException(404, str(exc))
+        except Exception as exc:
+            raise HTTPException(400, str(exc))
+    return _draft_out(draft)
+
+
+@router.get("/draft", response_model=DraftOut)
+def load_draft(participant_id: int, material_id: int, time_point: str,
+               submit_seq: int) -> DraftOut:
+    """读回该四元键的草稿；没有就 404。"""
+    try:
+        draft = kbp.rebuild.rebuild_service.load_draft(
+            kbp.api.deps.get_conn(), participant_id, material_id, time_point,
+            submit_seq)
+    except kbp.rebuild.draft_store.DraftError as exc:
+        raise HTTPException(404, str(exc))
+    return _draft_out(draft)
+
+
 @router.post("/submit")
 def submit(body: SubmitIn) -> SubmitOut:
     """提交并立即评分。服务端分配提交序号，学习模式多次提交各自成行。"""
     conn = kbp.api.deps.get_conn()
     try:
-        target = kbp.kit.kit_service.freeze_batch(conn, body.batch_id, body.map_version)
-        kit = kbp.kit.split.split(target)
+        target, kit = _kit_for(conn, body.material_id, body.map_version,
+                               body.batch_id)
     except Exception as exc:
         raise HTTPException(404, "批次不可用: " + str(exc))
     with kbp.api.deps.db_lock():
@@ -117,6 +157,28 @@ def _submission(body: SubmitIn, fingerprint: str, seq: int):
         started_at="", submitted_at=_now(),
         participant_id=body.participant_id, material_id=body.material_id,
         time_point=body.time_point, submit_seq=seq)
+
+
+def _draft(body: DraftIn, fingerprint: str):
+    return kbp.contracts.submission.Draft(
+        map_version=body.map_version, fingerprint=fingerprint, mode=body.mode,
+        propositions=tuple(kbp.contracts.submission.SubmittedProposition(
+            head_id=p.head_id, connection=p.connection, tail_id=p.tail_id)
+            for p in body.propositions),
+        participant_id=body.participant_id, material_id=body.material_id,
+        time_point=body.time_point, submit_seq=body.submit_seq,
+        saved_at=_now())
+
+
+def _draft_out(draft) -> DraftOut:
+    return DraftOut(
+        map_version=draft.map_version, fingerprint=draft.fingerprint,
+        mode=draft.mode, participant_id=draft.participant_id,
+        material_id=draft.material_id, time_point=draft.time_point,
+        submit_seq=draft.submit_seq,
+        propositions=[Vec2In(head_id=p.head_id, connection=p.connection,
+                             tail_id=p.tail_id) for p in draft.propositions],
+        saved_at=draft.saved_at)
 
 
 def _now() -> str:

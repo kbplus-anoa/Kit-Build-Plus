@@ -65,10 +65,10 @@ TAM 已通：GET /api/tam/items 出 14 题，POST /api/tam/alpha 按构念算 α
 
 ### 阶段 3 rebuild
 
-- [ ] 学习模式允许回改重交：按 mode 放行，submit_seq 自增；测验模式仍锁一次
-- [ ] 白名单校验挂到编辑动作：草稿保存也按 kit 校验，覆盖提交后回改（D11）
-- [ ] 草稿 HTTP 入口：POST/GET /api/draft，接 rebuild_service.save_draft
-- [ ] 提交落库带指纹、时点、提交序号
+- [x] 学习模式允许回改重交：按 mode 放行，submit_seq 自增；测验模式仍锁一次
+- [x] 白名单校验挂到编辑动作：草稿保存也按 kit 校验，覆盖提交后回改（D11）
+- [x] 草稿 HTTP 入口：POST/GET /api/draft，接 rebuild_service.save_draft
+- [x] 提交落库带指纹、时点、提交序号
 
 ### 阶段 4 extract
 

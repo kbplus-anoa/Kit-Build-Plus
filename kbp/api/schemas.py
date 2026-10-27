@@ -168,7 +168,7 @@ class Vec2In(BaseModel):
 class SubmitIn(BaseModel):
     """提交：关联键为四元组，学习模式靠 submit_seq 区分多次提交。"""
 
-    batch_id: str = Field(min_length=1, max_length=100)
+    batch_id: str = Field(default="", max_length=100)  # 人工裁定批次；自动裁出的图走题库
     map_version: str = Field(min_length=1, max_length=50)
     mode: str
     participant_id: int = Field(ge=1)
@@ -183,6 +183,33 @@ class SubmitOut(BaseModel):
     submit_seq: int
     fingerprint: str
     fms: float  # FMS，0~100；文献口径，不是 0~1
+
+
+class DraftIn(BaseModel):
+    """草稿：作答期可反复保存，关联键同提交。"""
+
+    batch_id: str = Field(default="", max_length=100)
+    map_version: str = Field(min_length=1, max_length=50)
+    mode: str
+    participant_id: int = Field(ge=1)
+    material_id: int = Field(ge=1)
+    time_point: str = Field(min_length=1, max_length=20)
+    submit_seq: int = Field(ge=1)
+    propositions: list[Vec2In] = Field(max_length=500)
+
+
+class DraftOut(BaseModel):
+    """草稿回执：带上该图指纹与保存时间。"""
+
+    map_version: str
+    fingerprint: str
+    mode: str
+    participant_id: int
+    material_id: int
+    time_point: str
+    submit_seq: int
+    propositions: list[Vec2In]
+    saved_at: str
 
 
 class ErrorOut(BaseModel):
