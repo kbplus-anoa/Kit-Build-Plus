@@ -36,6 +36,15 @@ def ordered_propositions(edges: list[tuple[str, str, str]]) -> list[tuple]:
     return out
 
 
+def next_version(versions: tuple[str, ...]) -> str:
+    """分配新版本号：已占用的 vN 里取最大 N 加一，空库从 v1 起。
+
+    v 号只区分"第几版"，不区分内容；同一张图靠指纹认，不靠版本号。
+    """
+    numbers = [int(v[1:]) for v in versions if v.startswith("v") and v[1:].isdigit()]
+    return "v" + str(max(numbers) + 1 if numbers else 1)
+
+
 def fingerprint(target: kbp.contracts.targetmap.TargetMap) -> str:
     """按内容算指纹：与编号、输入顺序无关，只认结构。
 

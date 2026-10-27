@@ -12,7 +12,7 @@
 | `quality.py` | Signal、QualityReport、assess 签名 | extract → api（抽崩体检） |
 | `adjudication.py` | Adjudication、AdjudicationLog、MapUsagePort | kit → rebuild（反向注入） |
 | `targetmap.py` | Concept、Proposition、TargetMap、Kit、content_fingerprint | kit → rebuild、score |
-| `targetbank.py` | BankEntry、check_entry、same_map、TargetMapBank 协议 | kit → kit 存储与 api（题库命中）；来源枚举 adjudicated / auto |
+| `targetbank.py` | BankEntry（含来源批次 batch_id）、check_entry、same_map、TargetMapBank 协议 | kit → kit 存储与 api（题库命中）；来源枚举 adjudicated / auto |
 | `submission.py` | 四元关联键 `KEY_FIELDS`、`check_key`、SubmittedProposition、Submission、Draft、模式与时点枚举 | rebuild → score、quiz、export |
 | `report.py` | ErrorChain、ScoreResult、四类错误枚举 | score → export |
 | `quizsheet.py` | Question、Answer、QuizRecord | quiz → export |

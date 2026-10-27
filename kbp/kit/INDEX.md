@@ -9,8 +9,9 @@
 | `freeze.py` | `freeze_auto(result, ver)`：运行期自动路；`freeze(log, ver)`：开发期人工路 |
 | `split.py` | `split(target)`：只留零件，未被命题用到的零件不入 kit |
 | `store.py` | SQLite：裁定表 + 词表表；同批次不可覆盖、词表不可静默改写 |
+| `bank_store.py` | SQLite 题库 `target_map`：版本号与内容指纹唯一，概念/命题/词表整份存 |
 | `lock.py` | 改图前门槛：已被学生用过即拒改（`MapUsagePort` 注入） |
-| `kit_service.py` | 编排入口：`build_kit_auto` / `build_kit` / `adjudicate` |
+| `kit_service.py` | 编排入口：`build_kit_auto` / `build_kit` / `adjudicate` / `bank_find` / `freeze_to_bank` |
 
 ## 两条路
 
@@ -35,5 +36,13 @@
 表结构：
 - `vocab(vocab_id, vocab_version, connections)` —— 词表整份存，避免从用量反推而丢词
 - `adjudication(batch_id, head, connection, tail, confidence, decision, reason)`
+- `target_map(material_id, map_version, fingerprint, vocab_id, vocab_version, source, in_use, created_at, batch_id, connections, concepts, propositions)`
+
+## 题库命中
+
+命中条件是教材 + 词表版本：同教材同词表已有冻结图，直接复用，不再调模型。
+未命中才抽取：冻结后先按内容指纹查重，同指纹回旧图，不新开版本；不同指纹才登记新版本。
+期望版本号被占就往后排（v 号只区分第几版，同一张图靠指纹认）。
+入库前过 `lock.assert_mutable`，已投用版本拒改。
 
 <!-- /@zone code -->

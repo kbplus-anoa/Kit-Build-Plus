@@ -21,6 +21,7 @@ class BankEntry:
     in_use: bool  # 是否已投用，投用后拒改也不重抽；不可空
     created_at: str  # 入库时间，ISO 8601；不可空
     target_map: TargetMap  # 冻结后的目标图，自带版本号与内容指纹；不可空
+    batch_id: str = ""  # 来源抽取批次，便于回溯到裁定记录；可空（运行期自动路无批次）
 
 
 def check_entry(entry: BankEntry) -> str:
