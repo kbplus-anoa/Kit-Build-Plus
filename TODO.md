@@ -57,10 +57,11 @@ TAM 已通：GET /api/tam/items 出 14 题，POST /api/tam/alpha 按构念算 α
 
 ### 阶段 2 kit 落库与题库命中
 
-- [ ] target_map 表落库：版本、指纹、概念、命题、来源批次、创建时间、是否投用
-- [ ] /api/kit/auto 先查题库，命中已有指纹直接返回，不再重抽
-- [ ] 未命中才自动抽，冻结成新版本新指纹，不复用旧版本号
-- [ ] 已投用版本拒改：lock.assert_mutable 接到落库与新版本入口，/api/lock 只查询不够
+- [x] target_map 表落库：版本、指纹、概念、命题、来源批次、创建时间、是否投用
+- [x] /api/kit/auto 先查题库（教材 + 词表版本），命中直接复用，不再重抽
+- [x] 未命中才自动抽，冻结成新版本新指纹，不复用旧版本号
+- [x] 已投用版本拒改：lock.assert_mutable 接在落库入口
+- [ ] 人工裁定路（/api/kit/build）冻结后落库：缺 material_id 关联，待补
 
 ### 阶段 3 rebuild
 

@@ -1,9 +1,12 @@
 """教材侧路由：读原文、抽取候选、运行期自动裁 kit。"""
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, HTTPException
 
 
 import kbp.api.config_store
+import kbp.api.deps
 import kbp.contracts.extractconfig
 import kbp.contracts.triple
 import kbp.extract.chat_client
@@ -11,7 +14,10 @@ import kbp.extract.extract_service
 import kbp.extract.quality
 import kbp.ingest.ingest_service
 import kbp.ingest.ocr
+import kbp.kit.bank_store
 import kbp.kit.kit_service
+import kbp.kit.lock
+import kbp.rebuild.usage
 from kbp.api.schemas import (
     ConceptOut, ExtractIn, ExtractOut, IngestIn, IngestOut, KitAutoIn, KitAutoOut,
     SignalOut, TripleOut)
@@ -73,31 +79,54 @@ def extract(body: ExtractIn) -> ExtractOut:
                  for t in result.triples])
 
 
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def _signals(report) -> list[SignalOut]:
+    return [SignalOut(name=s.name, label=s.label, value=s.value,
+                      threshold=s.threshold, triggered=s.triggered)
+            for s in report.signals]
+
+
+def _kit_out(kit, target, report=None, from_bank=False) -> KitAutoOut:
+    return KitAutoOut(
+        map_version=kit.map_version,
+        concepts=[ConceptOut(concept_id=c.concept_id, label=c.label)
+                  for c in kit.concepts],
+        connections=list(kit.connections),
+        total_propositions=len(target.propositions),
+        fingerprint=target.fingerprint, from_bank=from_bank,
+        possibly_inaccurate=bool(report and report.possibly_inaccurate),
+        message=report.message if report else "",
+        signals=_signals(report) if report else [])
+
+
 @router.post("/kit/auto", response_model=KitAutoOut)
 def kit_auto(body: KitAutoIn) -> KitAutoOut:
-    """运行期自动裁 kit：文本 → 抽取 → 冻结 → 拆零件，全程无人裁定。"""
+    """运行期自动裁 kit：先查题库，命中即复用；未命中才抽取并登记新版本。"""
     vocab = _to_vocab(body.vocab)
+    conn = kbp.api.deps.get_conn()
+    entry = kbp.kit.kit_service.bank_find(conn, body.material_id,
+                                          vocab.vocab_version)
+    if entry is not None:
+        target, kit = kbp.kit.kit_service.bank_kit(entry)
+        return _kit_out(kit, target, from_bank=True)
     try:
         result = kbp.extract.extract_service.extract(body.text, vocab, _config())
-        target, kit = kbp.kit.kit_service.build_kit_auto(result, body.map_version)
+        target, kit, _ = kbp.kit.kit_service.freeze_to_bank(
+            conn, body.material_id, result, _now(), body.map_version,
+            usage=kbp.rebuild.usage.SubmissionUsage(conn))
     except kbp.extract.extract_service.ExtractError as exc:
         raise HTTPException(400, str(exc))
     except kbp.extract.chat_client.MissingKey as exc:
         raise HTTPException(503, str(exc))
     except kbp.kit.freeze.FreezeError as exc:
         raise HTTPException(422, "抽出的图不足以成题: " + str(exc))
+    except kbp.kit.bank_store.BankError as exc:
+        raise HTTPException(409, "题库拒绝登记: " + str(exc))
+    except kbp.kit.lock.LockError as exc:
+        raise HTTPException(409, str(exc))
     except Exception as exc:
         raise HTTPException(503, "自动裁 kit 不可用: " + str(exc))
-    report = kbp.extract.quality.assess(result, body.text)
-    return KitAutoOut(map_version=kit.map_version,
-                      concepts=[ConceptOut(concept_id=c.concept_id, label=c.label)
-                                for c in kit.concepts],
-                      connections=list(kit.connections),
-                      total_propositions=len(target.propositions),
-                      fingerprint=target.fingerprint,
-                      possibly_inaccurate=report.possibly_inaccurate,
-                      message=report.message,
-                      signals=[SignalOut(name=s.name, label=s.label, value=s.value,
-                                         threshold=s.threshold,
-                                         triggered=s.triggered)
-                               for s in report.signals])
+    return _kit_out(kit, target, kbp.extract.quality.assess(result, body.text))

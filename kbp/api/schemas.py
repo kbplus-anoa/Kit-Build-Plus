@@ -134,20 +134,22 @@ class SignalOut(BaseModel):
 
 
 class KitAutoOut(KitOut):
-    """自动路：多回一个内容指纹，供导出与统计筛同一批人。"""
+    """自动路：多回内容指纹，并说明这张图是复用的还是新抽的。"""
 
     fingerprint: str
-    possibly_inaccurate: bool = False
+    from_bank: bool = False  # 是否命中题库（复用旧图，未调用模型）
+    possibly_inaccurate: bool = False  # 只描述本次抽取；命中题库时为 False
     message: str = ""
-    signals: list[SignalOut] = []
+    signals: list[SignalOut] = []  # 同上，命中题库时为空
 
 
 class KitAutoIn(BaseModel):
-    """运行期自动裁 kit：文本 + 词表 + 版本，无人裁定。"""
+    """运行期自动裁 kit：教材 + 文本 + 词表，无人裁定。"""
 
+    material_id: int = Field(ge=1)
     text: str = Field(min_length=1, max_length=MAX_TEXT)
     vocab: VocabIn
-    map_version: str = Field(min_length=1, max_length=50)
+    map_version: str = Field(default="", max_length=50)  # 期望版本号；被占用则自动往后排
 
 
 class ReadyOut(BaseModel):
