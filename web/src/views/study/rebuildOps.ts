@@ -54,7 +54,7 @@ export function armConcept(ctx: Ctx, id: string, fromRail = false): void {
   if (!snap.armed) {
     ctx.patch({ armed: id, pending: null });
     const head = fromRail
-      ? "已把「" + labelOf(id) + "」放进画布，并选中它"
+      ? "已把「" + labelOf(id) + "」放入画布并选中"
       : "已选中「" + labelOf(id) + "」";
     ctx.say(head + "，再点另一个概念来连接。", fromRail ? "↓" : "＋");
     return;

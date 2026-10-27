@@ -100,7 +100,7 @@ export function useRebuild() {
       if (ref.current.locked) return;
       const at = writeDraft(mode, ref.current.placed, ref.current.edges);
       if (at === null) {
-        say("这个环境不允许本地保存，请先不要关闭页面。", "!");
+        say("当前环境不允许本地保存，请先不要关闭页面。", "!");
         return;
       }
       patch({ savedAt: at, dirty: false });

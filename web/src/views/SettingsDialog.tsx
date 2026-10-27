@@ -16,7 +16,7 @@ const FALLBACK = {
 };
 
 const EFFORTS = [
-  { value: "", label: "默认（不传）" },
+  { value: "", label: "默认" },
   { value: "low", label: "低" },
   { value: "medium", label: "中" },
   { value: "high", label: "高" },
@@ -70,7 +70,7 @@ export function SettingsDialog(props: Props) {
   async function save() {
     const chars = Number.parseInt(maxChars, 10);
     if (!model.trim()) {
-      setError("先填模型名，服务商给的那个 ID。");
+      setError("请先填写模型名");
       return;
     }
     if (!/^https?:\/\//.test(baseUrl.trim())) {
@@ -78,7 +78,7 @@ export function SettingsDialog(props: Props) {
       return;
     }
     if (!Number.isFinite(chars) || chars <= 0) {
-      setError("单次送入字数要是正整数。");
+      setError("单次送入字数须是正整数。");
       return;
     }
     setBusy(true);
@@ -112,9 +112,9 @@ export function SettingsDialog(props: Props) {
     <dialog className="settings" ref={dialog} aria-labelledby="settings-title">
       <h2 className="settings__title" id="settings-title">抽取设置</h2>
       <p className="settings__lede">
-        上传后由这个接口读原文、抽概念、裁出目标图。任何 OpenAI 兼容
+        上传后由此接口读原文、裁组件、组目标图。任何 OpenAI 兼容
         <span className="mono"> /v1/chat/completions </span>
-        服务都可以。
+        api 都可以。
       </p>
 
       <label className="settings__field">
@@ -129,7 +129,7 @@ export function SettingsDialog(props: Props) {
       </label>
 
       <label className="settings__field">
-        <span className="settings__label">接口地址</span>
+        <span className="settings__label">API 根地址 (OpenAI)	</span>
         <input
           className="settings__input"
           value={baseUrl}
@@ -137,7 +137,7 @@ export function SettingsDialog(props: Props) {
           placeholder="https://api.example.com"
           spellCheck={false}
         />
-        <span className="settings__hint">根地址，不带 /v1，也不带末尾斜杠。</span>
+        <span className="settings__hint">如“https://api.deepseek.com”</span>
       </label>
 
       <label className="settings__field">
@@ -148,7 +148,7 @@ export function SettingsDialog(props: Props) {
           onChange={(event) => setMaxChars(event.target.value)}
           inputMode="numeric"
         />
-        <span className="settings__hint">正文超出时按段切开分别送，默认 12000。</span>
+        <span className="settings__hint">若正文超出限制，则按段切分传入模型。默认 12000</span>
       </label>
 
       <label className="settings__field">
@@ -163,17 +163,13 @@ export function SettingsDialog(props: Props) {
           ))}
         </select>
         <span className="settings__hint">
-          越强越慢也越贵；取「默认」时不给接口传这个参数。
+          越强越慢也越贵
         </span>
       </label>
 
       <p className="settings__note">
         {keyLine}
-        <br />
-        密钥不写进库，也不经过浏览器；换密钥只需重启后端。
-        <br />
-        这些值也可以写在仓库根 .env（KBP_EXTRACT_*），这里保存的优先；
-        密钥与思考强度也可用 KBP_EXTRACT_REASONING_EFFORT 给默认值。
+        也可以在 .env 配置。以该界面的配置优先
       </p>
 
       {config?.error ? <p className="settings__error">{config.error}</p> : null}

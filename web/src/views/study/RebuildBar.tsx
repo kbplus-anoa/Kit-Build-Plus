@@ -17,7 +17,7 @@ interface Props {
 export function RebuildBar(props: Props) {
   const modeCls = "rb__mode " + (props.locked ? "rb__mode--locked" : "rb__mode--open");
   const modeText =
-    props.mode === "study" ? "学习模式 · 提交后可返回修改" : "测验模式 · 提交后不可修改";
+    props.mode === "study" ? "学习模式 提交后可返回修改" : "测验模式 提交后不可修改";
   return (
     <div className="rb__bar">
       <span className={modeCls}>{modeText}</span>
@@ -41,7 +41,7 @@ export function RebuildBar(props: Props) {
         清空
       </button>
       <button type="button" className="btn btn--ghost" onClick={props.onSave} disabled={props.locked}>
-        存草稿
+        保存草稿
       </button>
       <button type="button" className="btn btn--primary" onClick={props.onSubmit} disabled={props.locked}>
         提交

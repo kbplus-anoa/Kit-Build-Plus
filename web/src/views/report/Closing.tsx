@@ -25,8 +25,8 @@ export function Closing(props: { frozen: boolean; onRevise: () => void }) {
       </button>
       <p className="closing__note" id="closing-note">
         {props.frozen
-          ? "这次提交的成绩已记录。测验模式提交后不可修改，这份报告就是那一次的快照。"
-          : "学习模式可以反复回到画布继续改；冻结之后（测验模式提交）才会评分，并显示目标图。"}
+          ? "此次成绩已记录，测验模式提交后不可修改。"
+          : "学习模式可以反复回到画布继续修改。"}
       </p>
     </div>
   );
