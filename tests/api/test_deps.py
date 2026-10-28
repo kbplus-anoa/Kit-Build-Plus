@@ -37,15 +37,33 @@ def test_文件库每线程各一条连接并见到同一份表(tmp_path, monkey
     assert len({cid for cid, _ in got}) == 4
 
 
-def test_内存库全线程共用一条连接(monkeypatch):
+def test_内存库每线程各一条连接仍共用一张表(monkeypatch):
     monkeypatch.setenv("KBP_DB_PATH", ":memory:")
     deps.reset_conn(None)
     try:
+        deps.get_conn().execute(
+            "INSERT INTO quiz_set (quiz_id, questions) VALUES ('z1', '[]')")
+        deps.get_conn().commit()
         got = collect(3, lambda: (id(deps.get_conn()),
                                   deps.get_conn().execute(
                                       "SELECT count(*) FROM quiz_set"
                                   ).fetchone()[0]))
     finally:
         deps.reset_conn(None)
-    assert [n for _, n in got] == [0, 0, 0]
-    assert len({cid for cid, _ in got}) == 1
+    assert [n for _, n in got] == [1, 1, 1]
+    assert len({cid for cid, _ in got}) == 3
+
+
+def test_重置后内存库是新的空库(monkeypatch):
+    monkeypatch.setenv("KBP_DB_PATH", ":memory:")
+    deps.reset_conn(None)
+    try:
+        deps.get_conn().execute(
+            "INSERT INTO quiz_set (quiz_id, questions) VALUES ('z1', '[]')")
+        deps.get_conn().commit()
+        deps.reset_conn(None)
+        left = deps.get_conn().execute(
+            "SELECT count(*) FROM quiz_set").fetchone()[0]
+    finally:
+        deps.reset_conn(None)
+    assert left == 0
