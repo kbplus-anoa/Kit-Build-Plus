@@ -165,3 +165,19 @@ def test_答题序号与建图提交对齐(client):
     q = rows(client.get("/api/export/question").content, "question")
     s = rows(client.get("/api/export/subject").content, "subject")
     assert q[0]["submit_seq"] == s[0]["submit_seq"] == "1"
+
+
+def test_重测少答题不留旧题级行(client):
+    qs = [{"question_id": "q1", "stem": "题干一", "choices": ["甲", "乙"],
+           "answer_index": 0, "qtype": "single", "content_dimension": "记忆"},
+          {"question_id": "q2", "stem": "题干二", "choices": ["丙", "丁"],
+           "answer_index": 1, "qtype": "single", "content_dimension": "注意"}]
+    body = {"quiz_id": "qz1", "target_map_version": "v1",
+            "participant_id": 1, "material_id": 1, "time_point": "pre",
+            "questions": qs, "answers": [{"question_id": "q1", "choice_index": 0},
+                                         {"question_id": "q2", "choice_index": 1}]}
+    assert client.post("/api/quiz", json=body).status_code == 200
+    body["answers"] = [{"question_id": "q1", "choice_index": 0}]
+    assert client.post("/api/quiz", json=body).status_code == 200
+    got = rows(client.get("/api/export/question").content, "question")
+    assert [r["question_id"] for r in got] == ["q1"]

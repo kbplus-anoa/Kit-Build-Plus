@@ -93,6 +93,17 @@ def save_subject(conn: sqlite3.Connection,
     conn.commit()
 
 
+def clear_questions(conn: sqlite3.Connection, participant_id: int,
+                    material_id: int, time_point: str,
+                    submit_seq: int) -> None:
+    """删掉某次作答的全部题级快照；重测少答时不留旧行。"""
+    conn.execute(
+        "DELETE FROM question_row WHERE participant_id = ? AND material_id = ?"
+        " AND time_point = ? AND submit_seq = ?",
+        (participant_id, material_id, time_point, submit_seq))
+    conn.commit()
+
+
 def save_question(conn: sqlite3.Connection,
                   row: kbp.contracts.exportcsv.QuestionRow) -> None:
     """写一行题级快照；同键覆盖旧值。"""

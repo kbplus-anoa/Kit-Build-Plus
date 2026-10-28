@@ -58,11 +58,19 @@ def save_quiz(body: QuizIn) -> QuizOut:
         except kbp.quiz.quiz_store.QuizStoreError as exc:
             raise HTTPException(409, str(exc))
         kbp.quiz.quiz_store.save_record(conn, body.quiz_id, record, questions)
-        for row in _question_rows(record, questions, body.target_map_version):
-            kbp.export.row_store.save_question(conn, row)
+        _save_question_rows(conn, record, questions, body.target_map_version)
     return QuizOut(quiz_id=body.quiz_id, time_point=body.time_point,
                    percent=kbp.quiz.grade.percent(questions, record),
                    answered=len(answers))
+
+
+def _save_question_rows(conn, record, questions, map_version: str) -> None:
+    """整份替换该次作答的题级快照，重测少答不留旧行。"""
+    kbp.export.row_store.clear_questions(
+        conn, record.participant_id, record.material_id,
+        record.time_point, record.submit_seq)
+    for row in _question_rows(record, questions, map_version):
+        kbp.export.row_store.save_question(conn, row)
 
 
 def _question_rows(record, questions, map_version: str) -> tuple:
