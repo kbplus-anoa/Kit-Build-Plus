@@ -53,12 +53,21 @@ def create_schema(conn) -> None:
     kbp.quiz.tam_store.ensure(conn)
 
 
-def open_db():
-    """打开数据库并建齐表，返回连接。"""
+def connect():
+    """打开连接并设好并发参数，不建表。每线程一个连接时用它。"""
     import sqlite3
     path = db_path()
     if path != ":memory:":
         Path(path).parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path, check_same_thread=False)
+    conn = sqlite3.connect(path, check_same_thread=False, timeout=5.0)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
+    conn.execute("PRAGMA busy_timeout=5000")
+    return conn
+
+
+def open_db():
+    """打开数据库并建齐表，返回连接。"""
+    conn = connect()
     create_schema(conn)
     return conn

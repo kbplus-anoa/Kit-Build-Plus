@@ -88,10 +88,11 @@ def _extract(body, book, conn, on_step) -> KitAutoOut:
     else:
         details = kbp.extract.extract_service.extract_details(
             body.text, book, cfg, on_step=on_step)
-    target, kit, _ = kbp.kit.kit_service.freeze_to_bank(
-        conn, body.material_id, details.result, now(), body.map_version,
-        usage=kbp.rebuild.usage.SubmissionUsage(conn))
-    _audit(conn, body, book, cfg, details, target)
+    with kbp.api.deps.db_lock():
+        target, kit, _ = kbp.kit.kit_service.freeze_to_bank(
+            conn, body.material_id, details.result, now(), body.map_version,
+            usage=kbp.rebuild.usage.SubmissionUsage(conn))
+        _audit(conn, body, book, cfg, details, target)
     thresholds = kbp.extract.threshold_store.load(conn)
     report = kbp.extract.quality.assess(details.result, body.text, thresholds)
     ready(conn, body.material_id)
