@@ -72,11 +72,16 @@ def load_set(conn: sqlite3.Connection, quiz_id: str) -> tuple:
 
 def save_record(conn: sqlite3.Connection, quiz_id: str,
                 record: kbp.contracts.quizsheet.QuizRecord, questions) -> int:
-    """逐题写入作答与判对结果，返回写入条数。同点同题不可重复。"""
+    """逐题写入作答与判对结果，返回写入条数。同一次作答整份替换。"""
     rows = [(quiz_id, record.participant_id, record.material_id,
              record.time_point, record.submit_seq,
              a.question_id, a.choice_index,
              1 if _right(questions, a) else 0) for a in record.answers]
+    conn.execute(
+        "DELETE FROM answer WHERE quiz_id = ? AND participant_id = ?"
+        " AND material_id = ? AND time_point = ? AND submit_seq = ?",
+        (quiz_id, record.participant_id, record.material_id,
+         record.time_point, record.submit_seq))
     conn.executemany(
         "INSERT INTO answer VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
         " ON CONFLICT(quiz_id, participant_id, material_id, time_point,"
