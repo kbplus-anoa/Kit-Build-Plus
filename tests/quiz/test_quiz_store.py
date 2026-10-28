@@ -82,6 +82,24 @@ def test_不同时点互不覆盖(conn):
     assert qs.load_answers(conn, 1, 1, submission.PRE, 1) == (("q1", 2),)
 
 
+def test_首次作答序号为一(conn):
+    assert qs.next_seq(conn, "z1", 1, 1, submission.PRE) == 1
+
+
+def test_重测沿用同一序号(conn):
+    qs.save_set(conn, "z1", (q("q1", 0),))
+    qs.save_record(conn, "z1", rec((a("q1", 1),)), (q("q1", 0),))
+    assert qs.next_seq(conn, "z1", 1, 1, submission.PRE) == 1
+
+
+def test_序号按题套被试与时点隔离(conn):
+    qs.save_set(conn, "z1", (q("q1", 0),))
+    qs.save_record(conn, "z1", rec((a("q1", 1),), submission.POST), (q("q1", 0),))
+    assert qs.next_seq(conn, "z1", 1, 1, submission.PRE) == 1
+    assert qs.next_seq(conn, "z1", 2, 1, submission.POST) == 1
+    assert qs.next_seq(conn, "z2", 1, 1, submission.POST) == 1
+
+
 def test_落盘后重开可读回(tmp_path):
     path = str(tmp_path / "sub" / "kb.sqlite3")
     c1 = qs.connect(path)

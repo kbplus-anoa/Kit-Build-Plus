@@ -87,6 +87,21 @@ def save_record(conn: sqlite3.Connection, quiz_id: str,
     return len(rows)
 
 
+def next_seq(conn: sqlite3.Connection, quiz_id: str, participant_id: int,
+             material_id: int, time_point: str) -> int:
+    """同一套题同一被试同一教材同一时点的作答序号：已有则沿用，否则为 1。
+
+    重测沿用同一序号即覆盖，与该时点只保留一次作答的口径一致；不与
+    重建提交共用计数器，否则两边序号会互相错位。
+    """
+    cur = conn.execute(
+        "SELECT MAX(submit_seq) FROM answer WHERE quiz_id = ?"
+        " AND participant_id = ? AND material_id = ? AND time_point = ?",
+        (quiz_id, participant_id, material_id, time_point))
+    row = cur.fetchone()
+    return 1 if row is None or row[0] is None else int(row[0])
+
+
 def _right(questions, answer) -> bool:
     """判对只走 kbp.quiz.grade.is_correct，避免两处规则分叉。"""
     for q in questions:

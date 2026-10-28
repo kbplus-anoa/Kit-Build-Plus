@@ -148,3 +148,20 @@ def test_作答落题级快照并按筛选导出(client):
     assert (got[0]["question_id"], got[0]["答对"],
             got[0]["target_map_version"]) == ("q1", "1", "v1")
     assert got[0]["内容维度"] == "记忆" and got[0]["题型"] == "single"
+
+
+def test_答题序号与建图提交对齐(client):
+    client.post("/api/adjudicate", json=ADJ)
+    ids = kit(client)
+    submit(client, ids)
+    body = {"quiz_id": "qz1", "target_map_version": "v1",
+            "participant_id": 1, "material_id": 1, "time_point": "post",
+            "questions": [{"question_id": "q1", "stem": "感觉记忆属于什么",
+                           "choices": ["记忆", "注意", "知觉"],
+                           "answer_index": 0, "qtype": "single",
+                           "content_dimension": "记忆"}],
+            "answers": [{"question_id": "q1", "choice_index": 0}]}
+    assert client.post("/api/quiz", json=body).status_code == 200
+    q = rows(client.get("/api/export/question").content, "question")
+    s = rows(client.get("/api/export/subject").content, "subject")
+    assert q[0]["submit_seq"] == s[0]["submit_seq"] == "1"

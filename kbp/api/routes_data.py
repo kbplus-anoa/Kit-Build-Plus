@@ -40,19 +40,19 @@ def save_quiz(body: QuizIn) -> QuizOut:
                                                    choice_index=a.choice_index,
                                                    time_point=body.time_point)
                     for a in body.answers)
-    seq = kbp.rebuild.draft_store.next_seq(
-        kbp.api.deps.get_conn(), body.participant_id, body.material_id,
-        body.time_point)
-    record = kbp.contracts.quizsheet.QuizRecord(
-        quiz_id=body.quiz_id, participant_id=body.participant_id,
-        material_id=body.material_id, time_point=body.time_point,
-        submit_seq=seq, answers=answers)
-    try:
-        kbp.quiz.grade.check_record(record, questions)
-    except kbp.quiz.grade.QuizError as exc:
-        raise HTTPException(400, str(exc))
     with kbp.api.deps.db_lock():
         conn = kbp.api.deps.get_conn()
+        seq = kbp.quiz.quiz_store.next_seq(conn, body.quiz_id,
+                                           body.participant_id,
+                                           body.material_id, body.time_point)
+        record = kbp.contracts.quizsheet.QuizRecord(
+            quiz_id=body.quiz_id, participant_id=body.participant_id,
+            material_id=body.material_id, time_point=body.time_point,
+            submit_seq=seq, answers=answers)
+        try:
+            kbp.quiz.grade.check_record(record, questions)
+        except kbp.quiz.grade.QuizError as exc:
+            raise HTTPException(400, str(exc))
         try:
             kbp.quiz.quiz_store.save_set(conn, body.quiz_id, questions)
         except kbp.quiz.quiz_store.QuizStoreError as exc:
