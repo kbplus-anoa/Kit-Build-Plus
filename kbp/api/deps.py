@@ -4,6 +4,10 @@
 上并发执行会串行交出对方的行（实测可复现）。一连接跨线程不安全，所以每线程
 各自持有一条，读不再需要加锁。
 
+内存库例外：`:memory:` 每条连接都是一个独立的空库，每线程各开一条会各看各的
+空库（并发请求直接 500）。所以内存库全程共用一条连接，仅供单线程测试；
+要并发就用文件库。
+
 两把锁刻意分开：
 - `_conn_lock` 只为"首次建表"服务，可重入，避免路由持锁时再取连接而自锁；
 - `_write_lock` 只在写操作期间持有，串行化 SQLite 写入（写仍只允许一个）。
@@ -18,6 +22,7 @@ _conn_lock = threading.RLock()
 _write_lock = threading.RLock()
 _local = threading.local()
 _forced = None
+_shared = None
 _schema_ready = False
 
 
@@ -33,8 +38,13 @@ def get_conn():
 
 
 def _open():
-    global _schema_ready
+    global _schema_ready, _shared
     with _conn_lock:
+        if kbp.api.bootstrap.db_path() == ":memory:":
+            if _shared is None:
+                _shared = kbp.api.bootstrap.open_db()
+            _schema_ready = True
+            return _shared
         if not _schema_ready:
             conn = kbp.api.bootstrap.open_db()
             _schema_ready = True
@@ -44,10 +54,11 @@ def _open():
 
 def reset_conn(conn=None):
     """测试用：注入一条固定连接（全线程共用），None 表示恢复每线程连接。"""
-    global _forced, _schema_ready
+    global _forced, _shared, _schema_ready
     with _conn_lock:
         _forced = conn
         _local.conn = None
+        _shared = None
         _schema_ready = conn is not None
 
 
