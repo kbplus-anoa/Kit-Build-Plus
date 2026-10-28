@@ -44,7 +44,7 @@ def freeze_auto(result: kbp.contracts.triple.ExtractionResult,
 
 def _build(vocab: kbp.contracts.triple.Vocab, edges, map_version: str):
     kept = kbp.kit._rules.ordered_propositions(edges)
-    concepts = _concepts(edges)
+    concepts = _concepts(kept)
     if not concepts:
         raise FreezeError("没有可接受的概念，无法冻结")
     props = _propositions(kept)

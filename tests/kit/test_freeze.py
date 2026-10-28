@@ -68,9 +68,26 @@ def test_完全重复的命题被去重():
 
 
 def test_自环命题被丢弃():
-    log = make_log([item("记忆", "包括", "记忆")])
+    log = make_log([item("记忆", "包括", "记忆"),
+                    item("记忆", "包括", "短时记忆")])
     t = freeze.freeze(log, "v1")
-    assert t.propositions == ()
+    assert len(t.propositions) == 1
+    assert [c.label for c in t.concepts] == ["记忆", "短时记忆"]
+
+
+def test_自环不打乱概念编号():
+    log = make_log([item("杂项", "属于", "杂项"),
+                    item("光合作用", "属于", "代谢")])
+    t = freeze.freeze(log, "v1")
+    index = {c.concept_id: c.label for c in t.concepts}
+    p = t.propositions[0]
+    assert (index[p.head_id], p.connection, index[p.tail_id]) == \
+        ("光合作用", "属于", "代谢")
+
+
+def test_全部自环拒绝冻结():
+    with pytest.raises(freeze.FreezeError):
+        freeze.freeze(make_log([item("杂项", "属于", "杂项")]), "v1")
 
 
 def test_词表外连接词拒绝冻结():
