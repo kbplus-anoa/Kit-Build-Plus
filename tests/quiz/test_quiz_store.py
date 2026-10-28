@@ -74,6 +74,13 @@ def test_同点同题重复写入被更新(conn):
     assert qs.load_answers(conn, 1, 1, submission.PRE, 1) == (("q1", 0),)
 
 
+def test_同点重测序号仍是一(conn):
+    """序号不是提交次数计数器，重测沿用同一个序号。"""
+    qs.save_set(conn, "z1", (q("q1", 0),))
+    qs.save_record(conn, "z1", rec((a("q1", 0),)), (q("q1", 0),))
+    assert qs.next_seq(conn, "z1", 1, 1, submission.PRE) == 1
+
+
 def test_重测少答题不留旧行(conn):
     qs.save_set(conn, "z1", (q("q1", 0), q("q2", 1)))
     both = (q("q1", 0), q("q2", 1))

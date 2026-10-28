@@ -96,8 +96,9 @@ def next_seq(conn: sqlite3.Connection, quiz_id: str, participant_id: int,
              material_id: int, time_point: str) -> int:
     """同一套题同一被试同一教材同一时点的作答序号：已有则沿用，否则为 1。
 
-    重测沿用同一序号即覆盖，与该时点只保留一次作答的口径一致；不与
-    重建提交共用计数器，否则两边序号会互相错位。
+    重测沿用同一序号即覆盖，与该时点只保留一次作答的口径一致。它只在
+    测验内部有效，和重建提交的序号（每次 +1 的留档计数）不是一回事，
+    禁止拿 (被试, 教材, 时点, submit_seq) 去跨表配对。
     """
     cur = conn.execute(
         "SELECT MAX(submit_seq) FROM answer WHERE quiz_id = ?"
