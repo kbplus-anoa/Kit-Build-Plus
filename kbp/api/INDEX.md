@@ -8,10 +8,11 @@
 | 文件 | 内容 |
 |---|---|
 | `main.py` | FastAPI 实例、路由挂载、`/` 与 `/api/health` |
-| `deps.py` | 进程级数据库连接与写锁（两把锁分开，见下） |
-| `bootstrap.py` | 建表装配：各 feature 的 `ensure` + 抽取配置表、阈值表、抽取留档表、导出快照表、教材登记表、量表作答表；库默认落在仓库根 `tmp/kb.sqlite3` |
+| `deps.py` | 每线程一条数据库连接与一把写锁（两把锁分开，见下）；连接开 WAL 与 `busy_timeout` |
+| `bootstrap.py` | 建表装配（不碰 `sys.path`，一律走完整模块路径）：各 feature 的 `ensure` + 抽取配置表、阈值表、抽取留档表、导出快照表、教材登记表、量表作答表；库默认落在仓库根 `tmp/kb.sqlite3` |
 | `envfile.py` | 启动时把仓库根 `.env` 补进环境变量（已存在的变量优先；`KBP_ENV_FILE` 可指到别处），读配置时再重读一次，改文件不用重启 |
-| `schemas.py` | 通用请求/响应模型，只做格式约束，不含业务规则 |
+| `schemas/` | 通用请求/响应模型，只做格式约束，不含业务规则；按域分 `core.py`（配置/读稿/抽取）、`kit.py`（裁 kit 与后台任务）、`flow.py`（提交与历史记录）、`quiz.py`（测验），名字统一由 `schemas/__init__.py` 导出 |
+| `schemas_kit.py` | kit 版本与投用切换的请求/响应模型 |
 | `schemas_tam.py` | TAM 量表的请求/响应模型，独立成文件以避开 200 行上限 |
 | `config_store.py` | 抽取配置表（一行一条）的读写；库里没保存过时按 `.env` 的 `KBP_EXTRACT_*` 出默认值 |
 | `routes_config.py` | `GET/PUT /api/config`：读写配置；**只回显密钥是否已配置** |
@@ -22,7 +23,7 @@
 | `record_flow.py` | 历史提交与草稿：按当前目标图重算报告、列出某人的提交与草稿、读写当前草稿 |
 | `routes_records.py` | `GET /api/records`（某人提交，可按教材筛）、`GET /api/drafts`、`GET/POST /api/draft/current`（当前草稿，序号服务端分配） |
 | `routes_kit.py` | `GET /api/kit/versions`（列出各批）、`POST /api/kit/use`（切回某一批） |
-| `routes_data.py` | `/api/quiz`（落题级快照）、`GET /api/export/subject`、`GET /api/export/question`（三条件筛选，空即全选） |
+| `routes_data.py` | `/api/quiz`（落题级快照；作答序号取 `quiz_store.next_seq`，在建图提交之后交卷也不串号）、`GET /api/export/subject`、`GET /api/export/question`（三条件筛选，空即全选） |
 | `routes_tam.py` | `GET /api/tam/items`、`POST /api/tam/answers`（整卷落库）、`GET /api/tam/alpha`（读库算） |
 
 `/api/ingest` 失败码：文件不存在 404、格式不支持 400、
@@ -52,6 +53,11 @@
 `get_conn()` 与写操作曾共用一把不可重入锁，导致路由先持写锁、再取连接时**自锁超时**。
 现在：`_conn_lock`（可重入）只服务首次建连，`_write_lock`（可重入）串行化写入。
 回归测试 `test_裁定不死锁` 钉住这条。
+
+连接也不再是进程级一条。sqlite3 的语句缓存按连接共享，同一段 SQL 在两个线程上
+并发执行会串出对方的行（实测可复现：8 线程读 50 行，一轮 2–17 次 `JSONDecodeError`
+或 `ValueError`）。现在每线程一条连接，读不必加锁；写仍只允许一个，走 `_write_lock`。
+`reset_conn(conn)` 注入的那条连接供测试共用，不参与每线程分配。
 
 ## 密钥的处理
 

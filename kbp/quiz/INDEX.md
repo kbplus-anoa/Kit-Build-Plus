@@ -10,12 +10,12 @@
 | 文件 | 内容 |
 |---|---|
 | `grade.py` | `is_correct`（未作答算错）、`percent`（0–100，分母题数）、题干/题套校验 |
-| `quiz_store.py` | SQLite：题套表 + 逐题作答表，作答表键为四元关联键 + 题号；同一 quiz_id 不可改写，同键同题可更新 |
+| `quiz_store.py` | SQLite：题套表 + 逐题作答表，作答表键为四元关联键 + 题号；同一 quiz_id 不可改写，同键同题可更新；`next_seq` 按本表已有作答分配序号（重测沿用同一序号即覆盖），不与重建提交共用计数器 |
 | `scale.py` | TAM 14 题条目表（逐字原文），`items_of` / `item_ids` |
 | `alpha.py` | `cronbach_alpha`（样本方差口径）、`alpha_by_construct`（缺答整人剔除） |
 | `tam_store.py` | SQLite 量表作答表：一人一题一行，重答覆盖，读回形状即契约 `ScoreRow` |
 | `tests/quiz/test_grade.py` | 判对、百分制、漏答、空卷、非法题目与非法作答 |
-| `tests/quiz/test_quiz_store.py` | 题套读写、不可改写、逐题落库、时点隔离、重开可读 |
+| `tests/quiz/test_quiz_store.py` | 题套读写、不可改写、逐题落库、时点隔离、重开可读、序号分配与隔离 |
 | `tests/quiz/test_scale.py` | 14 题、题号唯一、构念题数、ATT 可选、不收人口学题 |
 | `tests/quiz/test_alpha.py` | 与 R 的 `psych::alpha` 对照、样本方差、缺答剔除、判据 |
 | `tests/quiz/test_tam_store.py` | 写入读回、同人同题覆盖、跨人同题并存、排序、空库 |
