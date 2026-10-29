@@ -5,7 +5,7 @@ export function HoldPanel(props: { hidden: boolean }) {
       <p className="hold__tag mono">未冻结</p>
       <h2 className="hold__title">目标图先不显示。</h2>
       <p className="hold__body">
-        学习模式的提交仍然可以改，所以这份图还没有冻结。下面只有四类错误的计数和你当前连上的命题；目标图（差异图）会在冻结之后才出现。测验模式提交即冻结。
+        目标图（差异图）会在冻结之后才出现。测验模式提交即冻结。
       </p>
     </section>
   );

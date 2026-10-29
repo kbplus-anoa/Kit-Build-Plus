@@ -8,10 +8,12 @@ interface Props {
   materials: MaterialOut[];
   flow: StudyFlow;
   onFile: (file: File) => void;
+  onUseVersion: (materialId: number, mapVersion: string) => Promise<void>;
+  onRetryBatch: (materialId: number) => Promise<void>;
 }
 
 export function StudyStep(props: Props) {
-  const { materials, flow, onFile } = props;
+  const { materials, flow, onFile, onUseVersion, onRetryBatch } = props;
   if (flow.step === "prepare") {
     return (
       <PrepareStep
@@ -22,6 +24,8 @@ export function StudyStep(props: Props) {
         onMode={flow.setMode}
         onFile={onFile}
         onContinue={flow.enterCanvas}
+        onUseVersion={onUseVersion}
+        onRetryBatch={onRetryBatch}
       />
     );
   }

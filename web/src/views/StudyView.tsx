@@ -15,6 +15,7 @@ interface Props {
   materials: MaterialOut[];
   total: number;
   seed?: Attempt | null;
+  fresh?: number | null;
   records: Attempt[];
   drafts: DraftOut[];
   onHome: () => void;
@@ -24,14 +25,18 @@ interface Props {
   onConflict: (materialId: number) => void;
   onDraftSaved: () => void;
   onOpenRecord: (record: Attempt) => void;
+  onUseVersion: (materialId: number, mapVersion: string) => Promise<void>;
+  onRetryBatch: (materialId: number) => Promise<void>;
 }
 
 export function StudyView(props: Props) {
   const {
-    frame, materials, total, seed, records, drafts, onHome, onFile, onNeedKit,
-    onSubmitted, onConflict, onDraftSaved, onOpenRecord,
+    frame, materials, total, seed, fresh, records, drafts, onHome, onFile, onNeedKit,
+    onSubmitted, onConflict, onDraftSaved, onOpenRecord, onUseVersion, onRetryBatch,
   } = props;
-  const flow = useStudyFlow({ materials, seed, onNeedKit, onSubmitted, onConflict, onDraftSaved });
+  const flow = useStudyFlow({
+    materials, seed, fresh, onNeedKit, onSubmitted, onConflict, onDraftSaved,
+  });
   usePanelStagger("view-study", flow.step + ":" + records.length + ":" + drafts.length);
   const inCanvas = flow.step === "rebuild";
   // 继续栏里同一份教材只留最近一次未冻结的重建，旧的看历史报告。
@@ -47,7 +52,13 @@ export function StudyView(props: Props) {
     <ReportShell id="view-study" frame={frame}>
       <SubBar i={0} onHome={onHome} badge={badge} live={inCanvas && flow.mode === "quiz"} />
       <PageHead i={1} title="连接概念。" lede="点选两个概念与一个连接词，即可开始连接" />
-      <StudyStep materials={materials} flow={flow} onFile={onFile} />
+      <StudyStep
+        materials={materials}
+        flow={flow}
+        onFile={onFile}
+        onUseVersion={onUseVersion}
+        onRetryBatch={onRetryBatch}
+      />
       <Holdings
         records={continued}
         drafts={drafts}

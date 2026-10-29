@@ -2,7 +2,9 @@ import kbp.contracts.adjudication
 import kbp.contracts.extraction
 import kbp.contracts.targetbank
 import kbp.kit._rules
+import kbp.kit.adopt
 import kbp.kit.bank_store
+import kbp.kit.dev_overlay
 import kbp.kit.freeze
 import kbp.kit.lock
 import kbp.kit.split
@@ -25,6 +27,23 @@ def freeze_batch(conn, batch_id: str,
     """读回批次 → 冻结目标图。不做静默修改，改须换版本。"""
     log = kbp.kit.store.load(conn, batch_id)
     return kbp.kit.freeze.freeze(log, map_version)
+
+
+def freeze_and_bank(conn, material_id: int, batch_id: str,
+                    map_version: str):
+    """人工裁定路：冻结后登记题库，返回（图, kit）。
+
+    教材标识不在裁定记录里，只能由调用方给；同一张图已在库就回旧图，
+    不新开行，也不改旧图的版本号。
+    """
+    target = freeze_batch(conn, batch_id, map_version)
+    entry = kbp.kit.bank_store.by_fingerprint(conn, material_id,
+                                              target.fingerprint)
+    if entry is None:
+        entry = kbp.kit.adopt.entry(material_id, batch_id, target,
+                                    kbp.kit.adopt.now())
+        kbp.kit.bank_store.register(conn, entry)
+    return entry.target_map, kbp.kit.split.split(entry.target_map)
 
 
 def build_kit(conn, batch_id: str, map_version: str) -> kbp.contracts.targetmap.Kit:
@@ -50,9 +69,9 @@ def bank_find(conn, material_id: int, vocab_version: str):
     return kbp.kit.bank_store.latest(conn, material_id, vocab_version)
 
 
-def bank_kit(entry):
-    """命中题库后直接拿到学生零件集，不再重抽。"""
-    return entry.target_map, kbp.kit.split.split(entry.target_map)
+def bank_kit(conn, entry):
+    """命中题库后直接拿到学生零件集，不再重抽；开发期改写一并盖上。"""
+    return target_kit(conn, entry)
 
 
 def history(conn, material_id: int, vocab_version: str = ""):
@@ -60,11 +79,39 @@ def history(conn, material_id: int, vocab_version: str = ""):
     return kbp.kit.bank_store.history(conn, material_id, vocab_version)
 
 
-def use(conn, material_id: int, map_version: str):
-    """把某一版本标为已投用；学生切回旧批也走这里，版本不存在抛 BankError。"""
+def _version_entry(conn, material_id: int, map_version: str):
+    """按版本号取题库里那一批；不存在抛 BankError。"""
     entry = kbp.kit.bank_store.by_version(conn, material_id, map_version)
     if entry is None:
         raise kbp.kit.bank_store.BankError("版本不存在: " + map_version)
+    return entry
+
+
+def version_kit(conn, material_id: int, map_version: str):
+    """按版本号取那一批的零件集；切回旧批或预览某一批都用它。"""
+    return target_kit(conn, _version_entry(conn, material_id, map_version))
+
+
+def target_kit(conn, entry):
+    """题库里那一批的图与零件集：开发者改写盖在冻结图上，指纹与版本号不动。
+
+    改过的那一批按库里存的零件给 kit，不再从命题反推：开发者可以先加
+    概念、后加用到它的命题，中间那一步读图也得看得见这个零件。
+    """
+    overlay = kbp.kit.dev_overlay.load(conn, entry.material_id,
+                                       entry.target_map.map_version)
+    target = kbp.kit.dev_overlay.apply(entry.target_map, overlay)
+    if overlay is None:
+        return target, kbp.kit.split.split(target)
+    kit = kbp.contracts.targetmap.Kit(map_version=target.map_version,
+                                      concepts=overlay.concepts,
+                                      connections=overlay.connections)
+    return target, kit
+
+
+def use(conn, material_id: int, map_version: str):
+    """把某一版本标为已投用；学生切回旧批也走这里，版本不存在抛 BankError。"""
+    _version_entry(conn, material_id, map_version)
     kbp.kit.bank_store.mark_in_use(conn, material_id, map_version)
     return kbp.kit.bank_store.by_version(conn, material_id, map_version)
 

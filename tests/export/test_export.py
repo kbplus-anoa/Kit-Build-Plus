@@ -2,7 +2,6 @@ import pytest
 
 import kbp.export.csv_writer as csv_writer
 import kbp.contracts.exportcsv as exportcsv
-import kbp.export.question_table as question_table
 import kbp.export.subject_table as subject_table
 
 
@@ -19,23 +18,9 @@ def subject(**kw):
     return exportcsv.SubjectRow(**base)
 
 
-def question(**kw):
-    base = dict(participant_id=1, material_id=1, time_point="pre",
-                submit_seq=1, target_map_version="v1",
-                question_id="q1", correct=1,
-                score=None, qtype="single", content_dimension="记忆")
-    base.update(kw)
-    return exportcsv.QuestionRow(**base)
-
-
 def test_被试表列数与表头一致():
     payload = subject_table.build((subject(),))
     assert len(payload.rows[0]) == len(subject_table.HEADER)
-
-
-def test_题级表列数与表头一致():
-    payload = question_table.build((question(),))
-    assert len(payload.rows[0]) == len(question_table.HEADER)
 
 
 def cell(payload, name, row=0):
@@ -131,15 +116,15 @@ def test_编码不是_BOM_时拒绝():
 
 
 def test_表头写入首行():
-    payload = question_table.build((question(),))
+    payload = subject_table.build((subject(),))
     text = csv_writer.to_csv(payload).decode("utf-8-sig")
     assert text.splitlines()[0].startswith("participant_id")
 
 
 def test_中文列名保留不转义():
-    payload = question_table.build((question(),))
+    payload = subject_table.build((subject(),))
     text = csv_writer.to_csv(payload).decode("utf-8-sig")
-    assert "内容维度" in text
+    assert "孤立概念率" in text
 
 
 def test_行宽不一致被拒():

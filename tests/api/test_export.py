@@ -123,61 +123,35 @@ def test_多选筛选合并成_或(client):
     assert [r["participant_id"] for r in got] == ["1", "3"]
 
 
+def test_预览与下载同一套列(client):
+    client.post("/api/adjudicate", json=ADJ)
+    ids = kit(client)
+    submit(client, ids, participant_id=1, condition="exp")
+    preview = client.get("/api/export/preview").json()
+    table = list(csv.reader(io.StringIO(
+        client.get("/api/export/subject").content.decode("utf-8-sig"))))
+    assert preview["header"] == table[0]
+    assert preview["rows"] == table[1:]
+    assert preview["total"] == 1
+
+
+def test_预览按_limit_截断但总数照给(client):
+    client.post("/api/adjudicate", json=ADJ)
+    ids = kit(client)
+    for who in (1, 2, 3):
+        submit(client, ids, participant_id=who)
+    preview = client.get("/api/export/preview?limit=2").json()
+    assert len(preview["rows"]) == 2
+    assert preview["total"] == 3
+
+
+def test_预览无记录返回_404(client):
+    client.post("/api/adjudicate", json=ADJ)
+    assert client.get("/api/export/preview").status_code == 404
+
+
 def test_筛选无结果返回_404(client):
     client.post("/api/adjudicate", json=ADJ)
     ids = kit(client)
     submit(client, ids)
     assert client.get("/api/export/subject?participant_id=9").status_code == 404
-    assert client.get("/api/export/question").status_code == 404
-
-
-def test_作答落题级快照并按筛选导出(client):
-    body = {"quiz_id": "qz1", "target_map_version": "v1",
-            "participant_id": 1, "material_id": 1, "time_point": "pre",
-            "questions": [{"question_id": "q1", "stem": "感觉记忆属于什么",
-                           "choices": ["记忆", "注意", "知觉"],
-                           "answer_index": 0, "qtype": "single",
-                           "content_dimension": "记忆"},
-                          {"question_id": "q2", "stem": "未作答的题",
-                           "choices": ["甲", "乙"], "answer_index": 1,
-                           "qtype": "single", "content_dimension": "注意"}],
-            "answers": [{"question_id": "q1", "choice_index": 0}]}
-    assert client.post("/api/quiz", json=body).status_code == 200
-    got = rows(client.get("/api/export/question").content, "question")
-    assert len(got) == 1
-    assert (got[0]["question_id"], got[0]["答对"],
-            got[0]["target_map_version"]) == ("q1", "1", "v1")
-    assert got[0]["内容维度"] == "记忆" and got[0]["题型"] == "single"
-
-
-def test_答题序号与建图提交对齐(client):
-    client.post("/api/adjudicate", json=ADJ)
-    ids = kit(client)
-    submit(client, ids)
-    body = {"quiz_id": "qz1", "target_map_version": "v1",
-            "participant_id": 1, "material_id": 1, "time_point": "post",
-            "questions": [{"question_id": "q1", "stem": "感觉记忆属于什么",
-                           "choices": ["记忆", "注意", "知觉"],
-                           "answer_index": 0, "qtype": "single",
-                           "content_dimension": "记忆"}],
-            "answers": [{"question_id": "q1", "choice_index": 0}]}
-    assert client.post("/api/quiz", json=body).status_code == 200
-    q = rows(client.get("/api/export/question").content, "question")
-    s = rows(client.get("/api/export/subject").content, "subject")
-    assert q[0]["submit_seq"] == s[0]["submit_seq"] == "1"
-
-
-def test_重测少答题不留旧题级行(client):
-    qs = [{"question_id": "q1", "stem": "题干一", "choices": ["甲", "乙"],
-           "answer_index": 0, "qtype": "single", "content_dimension": "记忆"},
-          {"question_id": "q2", "stem": "题干二", "choices": ["丙", "丁"],
-           "answer_index": 1, "qtype": "single", "content_dimension": "注意"}]
-    body = {"quiz_id": "qz1", "target_map_version": "v1",
-            "participant_id": 1, "material_id": 1, "time_point": "pre",
-            "questions": qs, "answers": [{"question_id": "q1", "choice_index": 0},
-                                         {"question_id": "q2", "choice_index": 1}]}
-    assert client.post("/api/quiz", json=body).status_code == 200
-    body["answers"] = [{"question_id": "q1", "choice_index": 0}]
-    assert client.post("/api/quiz", json=body).status_code == 200
-    got = rows(client.get("/api/export/question").content, "question")
-    assert [r["question_id"] for r in got] == ["q1"]

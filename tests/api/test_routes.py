@@ -95,7 +95,8 @@ def test_提交后评分并锁定(client):
                           "tail_id": ids["感觉记忆"]}]})
     assert resp.status_code == 200
     assert resp.json()["fms"] == 50.0
-    assert client.get("/api/lock?map_version=v1").json()["locked"] == "locked"
+    lock = client.get("/api/lock?map_version=v1&material_id=1").json()
+    assert lock["locked"] == "locked"
 
 
 def test_提交回四类错误明细(client):

@@ -5,6 +5,14 @@ from pydantic import BaseModel, Field
 MAX_TEXT = 2_000_000
 
 
+class Vec2In(BaseModel):
+    """一条带方向的命题，三段都用 kit 内零件。放在最底层以便各域共用。"""
+
+    head_id: str = Field(min_length=1, max_length=50)
+    connection: str = Field(min_length=1, max_length=100)
+    tail_id: str = Field(min_length=1, max_length=50)
+
+
 class ConfigIn(BaseModel):
     """抽取配置：OpenAI 兼容接口，开发期以 DeepSeek 为样例。"""
 

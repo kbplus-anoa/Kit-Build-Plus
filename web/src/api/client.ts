@@ -3,11 +3,16 @@ import type {
   ConfigIn,
   ConfigOut,
   CurrentDraftIn,
+  DevKitIn,
+  DevKitOut,
   DraftOut,
   DraftsOut,
   HealthOut,
   KitAutoIn,
   KitAutoOut,
+  KitOut,
+  KitUseOut,
+  KitVersionsOut,
   MaterialsOut,
   MaterialTextOut,
   RecordsOut,
@@ -15,6 +20,7 @@ import type {
   SubmitOut,
   UploadOut,
 } from "../types/api";
+import type { ExportPreviewOut } from "../types/export";
 
 const BASE = "";
 
@@ -50,12 +56,16 @@ async function send<T>(path: string, init: RequestInit): Promise<T> {
   return (await resp.json()) as T;
 }
 
-function postJson<T>(path: string, body: unknown): Promise<T> {
-  return send<T>(path, {
-    method: "POST",
+function json(method: string, body: unknown): RequestInit {
+  return {
+    method,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
-  });
+  };
+}
+
+function postJson<T>(path: string, body: unknown): Promise<T> {
+  return send<T>(path, json("POST", body));
 }
 
 function query(params: Record<string, string | number | undefined>): string {
@@ -63,6 +73,36 @@ function query(params: Record<string, string | number | undefined>): string {
     .filter(([, value]) => value !== undefined && value !== "")
     .map(([key, value]) => key + "=" + encodeURIComponent(String(value)));
   return parts.length ? "?" + parts.join("&") : "";
+}
+
+/** 同名参数要重复给（被试/教材/时点都可多选），上面的 query 只认单值。 */
+function repeated(key: string, values: Array<string | number> | undefined): string[] {
+  if (!values || values.length === 0) return [];
+  return values.map((value) => key + "=" + encodeURIComponent(String(value)));
+}
+
+function fileNameOf(resp: Response, fallback: string): string {
+  const raw = resp.headers.get("Content-Disposition") ?? "";
+  const hit = /filename="?([^";]+)"?/.exec(raw);
+  return hit ? hit[1] : fallback;
+}
+
+/** 二进制响应走不了 send()：它假定 JSON，这里原样收 blob 并带回文件名。 */
+async function download(path: string, fallback: string): Promise<{ blob: Blob; name: string }> {
+  let resp: Response;
+  try {
+    resp = await fetch(BASE + path);
+  } catch {
+    throw new ApiError(0, "连不上后端服务，请确认它已经在运行。");
+  }
+  if (!resp.ok) throw new ApiError(resp.status, await parseError(resp));
+  return { blob: await resp.blob(), name: fileNameOf(resp, fallback) };
+}
+
+export interface ExportFilter {
+  participantIds?: number[];
+  materialIds?: number[];
+  timePoints?: string[];
 }
 
 export const api = {
@@ -84,6 +124,32 @@ export const api = {
 
   kitAuto: (body: KitAutoIn): Promise<KitAutoOut> => postJson<KitAutoOut>("/api/kit/auto", body),
 
+  kitVersions: (materialId: number): Promise<KitVersionsOut> =>
+    send<KitVersionsOut>("/api/kit/versions" + query({ material_id: materialId }), {
+      method: "GET",
+    }),
+
+  kitVersion: (materialId: number, mapVersion: string): Promise<KitOut> =>
+    send<KitOut>(
+      "/api/kit/entry" + query({ material_id: materialId, map_version: mapVersion }),
+      { method: "GET" },
+    ),
+
+  kitUse: (materialId: number, mapVersion: string): Promise<KitUseOut> =>
+    postJson<KitUseOut>("/api/kit/use", { material_id: materialId, map_version: mapVersion }),
+
+  devKit: (materialId: number, mapVersion: string): Promise<DevKitOut> =>
+    send<DevKitOut>(
+      "/api/dev/kit" + query({ material_id: materialId, map_version: mapVersion }),
+      { method: "GET" },
+    ),
+
+  devSave: (body: DevKitIn): Promise<DevKitOut> =>
+    send<DevKitOut>("/api/dev/kit", json("PUT", body)),
+
+  devReset: (body: DevKitIn): Promise<DevKitOut> =>
+    send<DevKitOut>("/api/dev/kit", json("DELETE", body)),
+
   submit: (body: SubmitIn): Promise<SubmitOut> => postJson<SubmitOut>("/api/submit", body),
 
   records: (participantId: number, materialId?: number): Promise<RecordsOut> =>
@@ -102,6 +168,28 @@ export const api = {
 
   saveCurrent: (body: CurrentDraftIn): Promise<DraftOut> =>
     postJson<DraftOut>("/api/draft/current", body),
+
+  exportSubject: (filter: ExportFilter): Promise<{ blob: Blob; name: string }> => {
+    const parts = [
+      ...repeated("participant_id", filter.participantIds),
+      ...repeated("material_id", filter.materialIds),
+      ...repeated("time_point", filter.timePoints),
+    ];
+    const path = "/api/export/subject" + (parts.length ? "?" + parts.join("&") : "");
+    return download(path, "subject.csv");
+  },
+
+  exportPreview: (filter: ExportFilter, limit = 8): Promise<ExportPreviewOut> => {
+    const parts = [
+      ...repeated("participant_id", filter.participantIds),
+      ...repeated("material_id", filter.materialIds),
+      ...repeated("time_point", filter.timePoints),
+      "limit=" + limit,
+    ];
+    return send<ExportPreviewOut>("/api/export/preview?" + parts.join("&"), {
+      method: "GET",
+    });
+  },
 
   config: (): Promise<ConfigOut> => send<ConfigOut>("/api/config", { method: "GET" }),
 

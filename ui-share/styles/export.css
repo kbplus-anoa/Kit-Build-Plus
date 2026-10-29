@@ -1,0 +1,157 @@
+/* 导出页：筛选条件 + 一次下载。复用 panel / pagehead / subbar / btn 的既有语言。 */
+
+.export__head {
+  margin: 0 0 var(--space-5);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: var(--tracking-display);
+}
+
+.export__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+
+.export__label {
+  font-size: var(--text-sm);
+  color: var(--meta);
+}
+
+.export__input {
+  width: 100%;
+  max-width: 320px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  font: inherit;
+}
+
+.export__input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.export__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.export__chip {
+  max-width: 260px;
+  overflow: hidden;
+  padding: var(--space-1) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease),
+              border-color var(--motion-fast) var(--ease);
+}
+
+.export__chip:hover {
+  background: var(--elevated);
+  border-color: var(--border-strong);
+}
+
+.export__chip--on {
+  background: var(--accent-fill);
+  border-color: var(--accent-fill);
+  color: var(--accent-on);
+}
+
+.export__chip--on:hover {
+  background: var(--accent-fill-hover);
+  border-color: var(--accent-fill-hover);
+}
+
+.export__acts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.export__hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.export__error {
+  margin: var(--space-3) 0 0;
+  color: var(--node-red);
+}
+
+.export__done {
+  margin: var(--space-3) 0 0;
+  color: var(--meta);
+}
+
+/* 预览：和下载同一套列，横向滚而不是把二十几列挤成一团。 */
+.export__preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.export__preview > .export__hint {
+  margin: 0;
+}
+
+.export__scroll {
+  flex-basis: 100%;
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.export__table {
+  border-collapse: collapse;
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.export__table th,
+.export__table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.export__table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  font-weight: 500;
+  color: var(--fg);
+  background: var(--elevated);
+}
+
+.export__table td {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.export__table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .export__chip { transition: none; }
+}

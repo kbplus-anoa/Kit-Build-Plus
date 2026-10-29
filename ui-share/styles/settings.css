@@ -53,6 +53,24 @@
   outline-offset: 1px;
 }
 
+.settings__field--check { margin-top: var(--space-5); }
+
+.settings__switch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.settings__switch .settings__label { display: inline; }
+
+.settings__check {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .settings__hint {
   margin-top: var(--space-2);
   font-size: var(--text-xs);

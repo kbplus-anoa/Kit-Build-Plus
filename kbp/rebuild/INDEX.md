@@ -8,7 +8,7 @@
 | `rebuild_validate.py` | `check_against_kit`：只用 kit 内零件；越界概念/连接词、自环、重复、超量均拒绝 |
 | `draft_rows.py` | 草稿与提交的行格式：命题打包成 JSON（键 head/connection/tail）与拆回契约对象 |
 | `draft_store.py` | SQLite：草稿表 + 提交表，键为四元关联键；草稿可覆盖，提交后草稿删除；`next_seq` 分配序号，`counts` 数已提交次数；`drafts`/`submissions` 按人列出（可按教材筛） |
-| `usage.py` | 实现 `MapUsagePort`：查提交表回答"某目标图是否已被学生用过"，按版本号或内容指纹查 |
+| `usage.py` | 实现 `MapUsagePort`：查提交表回答"某目标图是否已被学生用过"；版本号只在教材内唯一，故按教材限定，内容指纹全局查 |
 | `rebuild_service.py` | 编排入口：`save_draft` / `load_draft` / `submit`，落库前一律先校验 |
 | `tests/rebuild/` | 零件校验、草稿覆盖、提交后拒改、自动锁版本、端到端 |
 

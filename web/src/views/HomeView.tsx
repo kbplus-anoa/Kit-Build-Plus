@@ -1,4 +1,4 @@
-/** 首页：极光背景上的标志与两个入口。入场时序照原型，另有一道兜底。 */
+/** 首页：极光背景上的标志与三个入口。入场时序照原型，另有一道兜底。 */
 import { useEffect, useState } from "react";
 
 import { initGlobe, stopGlobe } from "../fx/init";
@@ -11,6 +11,7 @@ interface Props {
   onToggleTheme: () => void;
   onStudy: () => void;
   onHistory: () => void;
+  onExport: () => void;
   onSettings: () => void;
 }
 
@@ -77,8 +78,18 @@ export function HomeView(props: Props) {
             strokeLinejoin="round"
             aria-hidden="true"
           >
-            <circle cx="12" cy="12" r="3.2" />
-            <path d="M12 2.8v2.4M12 18.8v2.4M4.5 12H2.1M21.9 12h-2.4M6.7 6.7 5 5M19 19l-1.7-1.7M17.3 6.7 19 5M5 19l1.7-1.7" />
+            <path
+              d={
+                "M9.4 4.86L10.29 4.59L10.65 2.39L13.35 2.39L13.71 4.59L14.6 4.86L15.21 5.11" +
+                "L16.03 5.55L17.84 4.25L19.75 6.16L18.45 7.97L18.89 8.79L19.14 9.4L19.41 10.29" +
+                "L21.61 10.65L21.61 13.35L19.41 13.71L19.14 14.6L18.89 15.21L18.45 16.03L19.75 17.84" +
+                "L17.84 19.75L16.03 18.45L15.21 18.89L14.6 19.14L13.71 19.41L13.35 21.61L10.65 21.61" +
+                "L10.29 19.41L9.4 19.14L8.79 18.89L7.97 18.45L6.16 19.75L4.25 17.84L5.55 16.03" +
+                "L5.11 15.21L4.86 14.6L4.59 13.71L2.39 13.35L2.39 10.65L4.59 10.29L4.86 9.4" +
+                "L5.11 8.79L5.55 7.97L4.25 6.16L6.16 4.25L7.97 5.55L8.79 5.11Z"
+              }
+            />
+            <circle cx="12" cy="12" r="3.1" />
           </svg>
           <span className="theme-toggle__label">设置</span>
         </button>
@@ -141,6 +152,10 @@ export function HomeView(props: Props) {
           <button type="button" className="entry" id="entry-history" onClick={props.onHistory}>
             <span className="entry__title">历史报告</span>
             <span className="entry__meta">学而时习之</span>
+          </button>
+          <button type="button" className="entry" id="entry-export" onClick={props.onExport}>
+            <span className="entry__title">数据导出</span>
+            <span className="entry__meta">被试级 CSV</span>
           </button>
         </nav>
       </section>

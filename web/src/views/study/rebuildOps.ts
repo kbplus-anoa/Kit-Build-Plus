@@ -1,4 +1,5 @@
 /** 画布上的每一次动作：放进概念、点名两端、连成命题、撤销与清空。 */
+import { pruneEdges, prunePlaced } from "../../data/devKit";
 import { clampAt, findSlot, labelOf, tripleOf, type At } from "./model";
 import type { Ctx, Pair } from "./rebuildState";
 
@@ -12,6 +13,19 @@ export function put(ctx: Ctx, id: string, at?: At): boolean {
     dirty: true,
   });
   return true;
+}
+
+/** 开发者删了概念或连接词：画布上不再成立的连线与落点一并撤下。 */
+/** 开发者删了概念或连接词：画布与目标图里不再成立的连线一并撤下。 */
+export function pruneKit(ctx: Ctx, ids: string[], conns: string[]): void {
+  const edges = pruneEdges(ctx.snap.edges, ids, conns);
+  const placed = prunePlaced(ctx.snap.placed, ids);
+  const intact = edges.length === ctx.snap.edges.length
+    && Object.keys(placed).length === Object.keys(ctx.snap.placed).length;
+  if (intact) return;
+  ctx.patch({
+    edges, placed, armed: null, pending: null, selected: null, dirty: true,
+  });
 }
 
 export function commit(ctx: Ctx, pair: Pair, conn: string): void {

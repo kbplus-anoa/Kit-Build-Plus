@@ -71,5 +71,7 @@ class TargetMapBank(Protocol):
         ...
 
     def mark_in_use(self, material_id: int, map_version: str) -> None:
-        """标记为已投用；此后该版本拒改、也不再被重抽覆盖。"""
+        """标记为已投用；此后该版本拒改、也不再被重抽覆盖。
+
+        一份教材同时只有一批在用：改投另一批时，其余各批的标记随之取消。"""
         ...

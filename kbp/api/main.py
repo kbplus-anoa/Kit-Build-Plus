@@ -4,11 +4,11 @@ from fastapi import FastAPI
 
 import kbp.api.envfile
 import kbp.api.routes_config
-import kbp.api.routes_data
+import kbp.api.routes_dev
+import kbp.api.routes_export
 import kbp.api.routes_flow
 import kbp.api.routes_kit
 import kbp.api.routes_records
-import kbp.api.routes_tam
 import kbp.api.routes_text
 
 kbp.api.envfile.apply()
@@ -19,8 +19,8 @@ app.include_router(kbp.api.routes_text.router)
 app.include_router(kbp.api.routes_flow.router)
 app.include_router(kbp.api.routes_kit.router)
 app.include_router(kbp.api.routes_records.router)
-app.include_router(kbp.api.routes_data.router)
-app.include_router(kbp.api.routes_tam.router)
+app.include_router(kbp.api.routes_export.router)
+app.include_router(kbp.api.routes_dev.router)
 
 
 @app.get("/")

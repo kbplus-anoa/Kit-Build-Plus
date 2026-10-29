@@ -2,19 +2,8 @@
 import { CHIP_H, chipWidth } from "../../../../ui-share/canvas/geometry";
 import type { Attempt } from "../../data/attempt";
 import type { Edge, Kit } from "../../data/kit";
-import type { KitAutoOut, RecordOut, SubmitOut } from "../../types/api";
+import type { RecordOut, SubmitOut } from "../../types/api";
 import { VIEW_H, VIEW_W, findSlot, type At } from "./model";
-
-export function kitFrom(auto: KitAutoOut, materialId: number, material: string): Kit {
-  return {
-    materialId,
-    material,
-    mapVersion: auto.map_version,
-    concepts: auto.concepts.map((concept) => ({ id: concept.concept_id, label: concept.label })),
-    connections: auto.connections,
-    total: auto.total_propositions,
-  };
-}
 
 export function labelsOf(kit: Kit): Record<string, string> {
   const labels: Record<string, string> = {};

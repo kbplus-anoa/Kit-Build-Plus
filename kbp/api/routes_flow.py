@@ -59,7 +59,10 @@ def adjudicate(body: BatchIn) -> BatchOut:
 
 @router.post("/kit", response_model=KitOut)
 def build_kit(body: BuildKitIn) -> KitOut:
-    """冻结目标图并拆 kit，返回学生可见零件。"""
+    """冻结目标图并拆 kit，返回学生可见零件。
+
+    不登记题库：裁定记录里没有教材标识，首次提交或保存草稿时才入库。
+    """
     conn = kbp.api.deps.get_conn()
     try:
         target = kbp.kit.kit_service.freeze_batch(conn, body.batch_id, body.map_version)
@@ -74,9 +77,10 @@ def build_kit(body: BuildKitIn) -> KitOut:
 
 
 @router.get("/lock", response_model=ReadyOut)
-def lock_state(map_version: str) -> ReadyOut:
-    """查该版本是否已被学生用过（用过即不可改）。"""
-    port = kbp.rebuild.usage.SubmissionUsage(kbp.api.deps.get_conn())
+def lock_state(map_version: str, material_id: int) -> ReadyOut:
+    """查该教材该版本是否已被学生用过（用过即不可改）。版本号教材内唯一。"""
+    port = kbp.rebuild.usage.SubmissionUsage(kbp.api.deps.get_conn(),
+                                             material_id)
     return ReadyOut(map_version=map_version,
                     locked=kbp.kit.lock.lock_state(map_version, port))
 
@@ -115,12 +119,12 @@ def load_draft(participant_id: int, material_id: int, time_point: str,
 def submit(body: SubmitIn) -> SubmitOut:
     """提交并立即评分。服务端分配提交序号，学习模式多次提交各自成行。"""
     conn = kbp.api.deps.get_conn()
-    try:
-        target, kit = kbp.api.record_flow.kit_for(
-            conn, body.material_id, body.map_version, body.batch_id)
-    except Exception as exc:
-        raise HTTPException(404, "批次不可用: " + str(exc))
     with kbp.api.deps.db_lock():
+        try:
+            target, kit = kbp.api.record_flow.kit_for(
+                conn, body.material_id, body.map_version, body.batch_id)
+        except Exception as exc:
+            raise HTTPException(404, "批次不可用: " + str(exc))
         seq = _assign_seq(conn, body)
         sub = _submission(body, target.fingerprint, seq)
         try:

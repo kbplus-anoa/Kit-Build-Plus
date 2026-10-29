@@ -44,20 +44,18 @@ def create_schema(conn) -> None:
     import kbp.export.row_store
     import kbp.ingest.materials
     import kbp.kit.bank_store
-    import kbp.quiz.quiz_store
-    import kbp.quiz.tam_store
+    import kbp.kit.dev_overlay
     import kbp.rebuild.draft_store
     kbp.kit.store.ensure(conn)
     kbp.kit.bank_store.ensure(conn)
+    kbp.kit.dev_overlay.ensure(conn)
     kbp.rebuild.draft_store.ensure(conn)
-    kbp.quiz.quiz_store.ensure(conn)
     kbp.api.config_store.ensure(conn)
     kbp.extract.threshold_store.ensure(conn)
     kbp.extract.discard_store.ensure(conn)
     kbp.extract.record_store.ensure(conn)
     kbp.export.row_store.ensure(conn)
     kbp.ingest.materials.ensure(conn)
-    kbp.quiz.tam_store.ensure(conn)
 
 
 def connect():

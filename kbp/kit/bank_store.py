@@ -115,9 +115,13 @@ def history(conn: sqlite3.Connection, material_id: int,
 
 def mark_in_use(conn: sqlite3.Connection, material_id: int,
                 map_version: str) -> None:
-    """标记为已投用；此后该版本拒改，也不再被重抽覆盖。"""
+    """标记为已投用；此后该版本拒改，也不再被重抽覆盖。
+
+    一份教材同时只有一批在用，所以先把这份教材的旧标记清掉。"""
     if not version_exists(conn, material_id, map_version):
         raise BankError("版本不存在: " + map_version)
+    conn.execute("UPDATE target_map SET in_use = 0 WHERE material_id = ?",
+                 (material_id,))
     conn.execute("UPDATE target_map SET in_use = 1 WHERE material_id = ?"
                  " AND map_version = ?", (material_id, map_version))
     conn.commit()

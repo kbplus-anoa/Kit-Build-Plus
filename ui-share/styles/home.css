@@ -243,12 +243,10 @@
 .entries {
   margin-top: var(--space-8);
   width: 100%;
-  /* Two doors, so two columns. A three-column track left the pair sitting in
-     the first two cells with an empty third, which read as a left-shifted
-     block instead of a centred pair. */
-  max-width: 560px;
+  /* 电脑版三扇门并排；竖着一行一个是手机版的事，见 device.css。 */
+  max-width: 760px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-3);
   opacity: 0;
   transform: translateY(10px);
@@ -338,12 +336,13 @@
 
 .entry[disabled]:active { transform: none; }
 
-@media (max-width: 899px) {
-  .entries { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 560px; }
+/* 桌面窗口拖得很窄时也退回一行一个，三列挤成两行更难看 */
+@media (max-width: 700px) {
+  .entries { max-width: 420px; grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 599px) {
-  .entries { grid-template-columns: 1fr; max-width: 420px; }
+  .entries { max-width: 420px; }
   .entry { padding: var(--space-4); }
   .brand__motto { font-size: var(--text-base); }
 }

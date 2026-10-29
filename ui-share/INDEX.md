@@ -22,7 +22,7 @@
 
 | 文件 | 职责 |
 |---|---|
-| `styles/*.css` | 视觉契约，原样取自用户原型（tokens/base/home/report/diagram/subpage/canvas/load） |
+| `styles/*.css` | 视觉契约，原样取自用户原型（tokens/base/home/report/diagram/subpage/canvas/load/settings/export/batch/device） |
 | `canvas/geometry.ts` | 概念块尺寸、连线出入点、同对多线的弯曲与连接词位置 |
 | `canvas/RebuildCanvas.tsx` | 重建画布：概念块、连线、点选与拖动、待定虚线 |
 | `canvas/useNodeDrag.ts` | 节点拖动：位移小于 4px 算点击 |
@@ -35,9 +35,16 @@
 | `canvas/DiffNodes.tsx` | 差异图的节点，只画被判定用到的概念 |
 | `canvas/DiffMarkerDefs.tsx` | 差异图五种笔迹各自的箭头 |
 | `atoms/Mark.tsx` | 五类判定的形状标记（不靠颜色） |
+| `atoms/Notice.tsx` | 常驻提示条：错误一律 alert，其余 status；样式类仍由各页给 |
 | `layout/Panel.tsx` | 入场面板，按下标错峰 |
 | `layout/SubBar.tsx` | 返回条与页头 |
 | `layout/RailGroup.tsx` | 零件栏分组容器 |
+| `layout/useFinePointer.ts` | 是否有桌面级指针（hover+fine）；触屏没有原生拖放，原生拖放只在该指针下开 |
+
+`styles/device.css` 只在 `html[data-device="mobile"]` 下生效，把宽度断点管不到的事补齐：
+触控目标 44px、动作条竖排、画布单列、报告分数块竖排。该属性由 `web/src/data/device.ts` 在挂载前
+写入，看 UA；手机勾了电脑模式时 UA 变桌面，于是自动出电脑版。地址带 `?device=mobile` 或
+`?device=desktop` 可强制另一版（存 sessionStorage，`?device=auto` 清掉），用于在电脑上预览手机版。
 
 画布用直接 SVG 而非 ReactFlow：原型是固定 960×540 的空间，没有平移缩放，
 ReactFlow 的视口与 handle 交互反而与设计冲突。

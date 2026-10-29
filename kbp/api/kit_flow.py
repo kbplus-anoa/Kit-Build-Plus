@@ -20,7 +20,7 @@ import kbp.kit.freeze
 import kbp.kit.kit_service
 import kbp.kit.lock
 import kbp.rebuild.usage
-from kbp.api.schemas import ConceptOut, KitAutoOut, SignalOut
+from kbp.api.schemas import ConceptOut, KitAutoOut, SignalOut, Vec2In
 
 KEEP = 12
 
@@ -56,6 +56,8 @@ def kit_out(kit, target, report=None, from_bank: bool = False) -> KitAutoOut:
                   for c in kit.concepts],
         connections=list(kit.connections),
         total_propositions=len(target.propositions),
+        propositions=[Vec2In(head_id=p.head_id, connection=p.connection,
+                             tail_id=p.tail_id) for p in target.propositions],
         fingerprint=target.fingerprint, from_bank=from_bank,
         possibly_inaccurate=bool(report and report.possibly_inaccurate),
         message=report.message if report else "",
@@ -75,7 +77,7 @@ def auto(body, on_step=None) -> KitAutoOut:
         entry = kbp.kit.kit_service.bank_find(conn, body.material_id,
                                               book.vocab_version)
         if entry is not None:
-            target, kit = kbp.kit.kit_service.bank_kit(entry)
+            target, kit = kbp.kit.kit_service.bank_kit(conn, entry)
             ready(conn, body.material_id)
             return kit_out(kit, target, from_bank=True)
     return _extract(body, book, conn, on_step)
@@ -91,7 +93,7 @@ def _extract(body, book, conn, on_step) -> KitAutoOut:
     with kbp.api.deps.db_lock():
         target, kit, _ = kbp.kit.kit_service.freeze_to_bank(
             conn, body.material_id, details.result, now(), body.map_version,
-            usage=kbp.rebuild.usage.SubmissionUsage(conn))
+            usage=kbp.rebuild.usage.SubmissionUsage(conn, body.material_id))
         _audit(conn, body, book, cfg, details, target)
     thresholds = kbp.extract.threshold_store.load(conn)
     report = kbp.extract.quality.assess(details.result, body.text, thresholds)

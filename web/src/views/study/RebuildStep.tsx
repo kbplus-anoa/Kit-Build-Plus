@@ -1,6 +1,8 @@
 /** 第二步：画布本体。模式在进来时就锁定，画布从不说对错。 */
 import { useEffect, useState } from "react";
 
+import { useKitSnapshot } from "../../hooks/useKitSnapshot";
+import type { Pt } from "./carry";
 import type { RebuildApi } from "./useRebuild";
 import { CanvasStage } from "./CanvasStage";
 import { ConnectorChooser } from "./ConnectorChooser";
@@ -27,6 +29,7 @@ function useStepEnter(): boolean {
 export function RebuildStep(props: Props) {
   const { mode, api } = props;
   const enter = useStepEnter();
+  useKitSnapshot();
   const open = Boolean(api.pending);
 
   function fromRail(id: string) {
@@ -35,6 +38,12 @@ export function RebuildStep(props: Props) {
       api.put(id);
       api.armConcept(id, true);
     }
+  }
+
+  /** 手指把零件放到画布上的那个点；没落在画布上就当点了一下。 */
+  function fromRailAt(id: string, at: Pt | null) {
+    if (at) api.settle(id, at.x, at.y);
+    else fromRail(id);
   }
 
   return (
@@ -47,7 +56,9 @@ export function RebuildStep(props: Props) {
           armedConn={api.armedConn}
           locked={api.locked}
           onConcept={fromRail}
+          onDropAt={fromRailAt}
           onConnector={api.armConnector}
+          onKitChange={api.prune}
         />
         <CanvasStage
           placed={api.placed}

@@ -112,6 +112,26 @@ def test_标记投用后可读回且缺版本报错():
         bank_store.mark_in_use(db, 1, "v9")
 
 
+def test_改投另一批时旧批取消投用():
+    db = conn()
+    bank_store.register(db, entry("v1"))
+    bank_store.register(db, entry("v2", created_at="2026-10-27T11:00:00"))
+    bank_store.mark_in_use(db, 1, "v1")
+    bank_store.mark_in_use(db, 1, "v2")
+    assert bank_store.by_fingerprint(db, 1, "fp-v1").in_use is False
+    assert bank_store.by_fingerprint(db, 1, "fp-v2").in_use is True
+
+
+def test_别的教材的在用标记互不牵连():
+    db = conn()
+    bank_store.register(db, entry("v1"))
+    bank_store.register(db, entry("v1", material_id=2))
+    bank_store.mark_in_use(db, 2, "v1")
+    bank_store.mark_in_use(db, 1, "v1")
+    assert bank_store.by_fingerprint(db, 2, "fp-v1").in_use is True
+    assert bank_store.by_fingerprint(db, 1, "fp-v1").in_use is True
+
+
 def test_换词表版本的图也能读回原词表():
     db = conn()
     vocab2 = triple.Vocab(vocab_id="心理学", vocab_version="v2",

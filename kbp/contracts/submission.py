@@ -18,7 +18,7 @@ def check_key(participant_id: int, material_id: int, time_point: str,
               submit_seq: int) -> str:
     """纯函数契约：四元关联键是否合法；返回空串表示合法，否则返回中文原因。
 
-    关联键 = 被试标识 + 教材 + 时点 + 提交序号，被试级与题级两表共有且非空。
+    关联键 = 被试标识 + 教材 + 时点 + 提交序号，四个键都非空。
     """
     for name, value in (("participant_id", participant_id),
                         ("material_id", material_id),

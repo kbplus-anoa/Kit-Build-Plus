@@ -5,7 +5,7 @@
 
 import { useCallback, useRef, useState } from "react";
 
-import type { Edge } from "../../data/kit";
+import { getKit, type Edge } from "../../data/kit";
 import { writeDraft, type Mode } from "./draft";
 import { clampAt, type At } from "./model";
 import * as ops from "./rebuildOps";
@@ -68,6 +68,14 @@ export function useRebuild() {
   const removeSelected = useCallback(() => call((ctx) => ops.removeSelected(ctx)), [call]);
   const clearAll = useCallback(() => call((ctx) => ops.clearAll(ctx)), [call]);
 
+  const prune = useCallback(
+    () => {
+      const kit = getKit();
+      return call((ctx) => ops.pruneKit(ctx, (kit?.concepts ?? []).map((item) => item.id),
+        kit?.connections ?? []));
+    },
+    [call],
+  );
   const move = useCallback(
     (id: string, x: number, y: number) => {
       const current = ref.current.placed;
@@ -138,6 +146,7 @@ export function useRebuild() {
     removeSelected,
     clearAll,
     move,
+    prune,
     hydrate,
     saveDraft,
     onEntered,

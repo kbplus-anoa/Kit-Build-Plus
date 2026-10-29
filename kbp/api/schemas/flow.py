@@ -4,15 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from kbp.api.schemas.core import Vec2In
 from kbp.api.schemas.kit import ConceptOut
-
-
-class Vec2In(BaseModel):
-    """学生提交的一条命题，只用 kit 内零件。"""
-
-    head_id: str = Field(min_length=1, max_length=50)
-    connection: str = Field(min_length=1, max_length=100)
-    tail_id: str = Field(min_length=1, max_length=50)
 
 
 class SubmitIn(BaseModel):

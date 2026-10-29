@@ -14,6 +14,11 @@ VOCAB = {"vocab_id": "心理学", "version": "v1",
          "connections": ["包括", "属于"]}
 A = (("记忆", "包括", "短时记忆"), ("短时记忆", "属于", "记忆系统"))
 B = (("记忆", "包括", "长时记忆"), ("长时记忆", "属于", "记忆系统"))
+ADJ = {"batch_id": "b1",
+       "vocab": {"vocab_id": "心理学", "version": "v1",
+                 "connections": ["包括"]},
+       "items": [{"head": "记忆", "connection": "包括", "tail": "短时记忆",
+                  "confidence": 0.9, "decision": "accepted", "reason": ""}]}
 
 
 @pytest.fixture
@@ -49,6 +54,12 @@ def auto(client, **kw):
     body = {"text": "记忆包括短时记忆", "vocab": VOCAB, "material_id": 1}
     body.update(kw)
     return client.post("/api/kit/auto", json=body)
+
+
+def entry(client, map_version, **params):
+    q = {"material_id": 1, "map_version": map_version}
+    q.update(params)
+    return client.get("/api/kit/entry", params=q)
 
 
 def versions(client, **params):
@@ -112,6 +123,32 @@ def test_版本列表空教材回空表(client):
         {"material_id": 9, "versions": []}
 
 
+def test_按版本取那一批的零件集(client, monkeypatch):
+    Fake(monkeypatch)
+    auto(client)
+    auto(client, retry=True)
+    old = entry(client, "v1").json()
+    new = entry(client, "v2").json()
+    assert (old["map_version"], new["map_version"]) == ("v1", "v2")
+    assert old["total_propositions"] == new["total_propositions"] == 2
+    assert "长时记忆" in [c["label"] for c in new["concepts"]]
+    assert "长时记忆" not in [c["label"] for c in old["concepts"]]
+    assert old["connections"] == new["connections"] == ["包括", "属于"]
+    # 开发者模式要看图并改图：目标图命题随 kit 带出，不只是条数
+    assert [(p["head_id"], p["connection"], p["tail_id"])
+            for p in old["propositions"]] == \
+        [("c1", "包括", "c2"), ("c2", "属于", "c3")]
+    assert len(new["propositions"]) == 2
+
+
+def test_取不存在的版本返_404(client, monkeypatch):
+    Fake(monkeypatch)
+    auto(client)
+    r = entry(client, "v9")
+    assert r.status_code == 404
+    assert "v9" in r.json()["detail"]
+
+
 def test_切回旧批标为投用(client, monkeypatch):
     Fake(monkeypatch)
     auto(client)
@@ -122,6 +159,17 @@ def test_切回旧批标为投用(client, monkeypatch):
     rows = versions(client).json()["versions"]
     assert [(r["map_version"], r["in_use"]) for r in rows] == \
         [("v1", True), ("v2", False)]
+
+
+def test_改用另一批后只有一批在用(client, monkeypatch):
+    Fake(monkeypatch)
+    auto(client)
+    auto(client, retry=True)
+    client.post("/api/kit/use", json={"material_id": 1, "map_version": "v1"})
+    client.post("/api/kit/use", json={"material_id": 1, "map_version": "v2"})
+    rows = versions(client).json()["versions"]
+    assert [(r["map_version"], r["in_use"]) for r in rows] == \
+        [("v1", False), ("v2", True)]
 
 
 def test_切回不存在的版本返_404(client):
@@ -142,3 +190,22 @@ def test_切回旧批后仍能按旧版建草稿(client, monkeypatch):
         "propositions": []})
     assert body.status_code == 200, body.text
     assert body.json()["map_version"] == "v1"
+
+
+def test_人工裁定批次预览不入库提交后才入库(client):
+    client.post("/api/adjudicate", json=ADJ)
+    preview = client.post("/api/kit",
+                          json={"batch_id": "b1", "map_version": "v1"})
+    assert preview.status_code == 200, preview.text
+    assert versions(client).json()["versions"] == []
+    ids = {c["label"]: c["concept_id"] for c in preview.json()["concepts"]}
+    resp = client.post("/api/submit", json={
+        "batch_id": "b1", "map_version": "v1", "mode": "test",
+        "condition": "exp",
+        "participant_id": 1, "material_id": 1, "time_point": "post",
+        "propositions": [{"head_id": ids["记忆"], "connection": "包括",
+                          "tail_id": ids["短时记忆"]}]})
+    assert resp.status_code == 200, resp.text
+    rows = versions(client).json()["versions"]
+    assert [(r["map_version"], r["source"]) for r in rows] == \
+        [("v1", "adjudicated")]

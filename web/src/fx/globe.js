@@ -3,6 +3,8 @@
    then rotates slowly. It leans toward a pointer that comes near it. The
    nodes carry no data: this is the brand mark. */
 
+import { freezeRequested } from './freeze.js';
+
 (function () {
   'use strict';
 
@@ -13,6 +15,8 @@
   /* queried live, not snapshotted at load: a user can flip the system
      setting while the page is open and the mark must obey it immediately */
   var motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  /* 外部冻结：地址栏要求或 freeze() 调用后，只画装配完成的静帧 */
+  var frozen = freezeRequested();
 
   /* ── Geometry ─────────────────────────────────────────────────── */
 
@@ -502,7 +506,7 @@
      Reduced motion opts out of the loop entirely — resuming there would
      start spinning a mark the user asked to keep still. */
   function resume() {
-    if (!paused || motionQuery.matches) return;
+    if (!paused || motionQuery.matches || frozen) return;
     paused = false;
     lastFrame = 0;
     raf = requestAnimationFrame(step);
@@ -588,7 +592,7 @@
        tests and 84 sorts for nothing. */
     if (!nodes.length) buildSphere();
 
-    if (motionQuery.matches) {
+    if (motionQuery.matches || frozen) {
       /* no build animation: the assembled mark is the artifact */
       for (var i = 0; i < NODES; i++) {
         nodes[i].alpha = 1;
@@ -679,6 +683,7 @@
   /* honour a settings change mid-session: freeze to the assembled still, or
      start turning again, without needing a reload */
   function onMotionChange() {
+    if (frozen) return;
     if (motionQuery.matches) {
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
@@ -733,6 +738,22 @@
       paint();
     },
     resume: resume,
+    /* 停在确定的一帧：装配完成的样子，停在 rot=0.4 */
+    freeze: function () {
+      frozen = true;
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+      paused = true;
+      for (var i = 0; i < NODES; i++) {
+        nodes[i].alpha = 1;
+        nodes[i].scale = 1;
+      }
+      for (var e = 0; e < edges.length; e++) edges[e].alpha = 1;
+      rot = 0.4;
+      settled = true;
+      resetPull();
+      paint();
+    },
     stop: function () {
       if (raf) cancelAnimationFrame(raf);
       raf = 0;

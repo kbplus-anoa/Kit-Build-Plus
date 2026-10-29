@@ -5,6 +5,7 @@ interface AuroraApi {
   repaint: () => void;
   stop: () => void;
   resume: () => void;
+  freeze: () => void;
 }
 
 interface GlobeApi {
@@ -12,6 +13,7 @@ interface GlobeApi {
   stop: () => void;
   resume: () => void;
   repaint: () => void;
+  freeze: () => void;
 }
 
 interface LoadGlobeApi {
@@ -19,9 +21,12 @@ interface LoadGlobeApi {
   stop: () => void;
   repaint: () => void;
   onBeat: (fn: (index: number) => void) => void;
+  freeze: () => void;
 }
 
 interface Window {
+  /** 测量架读：fx 是否已停在确定的一帧 */
+  __kbpFrozen?: boolean;
   KBPAurora?: AuroraApi;
   KBPGlobe?: GlobeApi;
   KBPLoadGlobe?: LoadGlobeApi;

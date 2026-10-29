@@ -8,6 +8,10 @@ import threading
 
 import kbp.api.deps as deps
 
+SEED = ("INSERT INTO extract_config (id, provider, model, base_url,"
+        " timeout_s, max_chars, enabled)"
+        " VALUES (1, 'p', 'm', 'u', 1, 1, 1)")
+
 
 def collect(n, fn):
     out = []
@@ -29,7 +33,7 @@ def test_文件库每线程各一条连接并见到同一份表(tmp_path, monkey
     try:
         got = collect(4, lambda: (id(deps.get_conn()),
                                   deps.get_conn().execute(
-                                      "SELECT count(*) FROM quiz_set"
+                                      "SELECT count(*) FROM extract_config"
                                   ).fetchone()[0]))
     finally:
         deps.reset_conn(None)
@@ -42,11 +46,11 @@ def test_内存库每线程各一条连接仍共用一张表(monkeypatch):
     deps.reset_conn(None)
     try:
         deps.get_conn().execute(
-            "INSERT INTO quiz_set (quiz_id, questions) VALUES ('z1', '[]')")
+            SEED)
         deps.get_conn().commit()
         got = collect(3, lambda: (id(deps.get_conn()),
                                   deps.get_conn().execute(
-                                      "SELECT count(*) FROM quiz_set"
+                                      "SELECT count(*) FROM extract_config"
                                   ).fetchone()[0]))
     finally:
         deps.reset_conn(None)
@@ -59,11 +63,11 @@ def test_重置后内存库是新的空库(monkeypatch):
     deps.reset_conn(None)
     try:
         deps.get_conn().execute(
-            "INSERT INTO quiz_set (quiz_id, questions) VALUES ('z1', '[]')")
+            SEED)
         deps.get_conn().commit()
         deps.reset_conn(None)
         left = deps.get_conn().execute(
-            "SELECT count(*) FROM quiz_set").fetchone()[0]
+            "SELECT count(*) FROM extract_config").fetchone()[0]
     finally:
         deps.reset_conn(None)
     assert left == 0

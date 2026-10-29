@@ -30,15 +30,6 @@ def subject(**kw):
     return exportcsv.SubjectRow(**base)
 
 
-def question(**kw):
-    base = dict(participant_id=1, material_id=1, time_point="pre",
-                submit_seq=1, target_map_version="v1", question_id="q1",
-                correct=1, score=None, qtype="single",
-                content_dimension="记忆")
-    base.update(kw)
-    return exportcsv.QuestionRow(**base)
-
-
 def test_被试级快照往返保住每条字段(conn):
     row = subject()
     row_store.save_subject(conn, row)
@@ -50,18 +41,6 @@ def test_同一四元键覆盖旧值(conn):
     row_store.save_subject(conn, subject(condition="con", submit_seq=1))
     rows = row_store.subjects(conn)
     assert len(rows) == 1 and rows[0].condition == "con"
-
-
-def test_题干快照往返保住每条字段(conn):
-    row = question()
-    row_store.save_question(conn, row)
-    assert row_store.questions(conn) == (row,)
-
-
-def test_题级快照按题号排序(conn):
-    row_store.save_question(conn, question(question_id="q2"))
-    row_store.save_question(conn, question(question_id="q1"))
-    assert [r.question_id for r in row_store.questions(conn)] == ["q1", "q2"]
 
 
 def test_空条件查出全部(conn):
@@ -86,11 +65,10 @@ def test_教材与时点可叠加筛选(conn):
 
 
 def test_没有记录返回空(conn):
-    assert row_store.subjects(conn) == () and row_store.questions(conn) == ()
+    assert row_store.subjects(conn) == ()
 
 
 def test_条数只数被试级(conn):
     assert row_store.count_subjects(conn) == 0
     row_store.save_subject(conn, subject())
-    row_store.save_question(conn, question())
     assert row_store.count_subjects(conn) == 1

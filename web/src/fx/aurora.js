@@ -22,6 +22,8 @@
  *      flat --bg behind it — no error, no half-drawn layer.
  */
 
+import { freezeRequested } from './freeze.js';
+
 (function () {
   'use strict';
 
@@ -47,9 +49,17 @@
 
   var FRAG = '#version 300 es\n' +
     'precision highp float;\n' +
+    'precision highp int;\n' +
     'out vec4 o;\n' +
     'uniform vec2 u_res; uniform float u_time; uniform vec2 u_mouse; uniform float u_light;\n' +
+    'uniform float u_dither;\n' +
     'float hash(vec2 p){ return fract(sin(dot(p,vec2(41.3,289.1)))*43758.5453); }\n' +
+    '/* One code value of noise per pixel, from an integer hash rather than the\n' +
+    '   sine one above: at gl_FragCoord magnitudes the sine hash loses its low\n' +
+    '   bits to the argument reduction and starts to repeat. */\n' +
+    'float dither(){ uint h=uint(gl_FragCoord.x)+uint(gl_FragCoord.y)*1973u;\n' +
+    '  h=(h^(h>>15))*2246822519u; h=(h^(h>>13))*3266489917u;\n' +
+    '  return float((h^(h>>16))&0xffffu)/65535.0-0.5; }\n' +
     'float noise(vec2 p){ vec2 i=floor(p),f=fract(p); vec2 u=f*f*(3.0-2.0*f);\n' +
     '  return mix(mix(hash(i),hash(i+vec2(1,0)),u.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x),u.y); }\n' +
     '/* Three octaves, where the reference used five. The two dropped octaves\n' +
@@ -101,12 +111,14 @@
     '  }\n' +
     '  col *= 0.7+0.5*smoothstep(1.5,0.1,length(p*vec2(0.6,1.0)));\n' +
     '  col=col/(col+0.8);\n' +
-    '  /* Fixed grain. The reference folds u_time into the hash, which makes\n' +
-    '     every pixel of a soft gradient change on every frame: television snow,\n' +
-    '     and nothing a later frame can reuse. Frozen, it does what grain is for\n' +
-    '     on a smooth ramp — a fixed dither that breaks up banding. */\n' +
-    '  col+=(hash(gl_FragCoord.xy)-0.5)*0.02;\n' +
-    '  o=vec4(pow(max(col,0.0),vec3(0.9)),1.0);\n' +
+    '  /* Dither, in output space and after the tone curve, where 1/255 is exactly\n' +
+    '     one code value of the framebuffer. The sky ramps slower than that: it\n' +
+    '     spends tens of rows inside one value and then steps down by one, and on\n' +
+    '     an OLED at night those steps read as thin horizontal lines. u_dither is\n' +
+    '     a width in code values; the caller pre-emphasises it by the upscale\n' +
+    '     factor, because the browser averages it again on the way to the screen. */\n' +
+    '  vec3 c=pow(max(col,0.0),vec3(0.9))+dither()*(u_dither/255.0);\n' +
+    '  o=vec4(c,1.0);\n' +
     '}';
 
   function compile(type, src) {
@@ -121,6 +133,7 @@
 
   var program = null;
   var uRes = null, uTime = null, uMouse = null, uLight = null;
+  var uDither = null;
 
   /* Compiles, links, and takes the uniform locations. Shared by the initial
      build and by the restore after a context loss, when every one of those
@@ -146,12 +159,15 @@
     uTime = gl.getUniformLocation(program, 'u_time');
     uMouse = gl.getUniformLocation(program, 'u_mouse');
     uLight = gl.getUniformLocation(program, 'u_light');
+    uDither = gl.getUniformLocation(program, 'u_dither');
     return true;
   }
 
   if (!buildProgram()) return;
 
   var motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  /* 外部冻结：地址栏要求或 freeze() 调用后，只画 still() 那一帧，永不进循环 */
+  var frozen = freezeRequested();
   var mouse = [0.5, 0.5];
   var target = [0.5, 0.5];
   var raf = 0;
@@ -183,10 +199,24 @@
   /* raised by the resize listener, consumed by the frame loop: a resize burst
      must not measure once per event */
   var sizeDirty = true;
+  /* buffer pixels per CSS pixel, measured alongside the buffer: the dither
+     amplitude is pre-emphasised by it, because the browser averages the noise
+     again on the way to the screen */
+  var pixelScale = 1;
 
   function bufferScale() {
     var cap = window.innerWidth > 1200 ? 1.5 : 2;
     return Math.min(window.devicePixelRatio || 1, cap) * BUFFER_SCALE;
+  }
+
+  /* 抖动幅度，单位是一个码值。它只做一件事：抵住渐变落进 8bit 时那一级
+     一级的台阶——夜空的蓝在一整屏里只走十几个码值，每一级要占二三十行，
+     那就是肉眼看到的横线。缓冲比屏幕小时噪声先被浏览器的双线性放大平均
+     掉一截（约等于放大倍数），所以按放大倍数预加重；一比一时正好半个码
+     值，也就是教科书上的舍入抖动。?grain=0 是关掉它做对照的开关。 */
+  function ditherNow() {
+    var upscale = (window.devicePixelRatio || 1) / Math.max(pixelScale, 0.001);
+    return Math.max(1, Math.min(2, upscale));
   }
 
   function measure() {
@@ -194,6 +224,7 @@
     var d = bufferScale();
     var w = Math.round(window.innerWidth * d);
     var h = Math.round(window.innerHeight * d);
+    pixelScale = w / Math.max(window.innerWidth, 1) || 1;
     if (w === canvas.width && h === canvas.height) return;
     canvas.width = w;
     canvas.height = h;
@@ -208,6 +239,7 @@
   var sentRes = [0, 0];
   var sentLight = -1;
   var sentMouse = [NaN, NaN];
+  var sentDither = -1;
 
   function invalidateUniforms() {
     sentRes[0] = 0;
@@ -215,6 +247,7 @@
     sentLight = -1;
     sentMouse[0] = NaN;
     sentMouse[1] = NaN;
+    sentDither = -1;
   }
 
   function draw(time) {
@@ -226,6 +259,11 @@
     if (light !== sentLight) {
       gl.uniform1f(uLight, light);
       sentLight = light;
+    }
+    var dither = ditherNow();
+    if (dither !== sentDither) {
+      gl.uniform1f(uDither, dither);
+      sentDither = dither;
     }
     if (mouse[0] !== sentMouse[0] || mouse[1] !== sentMouse[1]) {
       gl.uniform2f(uMouse, mouse[0], mouse[1]);
@@ -257,6 +295,7 @@
 
   function start() {
     if (motionQuery.matches) { still(); return; }
+    if (frozen) { still(); return; }
     if (raf) return;
     /* continue the drift from where it stopped rather than from where the wall
        clock got to: a hidden tab or an open subpage must not make the curtains
@@ -287,7 +326,7 @@
        Nothing would consume it with the loop stopped, so those two cases are
        handled here: reduced motion has no next frame at all and has to redraw
        its single frame at the new size. */
-    if (motionQuery.matches) still();
+    if (motionQuery.matches || frozen) still();
     else if (!raf) measure();
   });
 
@@ -344,6 +383,12 @@
     },
     /* freeze behind the subpage's backdrop blur; resume when home returns */
     stop: stop,
-    resume: start
+    resume: start,
+    /* 停在确定的一帧：复用 stop() + still()，不另开渲染路径 */
+    freeze: function () {
+      frozen = true;
+      stop();
+      still();
+    }
   };
 })();

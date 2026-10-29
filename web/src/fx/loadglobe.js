@@ -16,6 +16,8 @@
  * itself stutter.
  */
 
+import { freezeRequested } from './freeze.js';
+
 (function () {
   'use strict';
 
@@ -26,6 +28,8 @@
   if (!ctx) return;
 
   var motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  /* 外部冻结：地址栏要求或 freeze() 调用后，只画无心跳的静帧 */
+  var frozen = freezeRequested();
 
   /* ── Geometry ─────────────────────────────────────────────────────── */
 
@@ -437,7 +441,7 @@
     readTheme();
     resize();
 
-    if (motionQuery.matches) {
+    if (motionQuery.matches || frozen) {
       /* still mark: no beat, no ripple, no spin. The status line is text, not
          motion, so it keeps rotating — otherwise the screen looks frozen and
          the student cannot tell the upload is still running. */
@@ -445,6 +449,8 @@
       paint(0);
       stopTicker();
       tickIndex = 0;
+      /* 冻结时文案也停：静帧之外的文字还在动，截图就对不齐 */
+      if (frozen) return;
       ticker = window.setInterval(function () {
         tickIndex += 1;
         announce(tickIndex);
@@ -502,6 +508,14 @@
   window.KBPLoadGlobe = {
     start: start,
     stop: stop,
+    /* 停在确定的一帧：无心跳、无涟漪、不转文案 */
+    freeze: function () {
+      frozen = true;
+      stop();
+      resize();
+      ripple.active = false;
+      paint(0);
+    },
     /* the copy layer subscribes here so text and ripple stay on one clock */
     onBeat: function (fn) { onBeat = fn; },
     repaint: function () {

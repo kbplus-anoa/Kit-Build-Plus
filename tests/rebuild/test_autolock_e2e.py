@@ -54,7 +54,7 @@ def make_sub(kit, seq=1, mode=submission.TEST):
 
 def test_提交后版本自动锁定():
     conn = shared_conn()
-    port = usage.SubmissionUsage(conn)
+    port = usage.SubmissionUsage(conn, 1)
     kit = split.split(freeze.freeze(make_log(), "v1"))
     lock.assert_mutable("v1", port)
     svc.submit(conn, kit, make_sub(kit))

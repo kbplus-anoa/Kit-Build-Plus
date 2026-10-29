@@ -13,11 +13,9 @@
 | `adjudication.py` | Adjudication、AdjudicationLog、MapUsagePort | kit → rebuild（反向注入） |
 | `targetmap.py` | Concept、Proposition、TargetMap、Kit、content_fingerprint | kit → rebuild、score |
 | `targetbank.py` | BankEntry（含来源批次 batch_id）、check_entry、same_map、TargetMapBank 协议 | kit → kit 存储与 api（题库命中）；来源枚举 adjudicated / auto |
-| `submission.py` | 四元关联键 `KEY_FIELDS`、`check_key`、SubmittedProposition、Submission、Draft、模式与时点枚举 | rebuild → score、quiz、export |
+| `submission.py` | 四元关联键 `KEY_FIELDS`、`check_key`、SubmittedProposition、Submission、Draft、模式与时点枚举 | rebuild → score、export |
 | `report.py` | ErrorChain、ScoreResult、四类错误枚举 | score → export |
-| `quizsheet.py` | Question、Answer、QuizRecord | quiz → export |
-| `tam.py` | ScaleItem、AlphaReport、ScoreRow、CONSTRUCTS、alpha_by_construct 签名 | quiz → api（量表条目与信度） |
-| `exportcsv.py` | SubjectRow、QuestionRow、CsvPayload、UTF8_BOM | export → CSV 文件 |
+| `exportcsv.py` | SubjectRow、CsvPayload、UTF8_BOM | export → CSV 文件 |
 
 冻结规则：契约被第二个 feature 消费即冻结；改动先给旧→新、影响范围、迁移方式，经用户确认。
 
@@ -34,11 +32,9 @@
 | `quality` | `Signal` / `QualityReport` / `assess` 签名 | 抽崩信号要带出到界面，故为契约；实现在 `kbp/extract/quality.py` |
 | `triple.TripleCandidate` | `suspect: bool = False` | 概念过长的可疑项：不静默丢，标出来排到最后 |
 | `triple.TripleCandidate.confidence` | 语义改为本地代理分 | 按 evidence 是否逐字命中原文算分，只用于排序，不采用模型自报值 |
-| `tam` | 整套（含 `CONSTRUCTS`、`MIN_ALPHA`、`alpha_by_construct` 签名） | TAM 量表条目与各构念信度；实现在 `kbp/quiz/{scale,alpha}.py` |
 | `report` | `fms` 量纲 0~100，`FMS_MIN` / `FMS_MAX` | 与文献口径一致（D04）；实现只此一份，score 与 export 共用 |
 | `submission` | 关联键改四元 `(participant_id, material_id, time_point, submit_seq)`，加 `check_key`；`Submission` 加 `fingerprint` / `time_point` / `submit_seq` | 同一人同一教材同一时点可多次提交，靠序号区分（D09） |
-| `quizsheet.QuizRecord` | 去 `session`，改四元键 | 与提交表同键对齐 |
-| `exportcsv.SubjectRow` / `QuestionRow` | 关联键改四元 | 两张表可按同一键联结 |
+| `exportcsv.SubjectRow` | 关联键改四元 | 与提交表同键对齐 |
 | `targetbank` | 整套（来源枚举、`check_entry`、`same_map`、`TargetMapBank`） | 题库命中与冻结图落库（D02）；实现在 kit |
 | `extraction` | 加 `map_version` / `fingerprint` 回填字段与 `ExtractionStore` | 留档要能追溯"这条命题出自哪张图" |
 | `quality` | `Signal.threshold` 可空；加 `Thresholds`（四阈值 + `min_props` + 基线来源与样本量 + `calibrated`）；`QualityReport` 加 `calibrated` / `baseline_n` / `baseline_source`；`assess` 加 `thresholds` | 阈值取开发期冻结图分位点；未校准只记录不提示（D08） |

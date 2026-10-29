@@ -9,22 +9,21 @@
 |---|---|
 | `main.py` | FastAPI 实例、路由挂载、`/` 与 `/api/health` |
 | `deps.py` | 每线程一条数据库连接与一把写锁（两把锁分开，见下）；连接开 WAL 与 `busy_timeout` |
-| `bootstrap.py` | 建表装配（不碰 `sys.path`，一律走完整模块路径）：各 feature 的 `ensure` + 抽取配置表、阈值表、抽取留档表、导出快照表、教材登记表、量表作答表；库默认落在仓库根 `tmp/kb.sqlite3` |
+| `bootstrap.py` | 建表装配（不碰 `sys.path`，一律走完整模块路径）：各 feature 的 `ensure` + 抽取配置表、阈值表、抽取留档表、导出快照表、教材登记表；库默认落在仓库根 `tmp/kb.sqlite3` |
 | `envfile.py` | 启动时把仓库根 `.env` 补进环境变量（已存在的变量优先；`KBP_ENV_FILE` 可指到别处），读配置时再重读一次，改文件不用重启 |
-| `schemas/` | 通用请求/响应模型，只做格式约束，不含业务规则；按域分 `core.py`（配置/读稿/抽取）、`kit.py`（裁 kit 与后台任务）、`flow.py`（提交与历史记录）、`quiz.py`（测验），名字统一由 `schemas/__init__.py` 导出 |
-| `schemas_kit.py` | kit 版本与投用切换的请求/响应模型 |
-| `schemas_tam.py` | TAM 量表的请求/响应模型，独立成文件以避开 200 行上限 |
+| `schemas/` | 通用请求/响应模型，只做格式约束，不含业务规则；按域分 `core.py`（配置/读稿/抽取）、`kit.py`（裁 kit 与后台任务）、`bank.py`（题库各批与切回）、`flow.py`（提交与历史记录）、`preview.py`（导出预览回包），名字统一由 `schemas/__init__.py` 导出 |
 | `config_store.py` | 抽取配置表（一行一条）的读写；库里没保存过时按 `.env` 的 `KBP_EXTRACT_*` 出默认值 |
 | `routes_config.py` | `GET/PUT /api/config`：读写配置；**只回显密钥是否已配置** |
 | `kit_flow.py` | 运行期裁 kit 的编排：题库命中、切段预报、逐段进度回调、后台任务与结果封装 |
 | `upload_flow.py` | 上传侧公共步骤：扩展名校验与落盘解析（失败即删文件） |
 | `routes_text.py` | `/api/upload`（multipart 落盘→解析→登记教材，回正文）、`GET /api/materials`（只列已抽出 kit 的教材）、`DELETE /api/materials/{id}`（删登记与原文，失败上传回滚用）、`GET /api/materials/{id}/text`（按落盘文件重读旧教材正文，命中解析缓存）、`/api/ingest`、`/api/extract`、`/api/kit/preview`（切段预报）、`/api/kit/auto`（先查题库，命中不重抽；`retry` 跳过复用要求重抽）、`POST /api/kit/jobs` + `GET /api/kit/jobs/{id}`（后台抽，带真实段进度）；丢弃与整次抽取都落留档 |
-| `routes_flow.py` | `/api/adjudicate`（开发期）、`/api/kit`、`/api/lock`、`/api/draft`、`/api/submit`（回提交序号、内容指纹、FMS、四类错误明细与目标命题，并落被试级快照） |
+| `routes_flow.py` | `/api/adjudicate`（开发期）、`/api/kit`、`/api/lock`（按 `material_id` 限定教材）、`/api/draft`、`/api/submit`（回提交序号、内容指纹、FMS、四类错误明细与目标命题，并落被试级快照；题库未命中时按人工裁定批冻结，首次提交即登记入库） |
 | `record_flow.py` | 历史提交与草稿：按当前目标图重算报告、列出某人的提交与草稿、读写当前草稿 |
 | `routes_records.py` | `GET /api/records`（某人提交，可按教材筛）、`GET /api/drafts`、`GET/POST /api/draft/current`（当前草稿，序号服务端分配） |
-| `routes_kit.py` | `GET /api/kit/versions`（列出各批）、`POST /api/kit/use`（切回某一批） |
-| `routes_data.py` | `/api/quiz`（落题级快照；作答序号取 `quiz_store.next_seq`，在建图提交之后交卷也不串号）、`GET /api/export/subject`、`GET /api/export/question`（三条件筛选，空即全选） |
-| `routes_tam.py` | `GET /api/tam/items`、`POST /api/tam/answers`（整卷落库）、`GET /api/tam/alpha`（读库算） |
+| `routes_kit.py` | `GET /api/kit/versions`（列出各批）、`GET /api/kit/entry`（取某一批零件集）、`POST /api/kit/use`（切回某一批） |
+| `routes_export.py` | `GET /api/export/subject`（被试级 CSV）、`GET /api/export/preview`（表头加前几行）；两条同一套筛选，查不到 404，行不合法 400 |
+| `routes_dev.py` | 开发者模式的落库入口：`GET/PUT/DELETE /api/dev/kit`，按教材加版本读改写后的样子、整份改写、撤销改写 |
+| `dev_gate.py` | 开发者密码，服务端再验一次：前端那道门只是顺手，真正的门在这里 |
 
 `/api/ingest` 失败码：文件不存在 404、格式不支持 400、
 扫描件云端不可用（`MinerUUnavailable`）503、其它解析失败 502。
@@ -86,24 +85,32 @@
 旧批不动；`GET /api/kit/versions?material_id=` 按入库先后列出各批（可再带
 `vocab_version` 筛），`POST /api/kit/use` 把某一批标为投用，版本不存在返 404。
 切回只标投用，学生用旧 `map_version` 继续草稿与提交，图不改不删。
+`GET /api/kit/entry?material_id=&map_version=` 取那一批的零件集（概念、连接词、
+命题数，回 KitOut），前端切批后不必等重抽就能直接进画布；版本不在同样返 404。
 
-导出：筛选条件走查询参数（`participant_id`、`material_id`、`time_point`，可重复给），
-查不到记录返 404，行不合法返 400。组别 `condition` 在提交时必填（exp/con），
+导出：只有被试级一张表。筛选条件走查询参数（`participant_id`、`material_id`、`time_point`，可重复给），
+查不到记录返 404，行不合法返 400。
+`GET /api/export/preview` 用同一套筛选回表头加前 `limit` 行（默认 8，1 到 50）与总行数；
+预览的单元格是先把 CSV 拼出来再读回去，所以与下载文件逐字一致，不在 api 层另做格式化。组别 `condition` 在提交时必填（exp/con），
 因为导出契约不允许空组别；未分组的提交直接 422，不在库里补默认值。
 
 `/api/submit` 与 `/api/draft` 取图走 `_kit_for`：先按 `material_id` + `map_version` 查题库，
 命中就直接用（自动路的图没有 `batch_id`），没命中才回退人工裁定批次。
-
-TAM：`GET /api/tam/items` 出量表条目（六点上下限、判据、构念中文名、可选题）；
-`POST /api/tam/answers` 收整卷落库（一人一题一行，重答覆盖），题号不在量表内
-或同一份卷子同题两答返 400（原因里带题号），得分越界（不在 1–6）由本层模型返 422；
-`GET /api/tam/alpha` 按构念算 α，数只来自库里的作答，缺答整人剔除。
 
 `/api/extract` 的每条候选带 `confidence`（本地代理分，只用于排序）、`evidence`（逐字原文片段）与 `suspect`（概念过长等可疑项，不丢、排最后）。
 
 `/api/kit/auto` 回 `possibly_inaccurate` + `message` + `signals` + `calibrated`：
 每条信号带原值、阈值、是否触发；阈值取自 `quality_thresholds`，
 没有校准就只带原值（阈值空、不触发、不提示）；命题太少时只记录不提示。
+
+## 开发者模式
+
+改写存在 `dev_overlay` 表（`kbp/kit/dev_overlay.py`），读图时盖在冻结图上：
+`/api/kit/entry`、草稿与提交都走 `kit_service.target_kit`，所以改完提交按改后的图校验，
+冻结图的指纹、版本号与投用标记一个不动。`DELETE` 只删那一行，回冻结图原样。
+
+密码由 `dev_gate.assert_open` 在服务端验，不对 403；图不成立（越界、自环、重复）400 并带原因；
+版本不存在 404。改过的那一批回包用叠层里的概念与连接词，不按命题反推，还没被命题用上的零件也在。
 
 ## 边界（不做什么）
 

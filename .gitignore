@@ -10,3 +10,6 @@ tmp/
 *.log
 *.swp
 *.swo
+web/.shots/
+videos/*/renders/
+videos/*/node_modules/

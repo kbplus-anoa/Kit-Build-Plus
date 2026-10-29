@@ -1,6 +1,7 @@
 /** 教材选择：上传入口与已上传列表。上传按钮只是外壳，真正接文件的是藏起来的 input。 */
 import { useRef, useState } from "react";
 
+import { Notice } from "../../../../ui-share/atoms/Notice";
 import type { MaterialOut } from "../../types/api";
 import { UPLOAD_NOTE } from "./copy";
 
@@ -102,9 +103,14 @@ export function DocPicker(props: {
           上传教材
         </button>
         <p className="upload__note">{UPLOAD_NOTE}</p>
-        <p className="upload__error" id="upload-error" role="alert" hidden={!error}>
+        <Notice
+          tone="error"
+          className="upload__error"
+          id="upload-error"
+          hidden={!error}
+        >
           {error}
-        </p>
+        </Notice>
       </div>
       <div className="doclist" aria-label="已上传的文档">
         <DocList materials={props.materials} picked={props.picked} onPick={props.onPick} />

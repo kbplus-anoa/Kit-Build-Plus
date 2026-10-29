@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 
 import { api } from "../api/client";
+import { localStore, markLocked, markUnlocked, passwordOk } from "../data/devLock";
+import { setDev, useDevMode } from "../data/devMode";
 import type { ConfigOut } from "../types/api";
 
 interface Props {
@@ -36,6 +38,37 @@ export function SettingsDialog(props: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const [password, setPassword] = useState("");
+  const [wrong, setWrong] = useState(false);
+  const dev = useDevMode();
+
+  /** 打开要密码；关掉就把门重新锁上，下次再输。 */
+  function turnDev(next: boolean) {
+    if (!next) {
+      setDev(false);
+      markLocked(localStore());
+      setAsking(false);
+      setPassword("");
+      setWrong(false);
+      return;
+    }
+    setAsking(true);
+    setPassword("");
+    setWrong(false);
+  }
+
+  function confirmDev() {
+    if (!passwordOk(password)) {
+      setWrong(true);
+      return;
+    }
+    markUnlocked(localStore(), password);
+    setDev(true);
+    setAsking(false);
+    setPassword("");
+    setWrong(false);
+  }
 
   useEffect(() => {
     const node = dialog.current;
@@ -166,6 +199,52 @@ export function SettingsDialog(props: Props) {
           越强越慢也越贵
         </span>
       </label>
+
+      <div className="settings__field settings__field--check">
+        <label className="settings__switch">
+          <input
+            type="checkbox"
+            className="settings__check"
+            checked={dev}
+            onChange={(event) => turnDev(event.target.checked)}
+          />
+          <span className="settings__label">开发者模式</span>
+        </label>
+        <span className="settings__hint">
+          打开后，重建画布的零件栏底部多出一块面板：可以给当前这份重建增减、改名概念、连接词，
+          也能改目标图的每一条命题。改动直接写进服务端的题库叠层，谁打开都是改过的样子；
+          恢复原样即回到解析出来的冻结图。
+        </span>
+        {asking && !dev ? (
+          <div className="settings__ask">
+            <input
+              className="settings__input"
+              type="password"
+              value={password}
+              aria-label="开发者模式密码"
+              placeholder="开发者模式密码"
+              autoFocus
+              onChange={(event) => {
+                setPassword(event.target.value);
+                setWrong(false);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") confirmDev();
+                if (event.key === "Escape") setAsking(false);
+              }}
+            />
+            <div className="settings__askacts">
+              <button type="button" className="btn btn--ghost" onClick={() => setAsking(false)}>
+                取消
+              </button>
+              <button type="button" className="btn btn--primary" onClick={confirmDev}>
+                确认
+              </button>
+            </div>
+            {wrong ? <p className="settings__error">密码不对。</p> : null}
+          </div>
+        ) : null}
+      </div>
 
       <p className="settings__note">
         {keyLine}

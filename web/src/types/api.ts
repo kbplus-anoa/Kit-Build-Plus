@@ -83,6 +83,7 @@ export interface KitAutoOut {
   concepts: ConceptOut[];
   connections: string[];
   total_propositions: number;
+  propositions: PropositionIn[];
   fingerprint: string;
   from_bank: boolean;
   possibly_inaccurate: boolean;
@@ -91,6 +92,50 @@ export interface KitAutoOut {
   calibrated: boolean;
   baseline_n: number;
   baseline_source: string;
+}
+
+export interface KitOut {
+  map_version: string;
+  concepts: ConceptOut[];
+  connections: string[];
+  total_propositions: number;
+  propositions: PropositionIn[];
+}
+
+export interface KitVersionOut {
+  map_version: string;
+  fingerprint: string;
+  vocab_version: string;
+  source: string;
+  in_use: boolean;
+  created_at: string;
+  total_propositions: number;
+}
+
+export interface KitVersionsOut {
+  material_id: number;
+  versions: KitVersionOut[];
+}
+
+export interface KitUseOut {
+  material_id: number;
+  map_version: string;
+  in_use: boolean;
+}
+
+/** 开发者模式：这一批改后的图，edited 说明库里存没存过改写。 */
+export interface DevKitOut extends KitOut {
+  edited: boolean;
+  updated_at: string;
+}
+
+export interface DevKitIn {
+  material_id: number;
+  map_version: string;
+  password: string;
+  concepts: ConceptOut[];
+  connections: string[];
+  propositions: PropositionIn[];
 }
 
 export interface PropositionIn {

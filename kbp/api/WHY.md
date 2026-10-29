@@ -9,7 +9,7 @@
 
 更麻烦的是装配：约定禁止 feature 互相 import，但"谁把它们拼起来"没有归属。
 此前靠 8 份 `test/conftest.py` 与 5 处 `install_paths()` 拼 `sys.path`，
-后果已经撞了两次——`service.py` 撞名、`quiz.py` 与目录撞名，
+后果已经撞了两次——`service.py` 撞名、`schemas_kit.py` 与 `schemas/` 撞名，
 每次都表现为"测试拿到了别的 feature 的模块"，极难定位。
 
 ## 目标

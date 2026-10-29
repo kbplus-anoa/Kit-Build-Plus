@@ -1,7 +1,13 @@
-/** 零件栏：概念与连接词放在这里。点一下放进画布，拖到画布也能放。 */
+/** 零件栏：概念与连接词放在这里。点一下放进画布，鼠标拖到画布也能放，手指拎过去也行。 */
 import { RailGroup } from "../../../../ui-share/layout/RailGroup";
+import { useFinePointer } from "../../../../ui-share/layout/useFinePointer";
+import { useDevMode } from "../../data/devMode";
 import { concepts, connectors, type Edge } from "../../data/kit";
+import { useKitSnapshot } from "../../hooks/useKitSnapshot";
+import type { Pt } from "./carry";
 import type { At } from "./model";
+import { DevPanel } from "./DevPanel";
+import { useCarry } from "./useCarry";
 
 interface Props {
   edges: Edge[];
@@ -10,10 +16,16 @@ interface Props {
   armedConn: string | null;
   locked: boolean;
   onConcept: (id: string) => void;
+  onDropAt: (id: string, at: Pt | null) => void;
   onConnector: (word: string) => void;
+  onKitChange: () => void;
 }
 
 export function PartRail(props: Props) {
+  useKitSnapshot();
+  const fine = useFinePointer();
+  const dev = useDevMode();
+  const carry = useCarry({ locked: props.locked, onDrop: props.onDropAt });
   const CONCEPTS = concepts();
   const CONNECTORS = connectors();
   const used = new Set(props.edges.flatMap((edge) => [edge.from, edge.to]));
@@ -38,9 +50,13 @@ export function PartRail(props: Props) {
               type="button"
               className={cls}
               aria-pressed={armed}
-              draggable={!props.locked}
+              draggable={fine && !props.locked}
               disabled={props.locked}
-              onClick={() => props.onConcept(concept.id)}
+              onPointerDown={(event) => carry.start(event, concept.id, concept.label)}
+              onClick={() => {
+                if (carry.tookClick()) return;
+                props.onConcept(concept.id);
+              }}
               onDragStart={(event) => {
                 event.dataTransfer.setData("text/plain", concept.id);
                 event.dataTransfer.effectAllowed = "copy";
@@ -68,6 +84,16 @@ export function PartRail(props: Props) {
           );
         })}
       </RailGroup>
+      {dev ? <DevPanel onChange={props.onKitChange} /> : null}
+      {carry.ghost ? (
+        <span
+          className="part part--ghost"
+          style={{ left: carry.ghost.x, top: carry.ghost.y }}
+          aria-hidden="true"
+        >
+          {carry.ghost.label}
+        </span>
+      ) : null}
     </aside>
   );
 }

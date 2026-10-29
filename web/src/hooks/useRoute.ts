@@ -1,11 +1,13 @@
 /**
- * 五个视图之间的路由：离场、入场、滚动记忆、Esc 返回。
+ * 六个视图之间的路由：离场、入场、滚动记忆、Esc 返回。
  * 照原型的 show/goHome：动画类写在真实节点上，React 只决定谁还挂着。
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type View = "home" | "load" | "study" | "report" | "history";
+import { lastView, rememberView } from "../data/view";
+
+export type View = "home" | "load" | "study" | "report" | "history" | "export";
 
 export const IDS: Record<View, string> = {
   home: "view-home",
@@ -13,6 +15,7 @@ export const IDS: Record<View, string> = {
   study: "view-study",
   report: "view-report",
   history: "view-history",
+  export: "view-export",
 };
 
 const FOCUS_MS = 160;
@@ -53,11 +56,11 @@ export interface Route {
 }
 
 export function useRoute(initial: View = "home"): Route {
-  const [view, setView] = useState<View>(initial);
+  const [view, setView] = useState<View>(() => lastView() ?? initial);
   const [leaving, setLeaving] = useState<{ view: View; top: number } | null>(null);
   const [homeIn, setHomeIn] = useState(true);
   const [homeOut, setHomeOut] = useState(false);
-  const current = useRef<View>(initial);
+  const current = useRef<View>(view);
   const fromHome = useRef(true);
   const leaveTimer = useRef(0);
   const homeTimer = useRef(0);
@@ -101,6 +104,7 @@ export function useRoute(initial: View = "home"): Route {
 
     window.KBPGlobe?.stop();
     window.KBPAurora?.stop();
+    rememberView(target);
     setHomeIn(false);
     setView(target);
 
@@ -133,6 +137,7 @@ export function useRoute(initial: View = "home"): Route {
       current.current = "home";
       fromHome.current = false;
       document.documentElement.classList.remove("report-open");
+      rememberView("home");
       setView("home");
       setLeaving(null);
       setHomeIn(false);

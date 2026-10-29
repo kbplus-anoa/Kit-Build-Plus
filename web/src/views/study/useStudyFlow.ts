@@ -7,6 +7,7 @@ import { getKit, type Kit } from "../../data/kit";
 import { CONDITION, PARTICIPANT_ID, TIME_POINT } from "../../data/session";
 import type { CurrentDraftIn, DraftOut, MaterialOut, SubmitIn, SubmitOut } from "../../types/api";
 import { clearDraft, readDraft, rememberMode, type Mode } from "./draft";
+import { flowStart } from "./flowStart";
 import { clockOf, seedPlacements } from "./model";
 import { useRebuild } from "./useRebuild";
 
@@ -15,6 +16,7 @@ export type Step = "prepare" | "rebuild";
 interface Args {
   materials: MaterialOut[];
   seed?: Attempt | null;
+  fresh?: number | null;
   onNeedKit: (materialId: number) => Promise<void>;
   onSubmitted: (materialId: number, seq: number, out: SubmitOut) => void;
   onConflict: (materialId: number) => void;
@@ -40,9 +42,10 @@ async function readRemote(materialId: number): Promise<DraftOut | null> {
 }
 
 export function useStudyFlow(args: Args) {
-  const [picked, setPicked] = useState<number | null>(
-    args.seed?.materialId ?? args.materials[0]?.material_id ?? null,
+  const start = useRef(
+    flowStart(args.materials, args.seed?.materialId ?? null, args.fresh ?? null),
   );
+  const [picked, setPicked] = useState<number | null>(start.current.picked);
   const [mode, setMode] = useState<Mode | null>(args.seed?.mode ?? null);
   const [step, setStep] = useState<Step>("prepare");
   const [confirming, setConfirming] = useState(false);
@@ -86,15 +89,15 @@ export function useStudyFlow(args: Args) {
     return kit;
   }
 
-  async function enterCanvas() {
-    if (!mode) return;
-    rememberMode(mode);
+  async function openMaterial(materialId: number, uiMode: Mode) {
+    rememberMode(uiMode);
     setRevising(null);
     try {
-      const kit = await ensureKit(picked);
+      const kit = await ensureKit(materialId);
       if (!kit) return;
       const remote = await readRemote(kit.materialId);
-      if (remote && remote.mode === MODE_OF[mode]) {
+      // 换了批次，旧草稿里的概念 id 就未必还对得上，先认版本号再恢复。
+      if (remote && remote.mode === MODE_OF[uiMode] && remote.map_version === kit.mapVersion) {
         const edges = remote.propositions.map((prop) => ({
           from: prop.head_id,
           conn: prop.connection,
@@ -105,7 +108,7 @@ export function useStudyFlow(args: Args) {
         return;
       }
       const draft = readDraft(kit.materialId, kit.mapVersion);
-      if (draft && draft.mode === mode) {
+      if (draft && draft.mode === uiMode) {
         openCanvas(draft.edges, draft.placed, draft.at, false);
         api.say("草稿已恢复：" + clockOf(draft.at) + " 保存的 " + draft.edges.length + " 条命题。", "↺");
         return;
@@ -114,6 +117,15 @@ export function useStudyFlow(args: Args) {
     } catch (error) {
       api.say(messageOf(error), "!");
     }
+  }
+
+  async function enterCanvas() {
+    if (!mode) return;
+    if (picked === null) {
+      api.say("先选一份教材。", "!");
+      return;
+    }
+    await openMaterial(picked, mode);
   }
 
   async function submit() {
@@ -230,6 +242,14 @@ export function useStudyFlow(args: Args) {
     setRevising(args.seed.id);
     apiRef.current.hydrate(args.seed.edges, args.seed.layout, null, true);
     setStep("rebuild");
+  }, []);
+
+  /* 上传刚解析完就带着那份教材进画布：退回选择教材处等于让刚做完的解析白费。 */
+  useEffect(() => {
+    const opening = start.current;
+    if (!opening.auto || opening.picked === null) return;
+    setMode("study");
+    void openMaterial(opening.picked, "study");
   }, []);
 
   useEffect(() => {

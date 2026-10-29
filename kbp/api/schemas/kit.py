@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, Field
 
-from kbp.api.schemas.core import MAX_TEXT, VocabIn
+from kbp.api.schemas.core import MAX_TEXT, Vec2In, VocabIn
 
 
 class BuildKitIn(BaseModel):
@@ -20,6 +20,7 @@ class KitOut(BaseModel):
     concepts: list[ConceptOut]
     connections: list[str]
     total_propositions: int
+    propositions: list[Vec2In] = []  # 目标图命题；开发者模式要看图并改图，故随 kit 带出
 
 
 class SignalOut(BaseModel):

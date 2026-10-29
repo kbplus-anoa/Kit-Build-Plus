@@ -43,22 +43,6 @@ class SubjectRow:
 
 
 @dataclass(frozen=True)
-class QuestionRow:
-    """export 契约：题级一行，long 格式，一人一题一时点一次提交。"""
-
-    participant_id: int  # 被试顺序编号，关联键之一；不可空，>=1
-    material_id: int  # 教材顺序编号，关联键之一；不可空，>=1
-    time_point: str  # 时点枚举 pre/post/delayed，关联键之一；不可空
-    submit_seq: int  # 提交序号，关联键之一；不可空，>=1
-    target_map_version: str  # 目标图版本；不可空
-    question_id: str  # 题号，同卷内唯一；不可空
-    correct: int  # 答对，0/1；不可空
-    score: float | None  # 得分，仅主观题与 TAM 量表用；可空（全单选时为 None）
-    qtype: str  # 题型枚举 single/blank/essay；不可空
-    content_dimension: str  # 内容维度，自由字符串；可空（空串未归类）
-
-
-@dataclass(frozen=True)
 class CsvPayload:
     """export 契约：一份就绪的 CSV，编码固定 UTF-8 带 BOM。"""
 

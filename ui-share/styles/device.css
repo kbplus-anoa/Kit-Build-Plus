@@ -1,0 +1,82 @@
+html[data-device="mobile"] {
+  --gutter: 16px;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html[data-device="mobile"] .topbar { padding-block: var(--space-4); }
+
+html[data-device="mobile"] .entries {
+  max-width: 560px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+html[data-device="mobile"] .entry {
+  min-height: 68px;
+  padding: var(--space-4) var(--space-5);
+}
+
+html[data-device="mobile"] .btn { min-height: 44px; }
+
+html[data-device="mobile"] .subbar__back,
+html[data-device="mobile"] .rbar__back { min-height: 44px; }
+
+html[data-device="mobile"] .rb {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, auto) auto;
+}
+
+/* 零件栏在手机上不再自己滚：手指按住零件要能一路拖到画布上，
+   栏内滚动会把这一手势吃掉。整页滚动接管，栏按内容摊开 */
+html[data-device="mobile"] .rail {
+  max-height: none;
+  overflow: visible;
+}
+
+html[data-device="mobile"] .rb__field { order: -1; }
+
+html[data-device="mobile"] .rb__bar {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+html[data-device="mobile"] .rb__bar .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+html[data-device="mobile"] .mode-pick,
+html[data-device="mobile"] .docpick {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+html[data-device="mobile"] .export__acts {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+html[data-device="mobile"] .export__acts .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+html[data-device="mobile"] .export__input,
+html[data-device="mobile"] .export__chip { max-width: 100%; }
+
+html[data-device="mobile"] .export__scroll { max-height: 60vh; }
+
+html[data-device="mobile"] .score {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+  padding-block: var(--space-6) var(--space-5);
+}
+
+html[data-device="mobile"] .taxonomy {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+html[data-device="mobile"] .row {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+html[data-device="mobile"] .settings { width: calc(100vw - 24px); }

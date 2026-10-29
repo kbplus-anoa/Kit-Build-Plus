@@ -6,7 +6,7 @@ import type { Kit } from "../data/kit";
 import { VOCAB } from "../data/vocab";
 import { initLoadGlobe, stopLoadGlobe } from "../fx/init";
 import type { Frame } from "../hooks/useRoute";
-import { kitFrom } from "./study/attemptBuild";
+import { kitFrom } from "../data/kitSource";
 
 interface Props {
   frame: Frame;

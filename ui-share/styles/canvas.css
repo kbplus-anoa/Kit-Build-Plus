@@ -130,6 +130,9 @@
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
   transition: color var(--motion-fast) var(--ease),
               border-color var(--motion-fast) var(--ease),
               background-color var(--motion-fast) var(--ease),
@@ -175,6 +178,19 @@
 }
 
 .part--conn { font-family: var(--font-mono); font-size: var(--text-xs); }
+
+/* 手指拎着的零件：跟着指针走的一枚芯片，不吃事件，也不参与排版 */
+.part--ghost {
+  position: fixed;
+  z-index: 60;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: none;
+  border-style: solid;
+  border-color: var(--muted);
+  background: var(--elevated);
+  color: var(--fg);
+}
 
 /* press feedback. Transform only, so a tap costs no layout. */
 .part:active,
@@ -855,12 +871,153 @@
   color: var(--fg);
 }
 
-/* the rail chip is a drag source; a grab cursor says so before the attempt */
-.rail__parts .part { cursor: grab; }
-.rail__parts .part:active { cursor: grabbing; }
+/* the rail chip is a drag source only where drag-and-drop exists: a finger
+   has no drag event, so touch keeps the plain arrow and adds on tap */
+@media (hover: hover) and (pointer: fine) {
+  .rail__parts .part { cursor: grab; }
+  .rail__parts .part:active { cursor: grabbing; }
+}
+
+/* 触屏：零件自己接管这根手指，不然一按就成了页面滚动，拖不动 */
+@media (hover: none), (pointer: coarse) {
+  .rail .part { touch-action: none; }
+}
 
 /* `.rbn` carries no transition of its own — the box inside it does — so naming
    `.rbn` here never switched anything off. */
 @media (prefers-reduced-motion: reduce) {
   .rbn__box, .part { transition: none; }
 }
+
+/* ── 开发者模式面板（零件栏底部） ───────────────────────────────── */
+
+.dev {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--border);
+}
+
+.dev__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--meta);
+}
+
+.dev__reset {
+  padding: 2px 8px;
+  font: inherit;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.dev__reset:hover { color: var(--fg); border-color: var(--border-strong); }
+
+.dev__group { display: flex; flex-direction: column; gap: var(--space-1); }
+
+.dev__title {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.dev__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dev__row { display: flex; align-items: center; gap: var(--space-1); }
+
+.dev__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 2px 6px;
+  font: inherit;
+  font-size: var(--text-xs);
+  color: var(--fg);
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.dev__input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.dev__del,
+.dev__addbtn {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  font: inherit;
+  font-size: var(--text-xs);
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.dev__del:hover { color: var(--node-red); border-color: var(--node-red); }
+.dev__addbtn:hover { color: var(--fg); border-color: var(--border-strong); }
+
+.dev__add { display: flex; align-items: center; gap: var(--space-1); }
+
+.dev__empty { font-size: var(--text-xs); color: var(--meta); }
+
+.dev__note {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--meta);
+  line-height: 1.6;
+}
+
+
+.dev__edges {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dev__edge { display: flex; align-items: center; gap: var(--space-1); }
+
+.dev__triple {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--text-xs);
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dev__conn { font-family: var(--font-mono); color: var(--muted); font-weight: 400; }
+
+.dev__triplepick { display: flex; align-items: center; gap: var(--space-1); }
+
+.dev__select {
+  min-width: 0;
+  flex: 1 1 0;
+  padding: 2px 4px;
+  font: inherit;
+  font-size: var(--text-xs);
+  color: var(--fg);
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.dev__select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+

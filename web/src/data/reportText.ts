@@ -4,7 +4,7 @@ import type { MarkKind } from "../../../ui-share/atoms/Mark";
 export type Kind = MarkKind;
 
 export const LABEL: Record<Kind, string> = {
-  correct: "连对",
+  correct: "正确",
   lacking: "缺失连接",
   excessive: "多余连接",
   leaving: "游离连接",
@@ -24,7 +24,7 @@ export const NOTE: Record<Kind, string> = {
   lacking: "目标图里有这条，你的图上没有",
   excessive: "这两个概念之间没有这条连接",
   leaving: "两端是对的，连接词不对",
-  reversed: "方向反了：目标图里这条是反过来的",
+  reversed: "方向反了：目标图里这条LABEL是反过来的",
 };
 
 export function scoreHeadline(counts: Record<Kind, number>, total: number): string {

@@ -3,37 +3,47 @@ import kbp.contracts.submission as submission
 import kbp.rebuild.usage as usage
 
 
-def final(map_version="v1", tp=submission.POST, seq=1, fingerprint="fp1"):
+def final(map_version="v1", tp=submission.POST, seq=1, fingerprint="fp1",
+          material=1):
     return submission.Submission(map_version=map_version, fingerprint=fingerprint,
                                  mode=submission.TEST, propositions=(),
                                  started_at="", submitted_at="2026-10-25T10:00:00",
-                                 participant_id=1, material_id=1, time_point=tp,
-                                 submit_seq=seq)
+                                 participant_id=1, material_id=material,
+                                 time_point=tp, submit_seq=seq)
 
 
 def test_未提交时版本未锁定():
     conn = ds.connect(":memory:")
-    assert usage.SubmissionUsage(conn).is_used("v1") is False
+    assert usage.SubmissionUsage(conn, 1).is_used("v1") is False
     conn.close()
 
 
 def test_提交后该版本锁定():
     conn = ds.connect(":memory:")
     ds.submit(conn, final("v1"))
-    assert usage.SubmissionUsage(conn).is_used("v1") is True
+    assert usage.SubmissionUsage(conn, 1).is_used("v1") is True
     conn.close()
 
 
 def test_其他版本不受影响():
     conn = ds.connect(":memory:")
     ds.submit(conn, final("v1"))
-    assert usage.SubmissionUsage(conn).is_used("v2") is False
+    assert usage.SubmissionUsage(conn, 1).is_used("v2") is False
+    conn.close()
+
+
+def test_别的教材用过不影响本教材():
+    """版本号教材内唯一：别的教材的 v1 被用过，不该锁住本教材的 v1。"""
+    conn = ds.connect(":memory:")
+    ds.submit(conn, final("v1", material=2))
+    assert usage.SubmissionUsage(conn, 1).is_used("v1") is False
+    assert usage.SubmissionUsage(conn, 2).is_used("v1") is True
     conn.close()
 
 
 def test_空版本视为已锁定():
     conn = ds.connect(":memory:")
-    assert usage.SubmissionUsage(conn).is_used("") is True
+    assert usage.SubmissionUsage(conn, 1).is_used("") is True
     conn.close()
 
 
@@ -41,7 +51,9 @@ def test_列出被用过的版本():
     conn = ds.connect(":memory:")
     ds.submit(conn, final("v1", seq=1))
     ds.submit(conn, final("v2", seq=2))
-    assert usage.lock_versions(conn) == ("v1", "v2")
+    ds.submit(conn, final("v3", seq=3, material=2))
+    assert usage.lock_versions(conn, 1) == ("v1", "v2")
+    assert usage.lock_versions(conn, 2) == ("v3",)
     conn.close()
 
 

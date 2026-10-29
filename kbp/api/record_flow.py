@@ -16,12 +16,12 @@ from kbp.api.schemas import (ConceptOut, CurrentDraftIn, DraftOut, ErrorOut,
 
 
 def kit_for(conn, material_id: int, map_version: str, batch_id: str = ""):
-    """先按版本号查题库；题库里没有才回到人工裁定批次。"""
+    """先按版本号查题库；题库里没有才回到人工裁定批次，顺手登记进库。"""
     entry = kbp.kit.bank_store.by_version(conn, material_id, map_version)
     if entry is not None:
-        return entry.target_map, kbp.kit.split.split(entry.target_map)
-    target = kbp.kit.kit_service.freeze_batch(conn, batch_id, map_version)
-    return target, kbp.kit.split.split(target)
+        return kbp.kit.kit_service.target_kit(conn, entry)
+    return kbp.kit.kit_service.freeze_and_bank(conn, material_id, batch_id,
+                                               map_version)
 
 
 def score_detail(result) -> dict:

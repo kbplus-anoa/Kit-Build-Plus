@@ -1,18 +1,18 @@
 <!-- @zone code -->
 
-# TODO — kb-mixed
+# TODO — kit-build-plus
 任务版，只留两轮。每轮整体重写。复选框可由 agent 勾选。
 
 ## 交接
 
-已验证：.venv/bin/python -m pytest 492 passed；.venv/bin/python -m flake8 . 退出 0；GET / 返 200。
-真实调用已跑通：本机 OpenAI 兼容代理 127.0.0.1:8788，deepseek-v4.1-flash，8 句教材得 5 条、0 越界、31.85s。
-TAM 已通：POST /api/tam/answers 整卷落库，GET /api/tam/alpha 从库算 α。
-阶段 6 已完：导出按库检索、量表作答落库、重抽批次并存可切回。下一步阶段 7 前端，等用户 HTML 原型。
-
-未完成：见未解决。研究线（R 脚本、双人标注、docs/research）不在本板。
-
-动手前读：SPEC.md 决策段 D01–D12、kbp/extract/DESIGN.md、kbp/kit/INDEX.md。
+已验证：.venv/bin/python -m pytest 退出 0；flake8 退出 0；npm test 退出 0；
+uvicorn 起在 127.0.0.1:8848，GET / 与 /api/health 均 200。
+阶段 0 至 6 后端大体落地，人工裁定批首次用到即进库。
+测验与量表已按用户意思整条删除：因变量由问卷星等外部平台收集，
+本项目不出题、不收答。
+前端有首页、教材准备、建图、差异图、历史、导出六页；
+教材准备页可看批次、切批、重抽。
+当前分支 fix/audit-20261028，改动未提交。
 
 踩过的坑：
 1 契约冻结，改前给旧→新、影响范围、迁移方式，等用户确认
@@ -24,87 +24,85 @@ TAM 已通：POST /api/tam/answers 整卷落库，GET /api/tam/alpha 从库算 �
 7 密钥只走环境变量，不进文件、日志、响应、commit
 8 测完服务用 fuser -k 端口/tcp；pkill -f uvicorn 会连承载 shell 一起杀掉
 9 pydantic 字段名不能叫 construct，会与 BaseModel 自带方法撞名
-10 变异验证后必须删 __pycache__：改回同长度的源码若落在同一秒，pyc 被认为有效，跑的还是旧代码
+10 变异验证后必须删 __pycache__：改回同长度的源码若落在同一秒，
+   pyc 被认为有效，跑的还是旧代码
+11 前端只认 client.ts 一个出口；新接口要先补 types/api.ts，
+   否则类型断言会盖住后端字段变更
+12 写锁不可重入：会把库写进去的调用必须整段落在锁内，且只进一层
+13 下载类接口要看 Content-Disposition，文件名由后端给，前端不自己拼
+14 批次一换，概念 id 就换了一套，恢复草稿要先比对 map_version
+15 一份教材同时只有一批在用：切批时先清这份教材的全部标记，再置新的那批
+16 版本号是教材内唯一，判「这一版被用过没」必须带 material_id，
+   否则别的教材用过 v1 就把新教材的 v1 判成锁定
+17 split 会剪掉没被命题用到的零件，所以改图那一份 kit 不能从命题反推，
+   要直接读库里存的概念与连接词
+18 后端改了接口先重启再点界面：旧进程还在跑旧代码时，前端拿不到新字段，
+   异常又被事件回调吞掉，表现是「点了没反应」
+19 headless 里改输入框用原型上的 value setter 再派发 input，改完要等一拍
+   再改下一个 select，否则读到过期闭包
+
+## 本轮
+
+- [x] 版本锁按教材限定：SubmissionUsage 带 material_id，别的教材用过 v1
+      不再锁死新教材的 v1；GET /api/lock 增必填 material_id
+- [x] 手机拖概念整页跟着动：零件栏的 draggable 只在细指针设备上开，
+      另加触屏搬运手势——按住在零件栏、拖到画布松手即放下
+- [x] 手机上传教材后立刻退回选择教材处：进画布直接按新教材开，
+      不再回落列表第一项；配套 web/tests/flowStart.test.ts 与 carry.test.ts
+- [x] 给 fx 补外部冻结入口（?fx=freeze、?veil=static 一类）：
+      aurora、globe、loadglobe 复用既有静帧与 stop，不另开渲染路径，
+      正常浏览与 prefers-reduced-motion 分支不变
+- [x] 新增 web/tools/shot.mjs：只用 node 内置 fetch 与 WebSocket 驱动 CDP，
+      Chrome 进独立进程组，正常结束、中断、异常与硬超时都整组 SIGKILL
+- [x] 归档临时测量架引发的资源泄漏：.scratch/fx-measure/BUG.md 记现象、
+      根因、复现、修复清单与验收，并写明不杀 gpu 子进程、不靠
+      visibilitychange、不用 --single-process
+- [x] 设置里加开发者模式：密码 1234321，服务端再验一次；开关记忆在浏览器，
+      关掉即清
+- [x] 开发者模式可改目标图任意命题的三元组，也可加删命题、改名增删概念与连接词
+- [x] 开发者改动落库而非只存浏览器：新增 dev_overlay 表，读图时盖在冻结图上，
+      冻结图的指纹、版本号与投用标记不动，撤销即删该行；草稿与提交按改后的图校验
+- [ ] 手机连不上开发服：ufw 开启且默认 DROP，5173 未放行；要用户执行
+      sudo ufw allow 5173/tcp（vite 已绑 0.0.0.0:5173，放行后即可用局域网 IP 访问）
+- [ ] 手机上上传教材后回主页：已按「新教材直接进画布」改过一处，
+      只剩真机确认是不是整页重载引起
 
 ## 上一轮
 
-- [x] 抽取引擎换 OpenAI 兼容接口，供应商枚举不写死厂商
-- [x] 置信度改本地代理分，概念塞连接词与超长概念两条硬规则
-- [x] 抽崩检测 S1–S4 与提示文案
-- [x] 扫描件云端解析失败即中止报错
-- [x] TAM 量表 14 题与各构念 Cronbach α
-- [x] kit 共用冻结规则 + freeze_auto + 内容指纹
-- [x] /api/config、/api/kit/auto、/api/tam/items、/api/tam/alpha
-- [x] 导出加 fingerprint 列
+- [x] 重抽批次界面接通：新增 GET /api/kit/entry（复用 KitOut，
+      靠 kit_service.version_kit 取某一批零件集），BatchList 列版本号、
+      来源、命题数、时间，可切批可重抽，样式单独放 batch.css
+- [x] App 拆出 hooks/useKit.ts 与 hooks/useAttempts.ts，从 253 行回到 190 行
+- [x] 恢复远程草稿前先核对 map_version，切批后旧草稿不再串到新图上
+- [x] 后端补 tests/api/test_kit_versions.py 两条用例并做变异验证
+- [x] 导出页补预览表：GET /api/export/preview 回表头、前几行与总行数
+      （默认 8 行，1 到 50），单元格先拼 CSV 再读回来，与下载逐字一致；
+      前端 Preview 组件横向滚动展示，空单元格显示破折号
+- [x] 抽 ui-share/atoms/Notice.tsx：错误与状态的角色配对收进一处
+- [x] 按用户意思删掉超时自动提交：那是实验设计的内容，项目不做计时
+- [x] 首页三个入口改纵向一行一个：entries 单列、最宽 560
+- [x] 按设备自动选版式：web/src/data/device.ts 看 UA 写 html[data-device]，
+      ui-share/styles/device.css 管触控目标、动作条竖排、画布单列
+- [x] 修「切换批次后两个都显示在用」：mark_in_use 只置新批、不清旧批，
+      改成先清这份教材的全部标记再置新批
+- [x] 手机极光细条纹：按输出空间抖动，幅度按放大倍数预加重；
+      真机复测后决定不再追，抖动留在树里
 
 ## 未解决
 
-### 阶段 0 等用户确认，阻塞后续
-
-- [x] 关联键改四元：被试标识 + 教材 + 时点 + 提交序号（D09）。已直接换库，不写迁移。
-      旧 participant_id + material_id + session；新 participant_id + material_id + time_point + submit_seq。
-      影响 kbp/contracts/submission.py、quizsheet.py、exportcsv.py；kbp/rebuild/draft_store.py、
-      rebuild_service.py、rebuild_validate.py；kbp/quiz/quiz_store.py、grade.py；kbp/api/schemas.py；
-      kbp/export/subject_table.py、question_table.py；两处 store 表主键与全部相关测试。需换库或写迁移。
-- [x] FMS 改 0–100（D04）。旧 ratio 返回 0–1，新 × 100。
-      影响 kbp/contracts/report.py、kbp/score/score_service.py、kbp/export/subject_table.py、ScoreOut 与相关测试。
-- [x] 重建提交的时点取值：保留 pre / post / delayed 三种（用户定）。
-
-### 阶段 1 契约（一个契约域一次提交，先契约测试后实现）
-
-- [x] 落 D09 四元关联键
-- [x] 落 D04 FMS 0–100
-- [x] 新契约 targetbank：按教材与词表版本登记、按内容指纹查已冻结目标图
-- [x] extraction 契约补存储语义
-
-### 阶段 2 kit 落库与题库命中
-
-- [x] target_map 表落库：版本、指纹、概念、命题、来源批次、创建时间、是否投用
-- [x] /api/kit/auto 先查题库（教材 + 词表版本），命中直接复用，不再重抽
-- [x] 未命中才自动抽，冻结成新版本新指纹，不复用旧版本号
-- [x] 已投用版本拒改：lock.assert_mutable 接在落库入口
-- [ ] 人工裁定路（/api/kit/build）冻结后落库：缺 material_id 关联，待补
-
-### 阶段 3 rebuild
-
-- [x] 学习模式允许回改重交：按 mode 放行，submit_seq 自增；测验模式仍锁一次
-- [x] 白名单校验挂到编辑动作：草稿保存也按 kit 校验，覆盖提交后回改（D11）
-- [x] 草稿 HTTP 入口：POST/GET /api/draft，接 rebuild_service.save_draft
-- [x] 提交落库带指纹、时点、提交序号
-
-### 阶段 4 extract
-
-- [x] 抽崩阈值配置化：写进配置项，记录基线来源与样本量；冻结图出现前阈值留空并标未校准（D08）。
-      已落 `quality_thresholds` 单行表与 `Thresholds` 契约；未校准时信号只带原值。
-- [x] 越界丢弃留档：机器侧一本，与人工裁定留档分开（D12）。
-      丢弃由 normalize.collect 收口，引擎逐段带回，落 `discarded_candidate` 表。
-- [x] ExtractionRecord 落库：原始输出与配置快照存库，不进 CSV。
-      自动路每批一条 `auto-*`，含候选、丢弃、原始输出与段数；冻结后回填版本与指纹。
-
-### 阶段 5 ingest
-
-- [x] 解析结果缓存：键 = 源文件字节哈希 + 解析器版本，落盘 tmp 不入 git（D10）。
-      实现在 ingest，空文本不缓存，损坏当未命中。
-
-### 阶段 6 api 与数据出口
-
-- [x] 导出改服务端检索：按被试、教材、时点单多全选，前端不再自己攒数
-- [x] 量表作答落库，α 从库算
-- [x] 学生重抽：新旧两批并存不覆盖，旧批可切回
-
 ### 阶段 7 前端
 
-- [ ] ui-share/styles：颜色、字号、间距、动效令牌
-- [ ] ui-share/atoms：按钮、复选框、进度条、提示条
-- [ ] ui-share/layout：顶栏、侧栏、底部操作条
-- [ ] ui-share/canvas：ReactFlow 封装，connectOnClick 点-点连线，handle ≥ 24px
-- [ ] 页面：教材准备含抽崩警告 → 模式选择 → 重建 → 提交 → 差异图 → 测验 → 量表 → 导出
-- [ ] web 与 ui-share 集成
-- 页面设计等用户提供 HTML 原型
+- [ ] 按钮仍有 18 处各 view 手写 button 加 .btn 类：视觉已由 base.css 统一，
+      是否再抽 atoms/Btn（只省 class 拼装）待定，抽之前不迁移
+- [ ] useStudyFlow.ts 超出单文件行数约定，是否单开一轮拆待用户定
 
-### 阶段 8 文档
+### 阶段 8 文档（用户已说先不动，等叫）
 
-- [ ] 34 份 feature 文档按新风格重写：极简，无表格、无粗体、无引用块、无代码围栏、无跨文件引用
+- [ ] 各 feature 的 DESIGN.md 与多份 INDEX、WHY 仍是旧风格：
+      有表格、粗体、引用块、代码围栏
+- [ ] kbp/contracts 只有 INDEX.md，缺 WHY 与 TASKS；kbp/api 没有 DESIGN.md，
+      是否补要用户定
+- [ ] web 与 ui-share 没有索引文档，导出页、批次组件与两份钩子未在文档里露面
 - [ ] 每份随所属 feature 的提交一起改，不单开纯文档提交
 
 <!-- /@zone code -->
