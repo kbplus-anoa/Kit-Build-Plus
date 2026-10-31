@@ -14,7 +14,7 @@ Kit-Build 的教学效果有二十年实证支撑，但它一直卡在成本上�
 
 ## 界面
 
-首页与手机版：
+首页：
 
 ![首页](docs/screenshots/01-home-desktop.png)
 
@@ -22,13 +22,17 @@ Kit-Build 的教学效果有二十年实证支撑，但它一直卡在成本上�
 
 ![选择教材](docs/screenshots/03-study-desktop.png)
 
-重建画布：左边是发给学生的零件，右边是画布，底部是实时命题计数：
+重建画布：左边是发给学生的零件，右边连图，底部实时命题计数：
 
-![重建画布](docs/screenshots/05-canvas-desktop.png)
+![重建画布](docs/screenshots/04-canvas-desktop.png)
 
-历史报告与数据导出：
+提交后逐条告诉你哪条对、哪条错，四类错误分开计数：
 
-![历史报告](docs/screenshots/02-history-desktop.png)
+![评分报告](docs/screenshots/05-report-desktop.png)
+
+手机版：
+
+![手机版](docs/screenshots/02-home-mobile.png)
 
 <!-- /@zone user -->
 <!-- @zone code -->
