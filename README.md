@@ -12,6 +12,8 @@
   <img alt="零配置演示" src="https://img.shields.io/badge/demo-no%20api%20key-2f6f4f?style=flat-square">
   <img alt="前端" src="https://img.shields.io/badge/frontend-prebuilt-7da1de?style=flat-square">
   <img alt="状态" src="https://img.shields.io/badge/status-competition%20build-f0a441?style=flat-square">
+  <br>
+  <a href="https://github.com/kbplus-anoa/Kit-Build-Plus/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/kbplus-anoa/Kit-Build-Plus/actions/workflows/ci.yml/badge.svg"></a>
 
 </div>
 
@@ -199,11 +201,7 @@ cd web && npm install && npm run build # 重建前端（改了 web/ 才需要）
 
 约定与目录纪律写在 `AGENTS.md`，需求与设计决策在 `SPEC.md`，统计与导出字段口径在 `STAT_PLAN.md`、`CSV_PLAN.md`。
 
-CI 徽章：仓库推到 GitHub 后，把下面这行贴在标题下方可用（把 `OWNER` 换成你的用户名）：
-
-```html
-<img alt="CI" src="https://github.com/OWNER/Kit-Build-Plus/actions/workflows/ci.yml/badge.svg">
-```
+CI 徽章已经指向本仓库的 workflow；Fork 之后把 badge 地址里的 `kbplus-anoa` 换成你自己的用户名即可。
 
 ## 论文与版权
 
