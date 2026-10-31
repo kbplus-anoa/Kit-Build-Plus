@@ -1,6 +1,6 @@
 <!-- @zone research -->
 # STAT_PLAN 统计量、算法与作用
-先确认要算什么、怎么算、为什么算，再定导出字段。依据取自 docs/research/papers 下论文的实际做法，逐条标出处行号。字段定义不在本文件。
+先确认要算什么、怎么算、为什么算，再定导出字段。依据取自 docs/research/文献清单.md 所列论文的实际做法，逐条标 DOI。字段定义不在本文件。
 ## 零 一条前置结论
 统计量的选择决定字段粒度。顺序是先定统计量，再定字段，最后才决定要不要第二张表。
 文献与本地文件对照，后文只写文件名：10.58459_rptel.2024.19021.txt 是 Rismanto 等 2024，RPTEL 19:21；10.58459_rptel.2026.21021.txt 是 Khudhur 等 2026，RPTEL 21:21；10.1186_s41039-022-00189-9.txt 是 Prasetya 等 2022，RPTEL 17:14；10.1186_s41039-017-0060-x.txt 是 Pailai 等 2017，RPTEL 12:20；10.1109_tlt.2021.3103331.txt 是 Kroeze 等 2021，IEEE TLT 14(4):460 到 473；10.1007_s11423-006-6497-z.txt 是 Taricani 与 Clariana 2006；10.1587_transinf.2017edp7177.txt 是 Wunnasri 等 2018，IEICE E101-D(4):1141 到 1150；10.1587_transinf.2021edp7069.txt 与 10.1587_transinf.2022edp7203.txt 均为 IEICE 论文；10.1016_j.eswa.2009.07.044.txt 是 Cline 等 2010，ESWA 37(3):2282 到 2291；10.14569_ijacsa.2020.0110420.txt 与 10.12937_ejsise.14.13.txt 分别属 IJACSA 与信息与系统教育。

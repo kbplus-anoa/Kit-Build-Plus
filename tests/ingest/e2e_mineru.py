@@ -2,7 +2,7 @@
 
 不属于 pytest 用例：会消耗云端配额且有网络依赖，需手工运行：
     set -a; . .env; set +a
-    .venv/bin/python tests/ingest/e2e_mineru.py
+    PYTHONPATH=. .venv/bin/python tests/ingest/e2e_mineru.py
 """
 
 import pathlib
@@ -14,6 +14,9 @@ PDF = "docs/research/papers/10.58459_icce_2016_1012.pdf"
 
 
 def main() -> int:
+    if not pathlib.Path(PDF).is_file():
+        print("跳过：样例 PDF 不随仓库分发，按 docs/research/文献清单.md 的 DOI 自行取一份放回该路径再跑。")
+        return 0
     name = pathlib.Path(PDF).name
     batch_id, upload_url = kbp.ingest.ocr.request_upload(name)
     print("batch_id:", bool(batch_id))
