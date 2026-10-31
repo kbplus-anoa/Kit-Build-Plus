@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Kit-Build-Plus">
+  <rect width="120" height="120" rx="26" fill="#f4f4f6"/>
+  <g stroke="#1b1b1f" stroke-width="2.4" stroke-linecap="round" fill="none">
+    <path d="M32 82 L58 40"/>
+    <path d="M58 40 L88 74"/>
+    <path d="M32 82 L88 74"/>
+  </g>
+  <g fill="#f4f4f6" stroke="#1b1b1f" stroke-width="2.4">
+    <circle cx="32" cy="82" r="9"/>
+    <circle cx="88" cy="74" r="9"/>
+  </g>
+  <circle cx="58" cy="40" r="9" fill="#e8321f" stroke="#e8321f" stroke-width="2.4"/>
+</svg>
